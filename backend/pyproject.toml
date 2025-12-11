@@ -17,4 +17,6 @@ dependencies = [
     "tiktoken>=0.8.0",
     "pydantic-settings>=2.9.1",
     "pymupdf>=1.26.1",
+    "azure-ai-projects>=1.0.0",
+    "azure-identity>=1.19.0",
 ]

@@ -73,7 +73,7 @@ class PolicyVectorSearch:  # noqa: D101
                 model=settings.azure_openai_embedding_model or "text-embedding-ada-002",
                 azure_endpoint=settings.azure_openai_endpoint,
                 api_key=settings.azure_openai_api_key,
-                api_version="2024-02-01",
+                api_version=settings.azure_openai_api_version or "2024-08-01-preview",
             )
             logger.info("Azure OpenAI embeddings initialized")
         except Exception as e:  # pragma: no cover

@@ -26,6 +26,12 @@ class Settings(BaseSettings):  # noqa: D101
         default="gpt-4o", alias="AZURE_OPENAI_DEPLOYMENT_NAME")
     azure_openai_embedding_model: str | None = Field(
         default="text-embedding-ada-002", alias="AZURE_OPENAI_EMBEDDING_MODEL")
+    azure_openai_api_version: str | None = Field(
+        default="2024-08-01-preview", alias="AZURE_OPENAI_API_VERSION")
+    
+    # Azure AI Foundry Project (for Agent Service)
+    project_endpoint: str | None = Field(
+        default=None, alias="PROJECT_ENDPOINT")
 
     # FastAPI
     app_name: str = "Insurance Multi-Agent Backend"

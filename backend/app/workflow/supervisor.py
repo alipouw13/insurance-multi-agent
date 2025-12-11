@@ -43,6 +43,7 @@ def _build_llm() -> AzureChatOpenAI:  # noqa: D401
     endpoint = settings.azure_openai_endpoint
     deployment = settings.azure_openai_deployment_name or "gpt-4o"
     api_key = settings.azure_openai_api_key
+    api_version = settings.azure_openai_api_version or "2024-08-01-preview"
 
     logger.info("✅ Configuration loaded successfully")
     logger.info("Azure OpenAI Endpoint: %s", endpoint or "Not set")
@@ -53,7 +54,7 @@ def _build_llm() -> AzureChatOpenAI:  # noqa: D401
             azure_deployment=deployment,
             api_key=api_key,
             azure_endpoint=endpoint,
-            api_version="2024-08-01-preview",
+            api_version=api_version,
             temperature=0.1,
         )
     
