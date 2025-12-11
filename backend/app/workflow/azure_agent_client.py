@@ -96,6 +96,37 @@ def run_agent(agent_id: str, user_message: str) -> List[Dict[str, Any]]:
         raise
 
 
+def list_agents():
+    """List all agents in the project.
+    
+    Returns:
+        List of agent objects
+    """
+    project_client = get_project_client()
+    try:
+        agents = project_client.agents.list_agents()
+        return list(agents)
+    except Exception as e:
+        logger.error(f"Error listing agents: {e}", exc_info=True)
+        return []
+
+
+def find_agent_by_name(name: str):
+    """Find an agent by name.
+    
+    Args:
+        name: Name of the agent to find
+        
+    Returns:
+        Agent object if found, None otherwise
+    """
+    agents = list_agents()
+    for agent in agents:
+        if agent.name == name:
+            return agent
+    return None
+
+
 def delete_agent(agent_id: str):
     """Delete an Azure AI Agent Service agent.
     
@@ -105,7 +136,7 @@ def delete_agent(agent_id: str):
     project_client = get_project_client()
     try:
         project_client.agents.delete_agent(agent_id)
-        logger.info(f"Deleted agent: {agent_id}")
+        logger.info(f"✅ Deleted agent: {agent_id}")
     except Exception as e:
         logger.error(f"Error deleting agent: {e}", exc_info=True)
         raise

@@ -3,17 +3,15 @@ import os
 import logging
 from typing import Dict, Any
 from azure.ai.projects import AIProjectClient
-from azure.ai.projects.models import FunctionTool, ToolSet
+from azure.ai.agents.models import FunctionTool, ToolSet
 from azure.identity import DefaultAzureCredential
 from app.core.config import get_settings
 
 logger = logging.getLogger(__name__)
 
 
-def get_vehicle_details_function(vin: str) -> Dict[str, Any]:
-    """Function wrapper for get_vehicle_details tool.
-    
-    Retrieve vehicle information for a given VIN number.
+def get_vehicle_details(vin: str) -> Dict[str, Any]:
+    """Retrieve vehicle information for a given VIN number.
     
     Args:
         vin: Vehicle Identification Number
@@ -21,14 +19,12 @@ def get_vehicle_details_function(vin: str) -> Dict[str, Any]:
     Returns:
         Dictionary containing vehicle details including make, model, year, value, etc.
     """
-    from app.workflow.tools import get_vehicle_details
-    return get_vehicle_details.invoke(vin)
+    from app.workflow.tools import get_vehicle_details as get_details_tool
+    return get_details_tool.invoke(vin)
 
 
-def analyze_image_function(image_path: str) -> Dict[str, Any]:
-    """Function wrapper for analyze_image tool.
-    
-    Analyze an image using Azure OpenAI multimodal model to classify and extract data.
+def analyze_image(image_path: str) -> Dict[str, Any]:
+    """Analyze an image using Azure OpenAI multimodal model to classify and extract data.
     
     Args:
         image_path: Path to the image file to analyze
@@ -36,8 +32,8 @@ def analyze_image_function(image_path: str) -> Dict[str, Any]:
     Returns:
         Dictionary with image classification, summary, and extracted data
     """
-    from app.workflow.tools import analyze_image
-    return analyze_image.invoke(image_path)
+    from app.workflow.tools import analyze_image as analyze_tool
+    return analyze_tool.invoke(image_path)
 
 
 def create_claim_assessor_agent(project_client: AIProjectClient = None):
@@ -66,14 +62,17 @@ def create_claim_assessor_agent(project_client: AIProjectClient = None):
     
     # Define the functions that the agent can call
     user_functions = {
-        get_vehicle_details_function,
-        analyze_image_function,
+        get_vehicle_details,
+        analyze_image,
     }
     
-    # Create function tool
+    # Create function tool and enable auto function calls
     functions = FunctionTool(functions=user_functions)
     toolset = ToolSet()
     toolset.add(functions)
+    
+    # Enable automatic function calling (this allows the agent to automatically execute tools)
+    project_client.agents.enable_auto_function_calls(toolset)
     
     # Agent instructions (prompt)
     instructions = """You are a claim assessor specializing in damage evaluation and cost assessment.
@@ -95,6 +94,14 @@ Use the `get_vehicle_details_function` tool when you have a VIN number to valida
 Provide detailed assessments with specific cost justifications that incorporate vehicle details and insights derived from images.
 End your assessment with: VALID, QUESTIONABLE, or INVALID."""
 
+    # Check if agent already exists
+    from app.workflow.azure_agent_client import find_agent_by_name
+    existing_agent = find_agent_by_name("claim_assessor")
+    
+    if existing_agent:
+        logger.info(f"✅ Using existing Azure AI Agent: {existing_agent.id} (claim_assessor)")
+        return existing_agent
+    
     # Create the agent
     try:
         agent = project_client.agents.create_agent(

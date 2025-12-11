@@ -61,7 +61,8 @@ app.add_middleware(
 
 @app.on_event("startup")
 async def startup_event():
-    """Initialize policy search index on startup."""
+    """Initialize policy search index and deploy Azure AI agents on startup."""
+    # Initialize policy search index
     logger.info("🚀 Initializing policy search index...")
     try:
         policy_search = get_policy_search()
@@ -69,6 +70,19 @@ async def startup_event():
     except Exception as e:
         logger.error("❌ Failed to initialize policy search index: %s", e)
         # Don't raise - let the app start but log the error
+    
+    # Deploy Azure AI agents
+    logger.info("🚀 Deploying Azure AI Agent Service agents...")
+    try:
+        from app.workflow.azure_agent_manager import deploy_azure_agents
+        azure_agents = deploy_azure_agents()
+        if azure_agents:
+            logger.info(f"✅ Azure AI agents deployed: {list(azure_agents.keys())}")
+        else:
+            logger.info("ℹ️  Using LangGraph agents (Azure AI agents not available)")
+    except Exception as e:
+        logger.warning(f"⚠️  Failed to deploy Azure AI agents: {e}")
+        logger.info("ℹ️  Using LangGraph agents as fallback")
 
 # Root
 

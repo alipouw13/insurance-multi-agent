@@ -71,11 +71,14 @@ Assess the claim and provide your evaluation."""
                 logger.info(f"\n👤 User:\n{msg['content']}\n")
         logger.info("=" * 80)
         
-        # Step 5: Cleanup (optional - comment out to keep agent for reuse)
+        # Step 5: Cleanup
         logger.info("\n📌 Step 5: Cleanup...")
-        logger.info("⚠️  Agent left in Foundry project for reuse.")
-        logger.info(f"   Agent ID: {agent.id}")
-        logger.info("   To delete manually, use: project_client.agents.delete_agent(agent.id)")
+        from app.workflow.azure_agent_client import delete_agent
+        try:
+            delete_agent(agent.id)
+            logger.info(f"✅ Deleted agent: {agent.id}")
+        except Exception as e:
+            logger.warning(f"⚠️  Could not delete agent: {e}")
         
         logger.info("\n✅ Test completed successfully!")
         return True
