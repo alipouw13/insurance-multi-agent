@@ -45,7 +45,7 @@ interface CommunicationResult {
 
 export default function CommunicationAgentDemo() {
   const [sampleClaims, setSampleClaims] = useState<SampleClaim[]>([])
-  const [isLoading, setIsLoading] = useState(false)
+  const [processingClaimId, setProcessingClaimId] = useState<string | null>(null)
   const [isLoadingSamples, setIsLoadingSamples] = useState(true)
   const [result, setResult] = useState<CommunicationResult | null>(null)
   const [error, setError] = useState<string | null>(null)
@@ -75,7 +75,7 @@ export default function CommunicationAgentDemo() {
   }, [])
 
   const runCommunication = async (claim: SampleClaim) => {
-    setIsLoading(true)
+    setProcessingClaimId(claim.claim_id)
     setError(null)
     
     try {
@@ -100,7 +100,7 @@ export default function CommunicationAgentDemo() {
       setError(errorMessage)
       toast.error('Communication draft failed: ' + errorMessage)
     } finally {
-      setIsLoading(false)
+      setProcessingClaimId(null)
     }
   }
 
@@ -323,11 +323,11 @@ export default function CommunicationAgentDemo() {
                       <Button 
                         variant="outline" 
                         size="sm" 
-                        disabled={isLoading}
+                        disabled={processingClaimId !== null}
                         className="w-full mt-auto"
                         onClick={() => runCommunication(claim)}
                       >
-                        {isLoading ? 'Processing...' : 'Draft Email'}
+                        {processingClaimId === claim.claim_id ? 'Processing...' : 'Draft Email'}
                       </Button>
                     </div>
                   </CardContent>
@@ -366,7 +366,7 @@ export default function CommunicationAgentDemo() {
               </Alert>
             )}
 
-            {isLoading && (
+            {processingClaimId !== null && (
               <div className="flex items-center justify-center py-8">
                 <IconClock className="h-6 w-6 animate-spin mr-2" />
                 <span>Drafting communication...</span>
@@ -462,7 +462,7 @@ export default function CommunicationAgentDemo() {
               </div>
             )}
 
-            {!result && !isLoading && !error && (
+            {!result && processingClaimId === null && !error && (
               <div className="text-center py-8 text-muted-foreground">
                 <IconMessage className="h-12 w-12 mx-auto mb-4 opacity-50" />
                 <p>Select a sample claim to see the communication drafting process</p>

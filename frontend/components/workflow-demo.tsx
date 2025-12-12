@@ -103,7 +103,7 @@ const AGENT_CONFIG = {
 
 export function WorkflowDemo() {
   const [availableClaims, setAvailableClaims] = useState<ClaimSummary[]>([])
-  const [isLoading, setIsLoading] = useState(false)
+  const [processingClaimId, setProcessingClaimId] = useState<string | null>(null)
   const [isLoadingSamples, setIsLoadingSamples] = useState(true)
   const [workflowResult, setWorkflowResult] = useState<WorkflowResult | null>(null)
   const [error, setError] = useState<string | null>(null)
@@ -141,7 +141,7 @@ export function WorkflowDemo() {
   }
 
   const runWorkflow = async (claim: ClaimSummary) => {
-    setIsLoading(true)
+    setProcessingClaimId(claim.claim_id)
     setError(null)
     
     try {
@@ -189,7 +189,7 @@ export function WorkflowDemo() {
       setError(errorMessage)
       toast.error('Workflow failed: ' + errorMessage)
     } finally {
-      setIsLoading(false)
+      setProcessingClaimId(null)
     }
   }
 
@@ -417,21 +417,21 @@ export function WorkflowDemo() {
                       </p>
                       <Button
                         onClick={() => runWorkflow(claim)}
-                        disabled={isLoading}
+                        disabled={processingClaimId !== null}
                         className="w-full mt-3"
                         size="sm"
                       >
-                        {isLoading ? (
+                        {processingClaimId === claim.claim_id ? (
                           <>
                             <IconClock className="h-4 w-4 animate-spin mr-2" />
                             Processing...
                           </>
-                                                 ) : (
-                           <>
-                             <IconPlayerPlay className="h-4 w-4 mr-2" />
-                             Run Workflow
-                           </>
-                         )}
+                        ) : (
+                          <>
+                            <IconPlayerPlay className="h-4 w-4 mr-2" />
+                            Run Workflow
+                          </>
+                        )}
                       </Button>
                     </div>
                   </CardContent>
@@ -450,7 +450,7 @@ export function WorkflowDemo() {
       </Card>
 
       {/* Results Section */}
-      {(isLoading || workflowResult) && (
+      {(processingClaimId !== null || workflowResult) && (
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Final Decision Card */}
           {workflowResult && (
@@ -511,7 +511,7 @@ export function WorkflowDemo() {
               <div>
                 <CardTitle>Agent Conversation</CardTitle>
                 <CardDescription>
-                  {isLoading ? 'Agents are collaborating on claim analysis...' : 'Multi-agent workflow conversation trace'}
+                  {processingClaimId !== null ? 'Agents are collaborating on claim analysis...' : 'Multi-agent workflow conversation trace'}
                 </CardDescription>
               </div>
               {workflowResult && (
@@ -522,7 +522,7 @@ export function WorkflowDemo() {
               )}
             </CardHeader>
             <CardContent>
-              {isLoading ? (
+              {processingClaimId !== null ? (
                 <div className="space-y-4">
                   <div className="flex items-center gap-2 text-blue-600 dark:text-blue-400">
                     <IconClock className="h-4 w-4 animate-spin" />

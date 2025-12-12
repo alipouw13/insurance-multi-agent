@@ -1,7 +1,7 @@
 """Index management endpoints.
 
-Provides API endpoints for managing the policy vector search index,
-including rebuilding, resetting, and monitoring index status.
+Provides API endpoints for managing the Azure AI Search index,
+including monitoring index status and statistics.
 """
 from __future__ import annotations
 
@@ -14,7 +14,7 @@ from typing import List, Dict, Any, Optional
 from fastapi import APIRouter, HTTPException, status, BackgroundTasks
 from pydantic import BaseModel
 
-from app.workflow.policy_search import get_policy_search, PolicyVectorSearch
+from app.core.config import get_settings
 
 logger = logging.getLogger(__name__)
 router = APIRouter(tags=["index"])
@@ -57,75 +57,97 @@ class IndexUpdateResponse(BaseModel):
 
 # Helper functions
 def get_index_status() -> IndexStatus:
-    """Get current index status information."""
+    """Get current index status information from Azure AI Search."""
     try:
-        policy_search = get_policy_search()
+        settings = get_settings()
         
-        # Check if index exists and is loaded
-        index_path = policy_search.index_path
-        index_file = index_path / "index.faiss"
-        meta_file = index_path / "index.pkl"
+        # Check if Azure AI Search is configured (now using Service Principal auth)
+        if not settings.azure_search_endpoint:
+            return IndexStatus(
+                is_built=False,
+                document_count=0,
+                original_policies_count=0,
+                uploaded_docs_count=0,
+                indexed_uploaded_count=0,
+                status="not_configured",
+                index_size_mb=None
+            )
         
-        is_built = index_file.exists() and meta_file.exists() and policy_search.vectorstore is not None
+        # Check Service Principal credentials
+        if not settings.azure_tenant_id or not settings.azure_client_id or not settings.azure_client_secret:
+            return IndexStatus(
+                is_built=False,
+                document_count=0,
+                original_policies_count=0,
+                uploaded_docs_count=0,
+                indexed_uploaded_count=0,
+                status="not_configured",
+                index_size_mb=None
+            )
         
-        # Count original policies
-        original_policies_count = 0
-        if policy_search.policies_dir.exists():
-            original_policies_count = len(list(policy_search.policies_dir.glob("*.md")))
-        
-        # Count uploaded documents
-        uploaded_docs_count = 0
-        indexed_uploaded_count = 0
-        
-        if METADATA_FILE.exists():
-            try:
-                with open(METADATA_FILE, 'r') as f:
-                    metadata = json.load(f)
-                uploaded_docs_count = len(metadata)
-                indexed_uploaded_count = sum(1 for doc in metadata.values() if doc.get('indexed', False))
-            except Exception:
-                pass
-        
-        # Calculate index size
-        index_size_mb = None
-        if index_file.exists():
-            try:
-                index_size_mb = round(index_file.stat().st_size / (1024 * 1024), 2)
-            except Exception:
-                pass
-        
-        # Get last rebuild time
-        last_rebuild = None
-        if INDEX_STATUS_FILE.exists():
-            try:
-                with open(INDEX_STATUS_FILE, 'r') as f:
-                    status_data = json.load(f)
-                last_rebuild_str = status_data.get('last_rebuild')
-                if last_rebuild_str:
-                    last_rebuild = datetime.fromisoformat(last_rebuild_str)
-            except Exception:
-                pass
-        
-        # Determine status
-        if not is_built:
-            status_str = "empty"
-        elif policy_search.vectorstore is None:
-            status_str = "error"
-        else:
-            status_str = "ready"
-        
-        total_docs = original_policies_count + indexed_uploaded_count
-        
-        return IndexStatus(
-            is_built=is_built,
-            last_rebuild=last_rebuild,
-            document_count=total_docs,
-            original_policies_count=original_policies_count,
-            uploaded_docs_count=uploaded_docs_count,
-            indexed_uploaded_count=indexed_uploaded_count,
-            index_size_mb=index_size_mb,
-            status=status_str
-        )
+        # Try to get Azure AI Search service
+        try:
+            logger.info("Attempting to initialize Azure AI Search service...")
+            from app.services.azure_search import get_azure_search_service
+            search_service = get_azure_search_service()
+            logger.info(f"Azure AI Search service initialized: {search_service.index_name}")
+            
+            # Get index statistics
+            logger.info("Getting index statistics...")
+            stats = search_service.get_index_statistics()
+            document_count = stats.get("document_count", 0)
+            logger.info(f"Retrieved document count: {document_count}")
+            
+            # Count uploaded documents from metadata
+            uploaded_docs_count = 0
+            indexed_uploaded_count = 0
+            
+            if METADATA_FILE.exists():
+                try:
+                    with open(METADATA_FILE, 'r') as f:
+                        metadata = json.load(f)
+                    uploaded_docs_count = len(metadata)
+                    indexed_uploaded_count = sum(1 for doc in metadata.values() if doc.get('indexed', False))
+                except Exception:
+                    pass
+            
+            # Get last rebuild time
+            last_rebuild = None
+            if INDEX_STATUS_FILE.exists():
+                try:
+                    with open(INDEX_STATUS_FILE, 'r') as f:
+                        status_data = json.load(f)
+                    last_rebuild_str = status_data.get('last_rebuild')
+                    if last_rebuild_str:
+                        last_rebuild = datetime.fromisoformat(last_rebuild_str)
+                except Exception:
+                    pass
+            
+            # Determine status
+            is_built = document_count > 0
+            status_str = "ready" if is_built else "empty"
+            
+            return IndexStatus(
+                is_built=is_built,
+                last_rebuild=last_rebuild,
+                document_count=document_count,
+                original_policies_count=0,  # Not tracked separately in Azure AI Search
+                uploaded_docs_count=uploaded_docs_count,
+                indexed_uploaded_count=indexed_uploaded_count,
+                index_size_mb=None,  # Azure AI Search doesn't expose size directly
+                status=status_str
+            )
+            
+        except Exception as e:
+            logger.error(f"Error connecting to Azure AI Search: {e}")
+            return IndexStatus(
+                is_built=False,
+                document_count=0,
+                original_policies_count=0,
+                uploaded_docs_count=0,
+                indexed_uploaded_count=0,
+                status="error"
+            )
         
     except Exception as e:
         logger.error(f"Error getting index status: {e}")
@@ -168,32 +190,21 @@ def save_document_metadata(metadata_dict: Dict[str, Any]):
         json.dump(metadata_dict, f, indent=2, default=str)
 
 def rebuild_index_sync(include_uploaded: bool = True) -> IndexStatus:
-    """Synchronously rebuild the index."""
+    """Rebuild functionality is not needed with Azure AI Search.
+    
+    Documents are indexed automatically when uploaded via the documents endpoint.
+    This function is maintained for API compatibility but returns current status.
+    """
     try:
-        policy_search = get_policy_search()
-        
-        # Force rebuild the index
-        policy_search.create_index(force_rebuild=True)
-        
-        # If including uploaded documents, we need to extend the functionality
-        if include_uploaded:
-            # For now, mark all uploaded docs as indexed
-            # In a full implementation, we'd actually add them to the index
-            metadata_dict = load_document_metadata()
-            for doc_id, doc_data in metadata_dict.items():
-                doc_data['indexed'] = True
-            save_document_metadata(metadata_dict)
-        
-        # Update status
+        # Get current status
         status = get_index_status()
         status.last_rebuild = datetime.now()
-        status.status = "ready"
         save_index_status(status)
         
         return status
         
     except Exception as e:
-        logger.error(f"Error rebuilding index: {e}")
+        logger.error(f"Error getting index status: {e}")
         status = get_index_status()
         status.status = "error"
         return status
@@ -202,8 +213,23 @@ def rebuild_index_sync(include_uploaded: bool = True) -> IndexStatus:
 @router.get("/index/status", response_model=IndexStatusResponse)
 async def get_index_status_endpoint() -> IndexStatusResponse:
     """Get current index status and statistics."""
-    status = get_index_status()
-    return IndexStatusResponse(status=status)
+    try:
+        logger.info("Getting index status...")
+        status = get_index_status()
+        logger.info(f"Index status retrieved: {status.status}, document_count={status.document_count}")
+        return IndexStatusResponse(status=status)
+    except Exception as e:
+        logger.error(f"Error in get_index_status_endpoint: {e}", exc_info=True)
+        # Return a safe error status instead of raising exception
+        error_status = IndexStatus(
+            is_built=False,
+            document_count=0,
+            original_policies_count=0,
+            uploaded_docs_count=0,
+            indexed_uploaded_count=0,
+            status="error"
+        )
+        return IndexStatusResponse(status=error_status)
 
 @router.post("/index/rebuild", response_model=IndexRebuildResponse)
 async def rebuild_index(
@@ -211,47 +237,30 @@ async def rebuild_index(
     force: bool = False,
     background_tasks: BackgroundTasks = None
 ) -> IndexRebuildResponse:
-    """Rebuild the policy search index.
+    """Get index status (rebuild not needed with Azure AI Search).
+    
+    With Azure AI Search, documents are indexed automatically when uploaded.
+    This endpoint returns the current index status for compatibility.
     
     Args:
-        include_uploaded: Whether to include uploaded documents in the index
-        force: Force rebuild even if index appears healthy
-        background_tasks: FastAPI background tasks for async processing
+        include_uploaded: Ignored (maintained for API compatibility)
+        force: Ignored (maintained for API compatibility)
+        background_tasks: Ignored (maintained for API compatibility)
     """
     try:
         current_status = get_index_status()
         
-        # Check if rebuild is needed
-        if not force and current_status.is_built and current_status.status == "ready":
-            return IndexRebuildResponse(
-                success=True,
-                message="Index is already up to date. Use force=true to rebuild anyway.",
-                status=current_status
-            )
-        
-        # For now, do synchronous rebuild
-        # In production, you'd want to use background tasks for large indexes
-        logger.info("Starting index rebuild...")
-        new_status = rebuild_index_sync(include_uploaded=include_uploaded)
-        
-        if new_status.status == "ready":
-            return IndexRebuildResponse(
-                success=True,
-                message=f"Index rebuilt successfully with {new_status.document_count} documents",
-                status=new_status
-            )
-        else:
-            return IndexRebuildResponse(
-                success=False,
-                message="Index rebuild failed - check logs for details",
-                status=new_status
-            )
+        return IndexRebuildResponse(
+            success=True,
+            message=f"Azure AI Search index contains {current_status.document_count} documents. Documents are indexed automatically when uploaded.",
+            status=current_status
+        )
             
     except Exception as e:
         logger.error(f"Error in rebuild_index endpoint: {e}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Failed to rebuild index: {str(e)}"
+            detail=f"Failed to get index status: {str(e)}"
         )
 
 @router.post("/index/reset", response_model=IndexResetResponse)

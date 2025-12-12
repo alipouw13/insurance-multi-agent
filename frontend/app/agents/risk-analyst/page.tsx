@@ -45,7 +45,7 @@ interface RiskAnalysisResult {
 
 export default function RiskAnalystDemo() {
   const [sampleClaims, setSampleClaims] = useState<SampleClaim[]>([])
-  const [isLoading, setIsLoading] = useState(false)
+  const [processingClaimId, setProcessingClaimId] = useState<string | null>(null)
   const [isLoadingSamples, setIsLoadingSamples] = useState(true)
   const [result, setResult] = useState<RiskAnalysisResult | null>(null)
   const [error, setError] = useState<string | null>(null)
@@ -75,7 +75,7 @@ export default function RiskAnalystDemo() {
   }, [])
 
   const runRiskAnalysis = async (claim: SampleClaim) => {
-    setIsLoading(true)
+    setProcessingClaimId(claim.claim_id)
     setError(null)
     
     try {
@@ -100,7 +100,7 @@ export default function RiskAnalystDemo() {
       setError(errorMessage)
       toast.error('Risk analysis failed: ' + errorMessage)
     } finally {
-      setIsLoading(false)
+      setProcessingClaimId(null)
     }
   }
 
@@ -299,11 +299,11 @@ export default function RiskAnalystDemo() {
                       <Button 
                         variant="outline" 
                         size="sm" 
-                        disabled={isLoading}
+                        disabled={processingClaimId !== null}
                         className="w-full mt-auto"
                         onClick={() => runRiskAnalysis(claim)}
                       >
-                        {isLoading ? 'Processing...' : 'Analyze Risk'}
+                        {processingClaimId === claim.claim_id ? 'Processing...' : 'Analyze Risk'}
                       </Button>
                     </div>
                   </CardContent>
@@ -342,7 +342,7 @@ export default function RiskAnalystDemo() {
               </Alert>
             )}
 
-            {isLoading && (
+            {processingClaimId !== null && (
               <div className="flex items-center justify-center py-8">
                 <IconClock className="h-6 w-6 animate-spin mr-2" />
                 <span>Running risk analysis...</span>
@@ -433,7 +433,7 @@ export default function RiskAnalystDemo() {
               </div>
             )}
 
-            {!result && !isLoading && !error && (
+            {!result && processingClaimId === null && !error && (
               <div className="text-center py-8 text-muted-foreground">
                 <IconShieldCheck className="h-12 w-12 mx-auto mb-4 opacity-50" />
                 <p>Select a sample claim to see the risk analysis process</p>

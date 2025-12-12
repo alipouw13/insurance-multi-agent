@@ -96,7 +96,7 @@ app.include_router(workflow_endpoints.router, prefix="/api/v1")
 app.include_router(files_endpoints.router, prefix="/api/v1")
 app.include_router(agent_endpoints.router, prefix="/api/v1")
 
-# Import and mount new document management endpoints
+# Import and mount document management endpoints (Azure-enabled)
 from app.api.v1.endpoints import documents as documents_endpoints
 from app.api.v1.endpoints import index_management as index_endpoints
 

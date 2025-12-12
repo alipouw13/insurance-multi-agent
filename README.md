@@ -2,7 +2,7 @@
 
 ## Original Source
 
-This project is based on the [Simple Insurance Multi-Agent Demo](https://github.com/Azure-Samples/simple-insurance-multi-agent) by Microsoft Azure Samples. It has been enhanced with **Azure AI Agent Service** integration for production-ready agentic workflows.
+This project is based on the [Insurance Multi-Agent Demo](https://github.com/alisoliman/insurance-multi-agent). It has been enhanced with **Azure AI Agent Service** integration for production-ready agentic workflows.
 
 ## Overview
 
@@ -265,7 +265,39 @@ AZURE_OPENAI_API_VERSION=2024-08-01-preview
 
 # Azure AI Foundry Project (for Azure AI Agent Service)
 PROJECT_ENDPOINT=https://your-project.services.ai.azure.com/api/projects/your-project-name
+
+# Azure Blob Storage (for document storage)
+AZURE_STORAGE_CONNECTION_STRING=DefaultEndpointsProtocol=https;AccountName=your-account;AccountKey=your-key;EndpointSuffix=core.windows.net
+AZURE_STORAGE_CONTAINER_NAME=insurance-documents
+
+# Azure AI Search (for document indexing)
+AZURE_SEARCH_ENDPOINT=https://your-search-service.search.windows.net
+AZURE_SEARCH_API_KEY=your-search-admin-key
+AZURE_SEARCH_INDEX_NAME=insurance-policies
 ```
+
+### Azure Resources Required
+
+The application requires the following Azure resources:
+
+1. **Azure OpenAI Service**: For LLM and embedding models
+   - Deployments: `gpt-4o`, `gpt-4.1-mini`, `text-embedding-3-large`
+   - API version: `2024-08-01-preview`
+
+2. **Azure AI Foundry Project**: For Azure AI Agent Service
+   - Manages 4 specialized agents (Claim Assessor, Policy Checker, Risk Analyst, Communication Agent)
+   - Handles agent lifecycle and function calling
+
+3. **Azure Storage Account**: For document storage
+   - Container: `insurance-documents` (auto-created)
+   - Stores uploaded policy documents, regulations, and reference materials
+   - Provides SAS token-based secure access
+
+4. **Azure AI Search**: For semantic document search
+   - Index: `insurance-policies` (auto-created)
+   - Vector search enabled with HNSW algorithm
+   - Dimensions: 3072 (for text-embedding-3-large)
+   - Supports hybrid search (vector + keyword)
 
 ### Authentication for Azure AI Agent Service
 
@@ -282,6 +314,7 @@ This enables the application to:
 
 ### Backend Setup
 
+Install dependencies:
 ```bash
 cd backend
 uv venv
@@ -307,8 +340,36 @@ On startup, the application will:
    - Communication Agent (`asst_aaa...`)
    - Risk Analyst (`asst_zzz...`)
 4. Store agent IDs in global cache for request routing
+5. Initialize Azure Blob Storage container (`insurance-documents`)
+6. Create Azure AI Search index (`insurance-policies`) with vector search
 
 The API will be available at http://localhost:8000
+
+### Document Management with Azure
+
+The application uses Azure Blob Storage and AI Search for document management:
+
+**Upload Documents**:
+- Documents are uploaded to Azure Blob Storage (not local filesystem)
+- Organized in containers: `policy/`, `regulation/`, `reference/`
+- Each document receives a unique blob name with metadata
+
+**Indexing**:
+- Documents are automatically indexed in Azure AI Search
+- Text is split into 1000-character chunks with 200-character overlap
+- Each chunk is embedded using `text-embedding-3-large` (3072 dimensions)
+- Vector search uses HNSW algorithm for fast similarity search
+
+**Search**:
+- Semantic search combines vector similarity and keyword matching
+- Results include source attribution and policy section references
+- Configurable score thresholds filter low-quality matches
+
+**Migration from Local Storage**:
+To migrate existing local documents to Azure:
+1. Documents currently in `backend/app/workflow/data/uploaded_docs/` 
+2. Can be uploaded via the `/api/v1/documents/upload` endpoint
+3. The old FAISS index in `backend/app/workflow/data/policy_index/` is replaced by Azure AI Search
 
 ### Frontend Setup
 

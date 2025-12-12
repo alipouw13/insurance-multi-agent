@@ -45,7 +45,7 @@ interface PolicyCheckResult {
 
 export default function PolicyCheckerDemo() {
   const [sampleClaims, setSampleClaims] = useState<SampleClaim[]>([])
-  const [isLoading, setIsLoading] = useState(false)
+  const [processingClaimId, setProcessingClaimId] = useState<string | null>(null)
   const [isLoadingSamples, setIsLoadingSamples] = useState(true)
   const [result, setResult] = useState<PolicyCheckResult | null>(null)
   const [error, setError] = useState<string | null>(null)
@@ -75,7 +75,7 @@ export default function PolicyCheckerDemo() {
   }, [])
 
   const runPolicyCheck = async (claim: SampleClaim) => {
-    setIsLoading(true)
+    setProcessingClaimId(claim.claim_id)
     setError(null)
     
     try {
@@ -100,7 +100,7 @@ export default function PolicyCheckerDemo() {
       setError(errorMessage)
       toast.error('Policy check failed: ' + errorMessage)
     } finally {
-      setIsLoading(false)
+      setProcessingClaimId(null)
     }
   }
 
@@ -310,11 +310,11 @@ export default function PolicyCheckerDemo() {
                       <Button 
                         variant="outline" 
                         size="sm" 
-                        disabled={isLoading}
+                        disabled={processingClaimId !== null}
                         className="w-full mt-auto"
                         onClick={() => runPolicyCheck(claim)}
                       >
-                        {isLoading ? 'Processing...' : 'Check Coverage'}
+                        {processingClaimId === claim.claim_id ? 'Processing...' : 'Check Coverage'}
                       </Button>
                     </div>
                   </CardContent>
@@ -353,7 +353,7 @@ export default function PolicyCheckerDemo() {
               </Alert>
             )}
 
-            {isLoading && (
+            {processingClaimId !== null && (
               <div className="flex items-center justify-center py-8">
                 <IconClock className="h-6 w-6 animate-spin mr-2" />
                 <span>Running policy check...</span>
@@ -445,7 +445,7 @@ export default function PolicyCheckerDemo() {
               </div>
             )}
 
-            {!result && !isLoading && !error && (
+            {!result && processingClaimId === null && !error && (
               <div className="text-center py-8 text-muted-foreground">
                 <IconShield className="h-12 w-12 mx-auto mb-4 opacity-50" />
                 <p>Select a sample claim to see the policy check process</p>

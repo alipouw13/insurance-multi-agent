@@ -45,7 +45,7 @@ interface AssessmentResult {
 
 export default function ClaimAssessorDemo() {
   const [sampleClaims, setSampleClaims] = useState<SampleClaim[]>([])
-  const [isLoading, setIsLoading] = useState(false)
+  const [processingClaimId, setProcessingClaimId] = useState<string | null>(null)
   const [isLoadingSamples, setIsLoadingSamples] = useState(true)
   const [result, setResult] = useState<AssessmentResult | null>(null)
   const [error, setError] = useState<string | null>(null)
@@ -83,7 +83,7 @@ export default function ClaimAssessorDemo() {
   }
 
   const runAssessment = async (claim: SampleClaim) => {
-    setIsLoading(true)
+    setProcessingClaimId(claim.claim_id)
     setError(null)
     
     try {
@@ -131,7 +131,7 @@ export default function ClaimAssessorDemo() {
       setError(errorMessage)
       toast.error('Assessment failed: ' + errorMessage)
     } finally {
-      setIsLoading(false)
+      setProcessingClaimId(null)
     }
   }
 
@@ -378,11 +378,11 @@ export default function ClaimAssessorDemo() {
                       <Button 
                         variant="outline" 
                         size="sm" 
-                        disabled={isLoading}
+                        disabled={processingClaimId !== null}
                         className="w-full mt-auto"
                         onClick={() => runAssessment(claim)}
                       >
-                        {isLoading ? 'Processing...' : 'Analyze Claim'}
+                        {processingClaimId === claim.claim_id ? 'Processing...' : 'Analyze Claim'}
                       </Button>
                     </div>
                   </CardContent>
@@ -421,7 +421,7 @@ export default function ClaimAssessorDemo() {
               </Alert>
             )}
 
-            {isLoading && (
+            {processingClaimId !== null && (
               <div className="flex items-center justify-center py-8">
                 <IconClock className="h-6 w-6 animate-spin mr-2" />
                 <span>Running claim assessment...</span>
@@ -522,7 +522,7 @@ export default function ClaimAssessorDemo() {
               </div>
             )}
 
-            {!result && !isLoading && !error && (
+            {!result && processingClaimId === null && !error && (
               <div className="text-center py-8 text-muted-foreground">
                 <IconFileText className="h-12 w-12 mx-auto mb-4 opacity-50" />
                 <p>Select a sample claim to see the assessment process</p>
