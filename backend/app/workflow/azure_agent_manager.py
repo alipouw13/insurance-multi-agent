@@ -64,8 +64,8 @@ def deploy_azure_agents() -> Dict[str, str]:
         agent_creators = {
             "claim_assessor": _deploy_claim_assessor,
             "policy_checker": _deploy_policy_checker,
+            "communication_agent": _deploy_communication_agent,
             # Add more agents as they are migrated
-            # "communication_agent": _deploy_communication_agent,
             # "risk_analyst": _deploy_risk_analyst,
         }
         
@@ -120,12 +120,21 @@ def _deploy_policy_checker(project_client: AIProjectClient) -> str:
     return agent.id
 
 
+def _deploy_communication_agent(project_client: AIProjectClient) -> str:
+    """Deploy or retrieve Communication Agent.
+    
+    Args:
+        project_client: Azure AI Project client
+        
+    Returns:
+        Agent ID
+    """
+    from app.workflow.agents.azure_communication_agent import create_communication_agent
+    agent = create_communication_agent()
+    return agent.id
+
+
 # Add more deployment functions as agents are migrated
-# def _deploy_communication_agent(project_client: AIProjectClient) -> str:
-#     from app.workflow.agents.azure_communication_agent import create_communication_agent
-#     agent = create_communication_agent(project_client)
-#     return agent.id
-#
 # def _deploy_risk_analyst(project_client: AIProjectClient) -> str:
 #     from app.workflow.agents.azure_risk_analyst import create_risk_analyst_agent
 #     agent = create_risk_analyst_agent(project_client)

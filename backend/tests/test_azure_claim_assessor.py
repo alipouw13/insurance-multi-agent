@@ -4,18 +4,24 @@ Run this script to test the migrated claim assessor agent.
 
 Usage:
     cd backend
-    uv run python test_azure_claim_assessor.py
+    uv run python tests/test_azure_claim_assessor.py
 """
 import asyncio
 import json
 import logging
+import sys
+from pathlib import Path
+
+# Add parent directory to path for imports
+sys.path.insert(0, str(Path(__file__).parent.parent))
+
 from app.workflow.agents.azure_claim_assessor import create_claim_assessor_agent
-from app.workflow.azure_agent_client import get_project_client, run_agent
+from app.workflow.azure_agent_client import get_project_client, run_agent, delete_agent
 
 # Configure logging
 logging.basicConfig(
     level=logging.INFO,
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+    format='%(message)s'
 )
 logger = logging.getLogger(__name__)
 

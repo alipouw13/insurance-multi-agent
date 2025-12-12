@@ -4,12 +4,18 @@ Run this script to test the migrated policy checker agent.
 
 Usage:
     cd backend
-    uv run python test_azure_policy_checker.py
+    uv run python tests/test_azure_policy_checker.py
 """
 import json
 import logging
+import sys
+from pathlib import Path
+
+# Add parent directory to path for imports
+sys.path.insert(0, str(Path(__file__).parent.parent))
+
 from app.workflow.agents.azure_policy_checker import create_policy_checker_agent
-from app.workflow.azure_agent_client import get_project_client, run_agent
+from app.workflow.azure_agent_client import get_project_client, run_agent, delete_agent
 
 # Configure logging
 logging.basicConfig(
