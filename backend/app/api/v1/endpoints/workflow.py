@@ -4,10 +4,15 @@ from __future__ import annotations
 from fastapi import APIRouter, HTTPException
 import re
 from typing import Any
+from datetime import datetime
+import uuid
 
 from app.models.claim import ClaimIn, ClaimOut
 from app.services.claim_processing import run as run_workflow
 from app.sample_data import ALL_SAMPLE_CLAIMS
+from app.services.cosmos_service import get_cosmos_service
+from app.services.token_tracker import TokenUsageTracker
+from app.models.agent_models import AgentExecution, ExecutionStatus, AgentStepExecution
 
 router = APIRouter(tags=["workflow"])
 
@@ -58,6 +63,11 @@ async def workflow_run(claim: ClaimIn):  # noqa: D401
     - Full claim data: {"claim_id": "...", "policy_number": "...", ...}
     """
 
+    # Initialize tracking
+    cosmos_service = await get_cosmos_service()
+    token_tracker = TokenUsageTracker(cosmos_service)
+    execution_id = str(uuid.uuid4())
+    
     try:
         # ------------------------------------------------------------------
         # 1. Decide whether to load sample claim or use provided data
@@ -77,12 +87,20 @@ async def workflow_run(claim: ClaimIn):  # noqa: D401
         else:
             # Full claim provided without loading sample
             claim_data = claim.to_dict()
+        
+        # Start tracking
+        await token_tracker.start_tracking(
+            claim_id=claim_data.get("claim_id", "unknown"),
+            workflow_id=execution_id
+        )
 
         # ------------------------------------------------------------------
         # 2. Stream LangGraph execution; capture both grouped & chronological
         # ------------------------------------------------------------------
         chronological: list[dict[str, str]] = []
         seen_lengths: dict[str, int] = {}
+        agent_steps: list[AgentStepExecution] = []
+        started_at = datetime.utcnow()
 
         chunks = []
         for chunk in run_workflow(claim_data):
@@ -108,7 +126,22 @@ async def workflow_run(claim: ClaimIn):  # noqa: D401
                 new_msgs = msgs[prev_len:]
 
                 for msg in new_msgs:
-                    chronological.append(_serialize_msg(node_name, msg))
+                    serialized = _serialize_msg(node_name, msg)
+                    chronological.append(serialized)
+                    
+                    # Track agent steps (only for recognized agents, skip supervisor)
+                    if node_name in ["claim_assessor", "policy_checker", "risk_analyst", "communication_agent"]:
+                        step_started = datetime.utcnow()
+                        agent_steps.append(AgentStepExecution(
+                            agent_type=node_name,  # AgentType enum value
+                            agent_version="1.0.0",
+                            started_at=step_started,
+                            completed_at=step_started,  # Immediate for message processing
+                            duration_ms=0.0,
+                            input_data={"content": serialized.get("content", "")},
+                            output_data={"role": serialized.get("role", ""), "content": serialized.get("content", "")},
+                            status=ExecutionStatus.COMPLETED
+                        ))
 
                 seen_lengths[node_name] = len(msgs)
 
@@ -124,6 +157,33 @@ async def workflow_run(claim: ClaimIn):  # noqa: D401
                 final_decision = match.group(1).upper()
                 break
 
+        # Finalize tracking
+        completed_at = datetime.utcnow()
+        duration_ms = (completed_at - started_at).total_seconds() * 1000
+        
+        # Save execution to Cosmos DB
+        if cosmos_service._initialized:
+            execution = AgentExecution(
+                id=execution_id,
+                workflow_id=execution_id,
+                workflow_type="insurance_claim_processing",
+                claim_id=claim_data.get("claim_id", "unknown"),
+                agent_steps=agent_steps,
+                final_result={"decision": final_decision, "success": True},
+                status=ExecutionStatus.COMPLETED,
+                started_at=started_at,
+                completed_at=completed_at,
+                duration_ms=duration_ms,
+                agents_invoked=list(set(step.agent_type for step in agent_steps)),
+                metadata={
+                    "total_steps": len(agent_steps)
+                }
+            )
+            await cosmos_service.save_execution(execution)
+        
+        # Finalize token tracking
+        await token_tracker.finalize_tracking()
+
         # ------------------------------------------------------------------
         # 4. Return response with chronological stream only
         # ------------------------------------------------------------------
@@ -134,6 +194,28 @@ async def workflow_run(claim: ClaimIn):  # noqa: D401
         )
 
     except Exception as exc:
+        # Save failed execution
+        if cosmos_service._initialized:
+            try:
+                now = datetime.utcnow()
+                start = started_at if 'started_at' in locals() else now
+                execution = AgentExecution(
+                    id=execution_id,
+                    workflow_id=execution_id,
+                    workflow_type="insurance_claim_processing",
+                    claim_id=claim_data.get("claim_id", "unknown") if 'claim_data' in locals() else "unknown",
+                    agent_steps=[],
+                    final_result={"error": str(exc)},
+                    status=ExecutionStatus.FAILED,
+                    started_at=start,
+                    completed_at=now,
+                    duration_ms=(now - start).total_seconds() * 1000,
+                    error_message=str(exc)
+                )
+                await cosmos_service.save_execution(execution)
+            except:
+                pass  # Don't fail on tracking errors
+        
         raise HTTPException(status_code=500, detail=str(exc))
 
 

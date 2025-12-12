@@ -17,6 +17,7 @@ node_modules/
 .venv
 backend/.env
 backend/migrate_to_azure.py
+backend/register_agents.py
 
 # Editor directories and files
 .idea

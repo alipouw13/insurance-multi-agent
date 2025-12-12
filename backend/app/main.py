@@ -62,6 +62,30 @@ app.add_middleware(
 @app.on_event("startup")
 async def startup_event():
     """Initialize policy search index and deploy Azure AI agents on startup."""
+    # Initialize OpenTelemetry tracing
+    logger.info("🚀 Setting up OpenTelemetry tracing...")
+    try:
+        from app.core.tracing import setup_tracing
+        tracing_enabled = setup_tracing()
+        if tracing_enabled:
+            logger.info("✅ OpenTelemetry tracing configured with Azure Monitor")
+        else:
+            logger.info("ℹ️  Tracing disabled or not configured")
+    except Exception as e:
+        logger.warning(f"⚠️  Failed to setup tracing: {e}")
+    
+    # Initialize Cosmos DB for agent persistence
+    logger.info("🚀 Initializing Cosmos DB for agent persistence...")
+    try:
+        from app.services.cosmos_service import get_cosmos_service
+        cosmos_service = await get_cosmos_service()
+        if cosmos_service._initialized:
+            logger.info("✅ Cosmos DB initialized for agent tracking")
+        else:
+            logger.info("ℹ️  Cosmos DB not configured, agent persistence disabled")
+    except Exception as e:
+        logger.warning(f"⚠️  Failed to initialize Cosmos DB: {e}")
+    
     # Initialize policy search index
     logger.info("🚀 Initializing policy search index...")
     try:
@@ -98,7 +122,10 @@ app.include_router(agent_endpoints.router, prefix="/api/v1")
 
 # Import and mount document management endpoints (Azure-enabled)
 from app.api.v1.endpoints import documents as documents_endpoints
+# Import and mount agent management endpoints (Cosmos DB + OpenTelemetry)
+from app.api.v1.endpoints import agent_management
 from app.api.v1.endpoints import index_management as index_endpoints
 
 app.include_router(documents_endpoints.router, prefix="/api/v1")
+app.include_router(agent_management.router, prefix="/api/v1")
 app.include_router(index_endpoints.router, prefix="/api/v1")

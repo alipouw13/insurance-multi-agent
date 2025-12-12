@@ -52,6 +52,24 @@ class Settings(BaseSettings):  # noqa: D101
         default=None, alias="AZURE_SEARCH_ENDPOINT")
     azure_search_index_name: str | None = Field(
         default="insurance-policies", alias="AZURE_SEARCH_INDEX_NAME")
+    
+    # Azure Cosmos DB (for agent data storage)
+    azure_cosmos_endpoint: str | None = Field(
+        default=None, alias="AZURE_COSMOS_ENDPOINT")
+    azure_cosmos_database_name: str | None = Field(
+        default="insurance-agents", alias="AZURE_COSMOS_DATABASE_NAME")
+    azure_cosmos_agent_definitions_container: str | None = Field(
+        default="agent-definitions", alias="AZURE_COSMOS_AGENT_DEFINITIONS_CONTAINER")
+    azure_cosmos_agent_executions_container: str | None = Field(
+        default="agent-executions", alias="AZURE_COSMOS_AGENT_EXECUTIONS_CONTAINER")
+    azure_cosmos_token_usage_container: str | None = Field(
+        default="token-usage", alias="AZURE_COSMOS_TOKEN_USAGE_CONTAINER")
+    
+    # OpenTelemetry & Observability
+    enable_telemetry: bool = Field(
+        default=True, alias="ENABLE_TELEMETRY")
+    application_insights_connection_string: str | None = Field(
+        default=None, alias="APPLICATION_INSIGHTS_CONNECTION_STRING")
 
     # FastAPI
     app_name: str = "Insurance Multi-Agent Backend"
@@ -67,7 +85,8 @@ class Settings(BaseSettings):  # noqa: D101
     def dict_safe(self) -> Dict[str, Any]:  # noqa: D401
         return self.model_dump(exclude={
             "azure_openai_api_key",
-            "azure_client_secret"
+            "azure_client_secret",
+            "application_insights_connection_string"
         })
 
 
