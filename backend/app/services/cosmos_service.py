@@ -263,12 +263,12 @@ class CosmosAgentService:
         
         try:
             # Convert to dict for Cosmos DB
-            exec_dict = execution.model_dump(mode='json')
+            execution_dict = execution.model_dump(mode='json')
             
             # Upsert the document
-            result = self._executions_container.upsert_item(exec_dict)
+            result = self._executions_container.upsert_item(execution_dict)
             
-            logger.info(f"✅ Saved execution: {execution.id} for claim {execution.claim_id}")
+            logger.debug(f"✅ Saved execution: {execution.id} for claim {execution.claim_id}")
             return AgentExecution(**result)
             
         except Exception as e:
@@ -302,9 +302,9 @@ class CosmosAgentService:
                 record_dict['timestamp'] = record_dict['timestamp'].isoformat()
             
             # Upsert the document
-            result = self._token_usage_container.upsert_item(record_dict)
+            result = await self._token_usage_container.upsert_item(token_record_dict)
             
-            logger.info(f"✅ Saved token usage: {token_record.record_id} ({token_record.total_tokens} tokens, ${token_record.total_cost:.6f})")
+            logger.debug(f"✅ Saved token usage: {token_record.record_id} ({token_record.total_tokens} tokens, ${token_record.total_cost:.6f})")
             return TokenUsageRecord(**result)
             
         except Exception as e:
@@ -464,6 +464,40 @@ class CosmosAgentService:
             
         except Exception as e:
             logger.error(f"❌ Failed to get token usage for claim {claim_id}: {e}")
+            return []
+    
+    async def get_token_usage_by_execution(
+        self,
+        execution_id: str
+    ) -> List[TokenUsageRecord]:
+        """Get all token usage records for a workflow execution.
+        
+        Args:
+            execution_id: Workflow execution ID
+            
+        Returns:
+            List of token usage records
+        """
+        if not self._initialized:
+            await self.initialize()
+        
+        if not self._token_usage_container:
+            return []
+        
+        try:
+            query = "SELECT * FROM c WHERE c.execution_id = @execution_id ORDER BY c.timestamp ASC"
+            parameters = [{"name": "@execution_id", "value": execution_id}]
+            
+            items = list(self._token_usage_container.query_items(
+                query=query,
+                parameters=parameters,
+                enable_cross_partition_query=True
+            ))
+            
+            return [TokenUsageRecord(**item) for item in items]
+            
+        except Exception as e:
+            logger.error(f"❌ Failed to get token usage for execution {execution_id}: {e}")
             return []
     
     async def get_token_usage_analytics(

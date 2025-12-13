@@ -59,19 +59,20 @@ class TokenUsageSpanProcessor(SpanProcessor):
             span_name = span.name
             attributes = span.attributes or {}
             
+            # Check for gen_ai attributes
+            has_gen_ai = any(key.startswith('gen_ai.') for key in attributes.keys())
+            
             # Check for Azure AI Agent Service spans (from AIAgentsInstrumentor)
             is_azure_agent = (
                 'gen_ai.system' in attributes and 
                 attributes.get('gen_ai.system') == 'azure_ai_agents'
-            ) or 'agent.' in span_name.lower()
+            ) or 'agent.' in span_name.lower() or has_gen_ai
             
             # Check for OpenAI spans (direct OpenAI calls)
             is_openai = any(indicator in span_name.lower() for indicator in ['openai', 'chat', 'completion', 'embedding'])
             
             if not (is_azure_agent or is_openai):
                 return
-            
-            logger.info(f"🔍 Span processor examining span: {span_name} (azure_agent={is_azure_agent}, openai={is_openai})")
             
             # Get token usage from span attributes
             # OpenTelemetry Gen AI Semantic Conventions (used by both instrumentors)
@@ -93,14 +94,12 @@ class TokenUsageSpanProcessor(SpanProcessor):
                 # Determine operation type from span name
                 operation_type = "embedding" if "embedding" in span_name.lower() else "chat_completion"
                 
-                logger.info(f"💾 Capturing token usage: {prompt_tokens} prompt + {completion_tokens} completion tokens (model={model_name})")
-                
                 # Record the usage asynchronously
                 import asyncio
                 try:
-                    # Try to get the current event loop
-                    loop = asyncio.get_event_loop()
-                    if loop.is_running():
+                    # Try to get the running event loop (Python 3.10+)
+                    try:
+                        loop = asyncio.get_running_loop()
                         # If loop is running, create a task
                         task = loop.create_task(self.token_tracker.record_token_usage(
                             model_name=model_name,
@@ -109,22 +108,12 @@ class TokenUsageSpanProcessor(SpanProcessor):
                             completion_tokens=int(completion_tokens),
                             operation_type=operation_type
                         ))
-                        logger.info(f"✅ Created task to save token usage to Cosmos DB")
-                    else:
-                        # If no loop is running, use asyncio.run
-                        asyncio.run(self.token_tracker.record_token_usage(
-                            model_name=model_name,
-                            deployment_name=deployment,
-                            prompt_tokens=int(prompt_tokens),
-                            completion_tokens=int(completion_tokens),
-                            operation_type=operation_type
-                        ))
-                        logger.info(f"✅ Saved token usage to Cosmos DB")
-                except RuntimeError as e:
-                    # No event loop available
-                    logger.error(f"❌ Could not record token usage - no event loop available: {e}")
+                    except RuntimeError:
+                        # No running loop - this shouldn't happen in FastAPI context
+                        logger.warning(f"⚠️ No running event loop - cannot record token usage asynchronously")
+                        logger.warning(f"⚠️ Token usage: {prompt_tokens}+{completion_tokens} tokens for {model_name} NOT saved")
                 except Exception as e:
-                    logger.error(f"❌ Error recording token usage: {e}")
+                    logger.error(f"❌ Error recording token usage: {e}", exc_info=True)
             else:
                 logger.debug(f"No token usage in span {span_name}")
         

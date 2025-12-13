@@ -38,7 +38,7 @@ def get_project_client() -> AIProjectClient:
     return _project_client
 
 
-def run_agent(agent_id: str, user_message: str, toolset=None) -> List[Dict[str, Any]]:
+def run_agent(agent_id: str, user_message: str, toolset=None) -> tuple[List[Dict[str, Any]], Dict[str, Any]]:
     """Run an Azure AI Agent Service agent with a user message.
     
     Args:
@@ -47,7 +47,7 @@ def run_agent(agent_id: str, user_message: str, toolset=None) -> List[Dict[str, 
         toolset: Optional ToolSet with functions for the agent to use
         
     Returns:
-        List of messages from the agent's response
+        Tuple of (messages, usage_info) where usage_info contains token counts
     """
     project_client = get_project_client()
     
@@ -55,11 +55,11 @@ def run_agent(agent_id: str, user_message: str, toolset=None) -> List[Dict[str, 
         # Enable auto function calls if toolset provided
         if toolset:
             project_client.agents.enable_auto_function_calls(toolset)
-            logger.info(f"✅ Enabled auto function calls with {len(toolset._tools)} tools")
+            logger.debug(f"✅ Enabled auto function calls with {len(toolset._tools)} tools")
         
         # Create a thread for this conversation
         thread = project_client.agents.threads.create()
-        logger.info(f"Created thread: {thread.id}")
+        logger.debug(f"Created thread: {thread.id}")
         
         # Add the user message to the thread
         message = project_client.agents.messages.create(
@@ -67,22 +67,32 @@ def run_agent(agent_id: str, user_message: str, toolset=None) -> List[Dict[str, 
             role="user",
             content=user_message
         )
-        logger.info(f"Added user message to thread: {message['id']}")
+        logger.debug(f"Added user message to thread: {message['id']}")
         
         # Create and process the run
-        logger.info(f"Running agent {agent_id}...")
+        logger.debug(f"Running agent {agent_id}...")
         run = project_client.agents.runs.create_and_process(
             thread_id=thread.id,
             agent_id=agent_id
         )
-        logger.info(f"Agent run completed with status: {run.status}")
+        logger.debug(f"Agent run completed with status: {run.status}")
+        
+        # Extract usage information if available
+        usage_info = {}
+        if hasattr(run, 'usage') and run.usage:
+            logger.debug(f"📊 Agent run usage: {run.usage}")
+            usage_info = {
+                "prompt_tokens": getattr(run.usage, 'prompt_tokens', 0),
+                "completion_tokens": getattr(run.usage, 'completion_tokens', 0),
+                "total_tokens": getattr(run.usage, 'total_tokens', 0)
+            }
         
         if run.status == "failed":
             logger.error(f"Agent run failed: {run.last_error}")
-            return [{
+            return ([{
                 "role": "assistant",
                 "content": f"Error: Agent run failed - {run.last_error}"
-            }]
+            }], usage_info)
         
         # Fetch all messages from the thread
         messages = project_client.agents.messages.list(thread_id=thread.id)
@@ -95,7 +105,7 @@ def run_agent(agent_id: str, user_message: str, toolset=None) -> List[Dict[str, 
                 "content": msg.content
             })
         
-        return result_messages
+        return (result_messages, usage_info)
         
     except Exception as e:
         logger.error(f"Error running agent: {e}", exc_info=True)

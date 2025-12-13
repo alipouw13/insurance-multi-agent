@@ -127,7 +127,7 @@ async def workflow_run(claim: ClaimIn):  # noqa: D401
                 
                 if span_processor:
                     span_processor.enable()
-                    logger.info("✅ Token span processor enabled - will save token usage to Cosmos DB")
+                    logger.debug("✅ Token span processor enabled - will save token usage to Cosmos DB")
             except Exception as e:
                 logger.warning(f"⚠️ Could not enable token span processor: {e}")
 
@@ -200,6 +200,37 @@ async def workflow_run(claim: ClaimIn):  # noqa: D401
             
             # Save execution to Cosmos DB
             if cosmos_service._initialized:
+                # Query token usage records for this execution
+                token_records = await cosmos_service.get_token_usage_by_execution(execution_id)
+                
+                # Group token records by agent type (rough matching)
+                # This aggregates all tokens used during workflow by agent type
+                token_by_agent = {}
+                total_tokens_all = 0
+                total_cost_all = 0.0
+                
+                for record in token_records:
+                    agent_type = record.agent_type.value if record.agent_type else "unknown"
+                    if agent_type not in token_by_agent:
+                        token_by_agent[agent_type] = {
+                            "prompt_tokens": 0,
+                            "completion_tokens": 0,
+                            "total_tokens": 0
+                        }
+                    token_by_agent[agent_type]["prompt_tokens"] += record.prompt_tokens
+                    token_by_agent[agent_type]["completion_tokens"] += record.completion_tokens
+                    token_by_agent[agent_type]["total_tokens"] += record.total_tokens
+                    total_tokens_all += record.total_tokens
+                    total_cost_all += record.total_cost
+                
+                # Populate token usage in agent steps
+                # Note: This is approximate since we're matching by agent type
+                for step in agent_steps:
+                    agent_type_str = step.agent_type
+                    if agent_type_str in token_by_agent:
+                        step.token_usage = token_by_agent[agent_type_str]
+                        logger.debug(f"✅ Populated token usage for {agent_type_str}: {step.token_usage}")
+                
                 execution = AgentExecution(
                     id=execution_id,
                     workflow_id=execution_id,
@@ -211,12 +242,29 @@ async def workflow_run(claim: ClaimIn):  # noqa: D401
                     started_at=started_at,
                     completed_at=completed_at,
                     duration_ms=duration_ms,
+                    total_tokens=total_tokens_all,
+                    total_cost=total_cost_all,
                     agents_invoked=list(set(step.agent_type for step in agent_steps)),
                     metadata={
-                        "total_steps": len(agent_steps)
+                        "total_steps": len(agent_steps),
+                        "token_records_found": len(token_records)
                     }
                 )
                 await cosmos_service.save_execution(execution)
+            
+            # Force flush of tracer provider to ensure all spans are processed
+            try:
+                from opentelemetry import trace
+                tracer_provider = trace.get_tracer_provider()
+                if hasattr(tracer_provider, 'force_flush'):
+                    tracer_provider.force_flush()
+                    logger.debug("✅ Flushed tracer provider - all spans processed")
+            except Exception as e:
+                logger.warning(f"Could not flush tracer provider: {e}")
+            
+            # Wait briefly for span processor to complete async operations
+            import asyncio
+            await asyncio.sleep(0.5)
             
             # Finalize token tracking and disable span processor
             await token_tracker.finalize_tracking()

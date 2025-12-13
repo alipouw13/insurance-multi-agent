@@ -65,7 +65,7 @@ class TokenUsageTracker:
         """
         self._current_claim_id = claim_id
         self._current_workflow_id = workflow_id
-        logger.info(f"🎯 Started token tracking for claim {claim_id}, workflow {workflow_id}")
+        logger.debug(f"🎯 Started token tracking for claim {claim_id}, workflow {workflow_id}")
     
     def start_tracking_legacy(
         self,
@@ -206,7 +206,7 @@ class TokenUsageTracker:
         operation_type: str = "chat_completion",
         **kwargs
     ):
-        """Record token usage from an OpenAI/Azure AI API call.
+        """Record token usage from an OpenAI/Azure AI API call and save immediately to Cosmos DB.
         
         Args:
             model_name: Model identifier (e.g., gpt-4.1-mini)
@@ -254,11 +254,14 @@ class TokenUsageTracker:
                 **kwargs
             )
             
-            # Store in active sessions for later saving
-            self._active_sessions[record_id] = record
-            
-            logger.info(f"💰 Recorded token usage: {total_tokens} tokens (${total_cost:.6f}) for {model_name} - will save to Cosmos on finalize")
-            logger.info(f"📊 Active session count: {len(self._active_sessions)}")
+            # Save immediately to Cosmos DB (following pattern from reference repo)
+            if self._cosmos_service and self._cosmos_service._initialized:
+                await self._save_token_record(record)
+                logger.debug(f"💰 Saved token usage to Cosmos: {total_tokens} tokens (${total_cost:.6f}) for {model_name}/{agent_type}")
+            else:
+                # Fallback: store for later if Cosmos not available
+                self._active_sessions[record_id] = record
+                logger.warning(f"⚠️ Cosmos not available, storing token record for later: {record_id}")
             
         except Exception as e:
             logger.error(f"Failed to record token usage: {e}")
@@ -294,29 +297,20 @@ class TokenUsageTracker:
             return
         
         try:
-            logger.info(f"🔄 Finalizing token tracking for claim {self._current_claim_id}")
-            logger.info(f"📊 Active sessions to save: {len(self._active_sessions)}")
+            logger.debug(f"🔄 Finalizing token tracking for claim {self._current_claim_id}")
             
             # Save all token usage records to Cosmos DB (if any manually tracked)
             if self._cosmos_service and self._cosmos_service._initialized:
                 record_count = len(self._active_sessions)
                 if record_count > 0:
-                    logger.info(f"💾 Saving {record_count} token records to Cosmos DB...")
+                    logger.debug(f"💾 Saving {record_count} token records to Cosmos DB...")
                     saved_count = 0
                     for record_id, record in list(self._active_sessions.items()):
                         await self._save_token_record(record)
                         del self._active_sessions[record_id]
                         saved_count += 1
                     
-                    logger.info(f"✅ Saved {saved_count}/{record_count} token records to Cosmos DB")
-                else:
-                    logger.warning(f"⚠️ No token usage records to save to Cosmos DB")
-            else:
-                logger.warning(f"⚠️ Cosmos service not initialized - cannot save token records")
-            
-            # Token usage is automatically captured via OpenTelemetry and sent to Application Insights
-            logger.info(f"✅ Token tracking finalized for claim {self._current_claim_id}")
-            logger.info("💡 View detailed token usage and costs in Azure Monitor Application Insights → Agents (Preview)")
+                    logger.debug(f"✅ Saved {saved_count}/{record_count} token records to Cosmos DB")
             
         except Exception as e:
             logger.error(f"Error finalizing token tracking: {e}")
