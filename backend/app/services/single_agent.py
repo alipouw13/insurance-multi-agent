@@ -30,18 +30,44 @@ def run(agent_name: str, claim_data: Dict[str, Any]) -> List[Dict[str, Any]]:  #
     Returns:
         The message list returned by ``agent.invoke``.
     """
-
-    logger.info("🚀 Starting single-agent run: %s", agent_name)
-
-    # Check if Azure AI agent is available
-    from app.workflow.azure_agent_manager import is_azure_agent_available, get_azure_agent_id
+    from opentelemetry import trace
+    from opentelemetry.trace import Status, StatusCode
     
-    if is_azure_agent_available(agent_name):
-        logger.info(f"✨ Using Azure AI Agent Service for {agent_name}")
-        return _run_azure_agent(agent_name, claim_data)
-    else:
-        logger.info(f"📊 Using LangGraph agent for {agent_name}")
-        return _run_langgraph_agent(agent_name, claim_data)
+    logger.info("🚀 Starting single-agent run: %s", agent_name)
+    
+    # Get tracer for creating spans
+    tracer = trace.get_tracer(__name__)
+    
+    # Create a span for the agent execution
+    with tracer.start_as_current_span(
+        f"invoke_agent.{agent_name}",
+        attributes={
+            "gen_ai.operation.name": "invoke_agent",
+            "gen_ai.agent.name": agent_name,
+            "gen_ai.agent.type": agent_name,
+            "insurance.claim_id": claim_data.get("claim_id", "unknown"),
+        }
+    ) as span:
+        try:
+            # Check if Azure AI agent is available
+            from app.workflow.azure_agent_manager import is_azure_agent_available, get_azure_agent_id
+            
+            if is_azure_agent_available(agent_name):
+                logger.info(f"✨ Using Azure AI Agent Service for {agent_name}")
+                span.set_attribute("gen_ai.system", "azure_ai_agents")
+                result = _run_azure_agent(agent_name, claim_data)
+            else:
+                logger.info(f"📊 Using LangGraph agent for {agent_name}")
+                span.set_attribute("gen_ai.system", "langgraph")
+                result = _run_langgraph_agent(agent_name, claim_data)
+            
+            span.set_status(Status(StatusCode.OK))
+            return result
+            
+        except Exception as e:
+            span.set_status(Status(StatusCode.ERROR, str(e)))
+            span.record_exception(e)
+            raise
 
 
 def _run_azure_agent(agent_name: str, claim_data: Dict[str, Any]) -> List[Dict[str, Any]]:
@@ -62,8 +88,11 @@ def _run_azure_agent(agent_name: str, claim_data: Dict[str, Any]) -> List[Dict[s
     # Create user message
     user_message = f"Please process this insurance claim:\n\n{json.dumps(claim_data, indent=2)}"
     
+    # Get toolset for agent if it needs tools
+    toolset = _get_toolset_for_agent(agent_name)
+    
     # Run Azure agent and get messages
-    azure_messages = run_agent(agent_id, user_message)
+    azure_messages = run_agent(agent_id, user_message, toolset=toolset)
     
     # Convert Azure AI message format to LangGraph-compatible format
     messages = []
@@ -91,6 +120,48 @@ def _run_azure_agent(agent_name: str, claim_data: Dict[str, Any]) -> List[Dict[s
     
     logger.info("✅ Azure AI agent run finished: %s messages", len(messages))
     return messages
+
+
+def _get_toolset_for_agent(agent_name: str):
+    """Get the toolset for a specific agent.
+    
+    Args:
+        agent_name: Name of the agent
+        
+    Returns:
+        ToolSet with functions for the agent, or None if no tools needed
+    """
+    from azure.ai.agents.models import FunctionTool, ToolSet
+    
+    if agent_name == "claim_assessor":
+        # Import tools for claim assessor
+        from app.workflow.agents.azure_claim_assessor import get_vehicle_details, analyze_image
+        user_functions = {get_vehicle_details, analyze_image}
+        functions = FunctionTool(functions=user_functions)
+        toolset = ToolSet()
+        toolset.add(functions)
+        return toolset
+    
+    elif agent_name == "policy_checker":
+        # Import tools for policy checker
+        from app.workflow.agents.azure_policy_checker import search_policies
+        user_functions = {search_policies}
+        functions = FunctionTool(functions=user_functions)
+        toolset = ToolSet()
+        toolset.add(functions)
+        return toolset
+    
+    elif agent_name == "risk_analyst":
+        # Import tools for risk analyst
+        from app.workflow.agents.azure_risk_analyst import get_fraud_indicators, get_historical_claims
+        user_functions = {get_fraud_indicators, get_historical_claims}
+        functions = FunctionTool(functions=user_functions)
+        toolset = ToolSet()
+        toolset.add(functions)
+        return toolset
+    
+    # No tools needed for communication_agent
+    return None
 
 
 def _run_langgraph_agent(agent_name: str, claim_data: Dict[str, Any]) -> List[Dict[str, Any]]:

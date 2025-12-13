@@ -38,12 +38,13 @@ def get_project_client() -> AIProjectClient:
     return _project_client
 
 
-def run_agent(agent_id: str, user_message: str) -> List[Dict[str, Any]]:
+def run_agent(agent_id: str, user_message: str, toolset=None) -> List[Dict[str, Any]]:
     """Run an Azure AI Agent Service agent with a user message.
     
     Args:
         agent_id: ID of the agent to run
         user_message: The user's input message
+        toolset: Optional ToolSet with functions for the agent to use
         
     Returns:
         List of messages from the agent's response
@@ -51,6 +52,11 @@ def run_agent(agent_id: str, user_message: str) -> List[Dict[str, Any]]:
     project_client = get_project_client()
     
     try:
+        # Enable auto function calls if toolset provided
+        if toolset:
+            project_client.agents.enable_auto_function_calls(toolset)
+            logger.info(f"✅ Enabled auto function calls with {len(toolset._tools)} tools")
+        
         # Create a thread for this conversation
         thread = project_client.agents.threads.create()
         logger.info(f"Created thread: {thread.id}")

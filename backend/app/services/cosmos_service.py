@@ -275,6 +275,42 @@ class CosmosAgentService:
             logger.error(f"❌ Failed to save execution {execution.id}: {e}")
             raise
     
+    async def save_token_usage(self, token_record: 'TokenUsageRecord') -> 'TokenUsageRecord':
+        """Save a token usage record to Cosmos DB.
+        
+        Args:
+            token_record: Token usage record to save
+            
+        Returns:
+            Saved token record
+        """
+        if not self._initialized:
+            await self.initialize()
+        
+        if not self._token_usage_container:
+            logger.warning("Token usage container not available")
+            return token_record
+        
+        try:
+            from app.models.agent_models import TokenUsageRecord
+            
+            # Convert to dict for Cosmos DB
+            record_dict = token_record.model_dump(mode='json')
+            
+            # Ensure proper datetime serialization
+            if 'timestamp' in record_dict and hasattr(record_dict['timestamp'], 'isoformat'):
+                record_dict['timestamp'] = record_dict['timestamp'].isoformat()
+            
+            # Upsert the document
+            result = self._token_usage_container.upsert_item(record_dict)
+            
+            logger.info(f"✅ Saved token usage: {token_record.record_id} ({token_record.total_tokens} tokens, ${token_record.total_cost:.6f})")
+            return TokenUsageRecord(**result)
+            
+        except Exception as e:
+            logger.error(f"❌ Failed to save token usage {token_record.record_id}: {e}")
+            return token_record
+    
     async def get_execution(self, execution_id: str) -> Optional[AgentExecution]:
         """Retrieve an execution record by ID.
         

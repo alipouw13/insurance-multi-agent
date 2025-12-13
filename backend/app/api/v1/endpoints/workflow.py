@@ -6,15 +6,19 @@ import re
 from typing import Any
 from datetime import datetime
 import uuid
+import logging
 
 from app.models.claim import ClaimIn, ClaimOut
 from app.services.claim_processing import run as run_workflow
 from app.sample_data import ALL_SAMPLE_CLAIMS
 from app.services.cosmos_service import get_cosmos_service
-from app.services.token_tracker import TokenUsageTracker
+from app.services.token_tracker import TokenUsageTracker, get_token_tracker
 from app.models.agent_models import AgentExecution, ExecutionStatus, AgentStepExecution
 
 router = APIRouter(tags=["workflow"])
+
+# Initialize logger
+logger = logging.getLogger(__name__)
 
 # Regex compiled once
 DECISION_PATTERN = re.compile(
@@ -62,161 +66,211 @@ async def workflow_run(claim: ClaimIn):  # noqa: D401
     - A claim_id to load sample data: {"claim_id": "CLM-2024-001"}
     - Full claim data: {"claim_id": "...", "policy_number": "...", ...}
     """
+    from opentelemetry import trace
+    from opentelemetry.trace import Status, StatusCode
+    
+    # Get tracer for creating spans
+    tracer = trace.get_tracer(__name__)
 
     # Initialize tracking
     cosmos_service = await get_cosmos_service()
-    token_tracker = TokenUsageTracker(cosmos_service)
+    token_tracker = get_token_tracker(cosmos_service)
     execution_id = str(uuid.uuid4())
     
-    try:
-        # ------------------------------------------------------------------
-        # 1. Decide whether to load sample claim or use provided data
-        # ------------------------------------------------------------------
-        # Load sample data if claim_id provided and matches sample claim
-        if claim.claim_id:
-            claim_data = get_sample_claim_by_id(claim.claim_id)
+    # Create top-level span for entire workflow
+    with tracer.start_as_current_span(
+        "workflow.insurance_claim_processing",
+        attributes={
+            "gen_ai.operation.name": "workflow.execute",
+            "workflow.type": "insurance_claim_processing",
+            "workflow.execution_id": execution_id,
+        }
+    ) as workflow_span:
+        try:
+            # ------------------------------------------------------------------
+            # 1. Decide whether to load sample claim or use provided data
+            # ------------------------------------------------------------------
+            # Load sample data if claim_id provided and matches sample claim
+            if claim.claim_id:
+                claim_data = get_sample_claim_by_id(claim.claim_id)
 
-            # Merge/override with any additional fields supplied in request (e.g., supporting_documents)
-            override_data = {
-                k: v for k, v in claim.model_dump(by_alias=True, exclude_none=True).items()
-                if k != "claim_id"
-            }
-
-            # Apply overrides (including supporting_images) on top of sample claim
-            claim_data.update(override_data)
-        else:
-            # Full claim provided without loading sample
-            claim_data = claim.to_dict()
-        
-        # Start tracking
-        await token_tracker.start_tracking(
-            claim_id=claim_data.get("claim_id", "unknown"),
-            workflow_id=execution_id
-        )
-
-        # ------------------------------------------------------------------
-        # 2. Stream LangGraph execution; capture both grouped & chronological
-        # ------------------------------------------------------------------
-        chronological: list[dict[str, str]] = []
-        seen_lengths: dict[str, int] = {}
-        agent_steps: list[AgentStepExecution] = []
-        started_at = datetime.utcnow()
-
-        chunks = []
-        for chunk in run_workflow(claim_data):
-            chunks.append(chunk)
-
-            # Process each node in the chunk (now we get individual agent updates)
-            for node_name, node_data in chunk.items():
-                if node_name == "__end__":
-                    continue
-
-                # Handle different data structures
-                if isinstance(node_data, list):
-                    msgs = node_data
-                elif isinstance(node_data, dict) and "messages" in node_data:
-                    msgs = node_data["messages"]
-                elif isinstance(node_data, dict) and set(node_data.keys()) == {"messages"}:
-                    # Handle supervisor-style single messages key
-                    msgs = node_data["messages"]
-                else:
-                    continue
-
-                prev_len = seen_lengths.get(node_name, 0)
-                new_msgs = msgs[prev_len:]
-
-                for msg in new_msgs:
-                    serialized = _serialize_msg(node_name, msg)
-                    chronological.append(serialized)
-                    
-                    # Track agent steps (only for recognized agents, skip supervisor)
-                    if node_name in ["claim_assessor", "policy_checker", "risk_analyst", "communication_agent"]:
-                        step_started = datetime.utcnow()
-                        agent_steps.append(AgentStepExecution(
-                            agent_type=node_name,  # AgentType enum value
-                            agent_version="1.0.0",
-                            started_at=step_started,
-                            completed_at=step_started,  # Immediate for message processing
-                            duration_ms=0.0,
-                            input_data={"content": serialized.get("content", "")},
-                            output_data={"role": serialized.get("role", ""), "content": serialized.get("content", "")},
-                            status=ExecutionStatus.COMPLETED
-                        ))
-
-                seen_lengths[node_name] = len(msgs)
-
-        # ------------------------------------------------------------------
-        # 3. Extract final decision from chronological messages
-        # ------------------------------------------------------------------
-        final_decision: str | None = None
-
-        # Extract final decision scanning chronological reverse order
-        for entry in reversed(chronological):
-            match = DECISION_PATTERN.search(entry["content"])
-            if match:
-                final_decision = match.group(1).upper()
-                break
-
-        # Finalize tracking
-        completed_at = datetime.utcnow()
-        duration_ms = (completed_at - started_at).total_seconds() * 1000
-        
-        # Save execution to Cosmos DB
-        if cosmos_service._initialized:
-            execution = AgentExecution(
-                id=execution_id,
-                workflow_id=execution_id,
-                workflow_type="insurance_claim_processing",
-                claim_id=claim_data.get("claim_id", "unknown"),
-                agent_steps=agent_steps,
-                final_result={"decision": final_decision, "success": True},
-                status=ExecutionStatus.COMPLETED,
-                started_at=started_at,
-                completed_at=completed_at,
-                duration_ms=duration_ms,
-                agents_invoked=list(set(step.agent_type for step in agent_steps)),
-                metadata={
-                    "total_steps": len(agent_steps)
+                # Merge/override with any additional fields supplied in request (e.g., supporting_documents)
+                override_data = {
+                    k: v for k, v in claim.model_dump(by_alias=True, exclude_none=True).items()
+                    if k != "claim_id"
                 }
+
+                # Apply overrides (including supporting_images) on top of sample claim
+                claim_data.update(override_data)
+            else:
+                # Full claim provided without loading sample
+                claim_data = claim.to_dict()
+            
+            # Add claim_id to workflow span
+            workflow_span.set_attribute("insurance.claim_id", claim_data.get("claim_id", "unknown"))
+            workflow_span.set_attribute("insurance.claim_type", claim_data.get("claim_type", "unknown"))
+            
+            # Start tracking
+            await token_tracker.start_tracking(
+                claim_id=claim_data.get("claim_id", "unknown"),
+                workflow_id=execution_id
             )
-            await cosmos_service.save_execution(execution)
-        
-        # Finalize token tracking
-        await token_tracker.finalize_tracking()
-
-        # ------------------------------------------------------------------
-        # 4. Return response with chronological stream only
-        # ------------------------------------------------------------------
-        return ClaimOut(
-            success=True,
-            final_decision=final_decision,
-            conversation_chronological=chronological,
-        )
-
-    except Exception as exc:
-        # Save failed execution
-        if cosmos_service._initialized:
+            
+            # Setup and enable token capture from OpenTelemetry spans for Cosmos DB
             try:
-                now = datetime.utcnow()
-                start = started_at if 'started_at' in locals() else now
+                from app.services.token_span_processor import setup_token_span_processor, get_token_span_processor
+                
+                # Setup span processor if not already configured
+                span_processor = get_token_span_processor()
+                if not span_processor:
+                    span_processor = setup_token_span_processor(token_tracker)
+                
+                if span_processor:
+                    span_processor.enable()
+                    logger.info("✅ Token span processor enabled - will save token usage to Cosmos DB")
+            except Exception as e:
+                logger.warning(f"⚠️ Could not enable token span processor: {e}")
+
+            # ------------------------------------------------------------------
+            # 2. Stream LangGraph execution; capture both grouped & chronological
+            # ------------------------------------------------------------------
+            chronological: list[dict[str, str]] = []
+            seen_lengths: dict[str, int] = {}
+            agent_steps: list[AgentStepExecution] = []
+            started_at = datetime.utcnow()
+
+            chunks = []
+            for chunk in run_workflow(claim_data):
+                chunks.append(chunk)
+                
+                # Process each node in the chunk (now we get individual agent updates)
+                for node_name, node_data in chunk.items():
+                    if node_name == "__end__":
+                        continue
+
+                    # Handle different data structures
+                    if isinstance(node_data, list):
+                        msgs = node_data
+                    elif isinstance(node_data, dict) and "messages" in node_data:
+                        msgs = node_data["messages"]
+                    elif isinstance(node_data, dict) and set(node_data.keys()) == {"messages"}:
+                        # Handle supervisor-style single messages key
+                        msgs = node_data["messages"]
+                    else:
+                        continue
+
+                    prev_len = seen_lengths.get(node_name, 0)
+                    new_msgs = msgs[prev_len:]
+
+                    for msg in new_msgs:
+                        serialized = _serialize_msg(node_name, msg)
+                        chronological.append(serialized)
+                        
+                        # Track agent steps (only for recognized agents, skip supervisor)
+                        if node_name in ["claim_assessor", "policy_checker", "risk_analyst", "communication_agent"]:
+                            step_started = datetime.utcnow()
+                            agent_steps.append(AgentStepExecution(
+                                agent_type=node_name,  # AgentType enum value
+                                agent_version="1.0.0",
+                                started_at=step_started,
+                                completed_at=step_started,  # Immediate for message processing
+                                duration_ms=0.0,
+                                input_data={"content": serialized.get("content", "")},
+                                output_data={"role": serialized.get("role", ""), "content": serialized.get("content", "")},
+                                status=ExecutionStatus.COMPLETED
+                            ))
+
+                    seen_lengths[node_name] = len(msgs)
+
+            # ------------------------------------------------------------------
+            # 3. Extract final decision from chronological messages
+            # ------------------------------------------------------------------
+            final_decision: str | None = None
+
+            # Extract final decision scanning chronological reverse order
+            for entry in reversed(chronological):
+                match = DECISION_PATTERN.search(entry["content"])
+                if match:
+                    final_decision = match.group(1).upper()
+                    break
+
+            # Finalize tracking
+            completed_at = datetime.utcnow()
+            duration_ms = (completed_at - started_at).total_seconds() * 1000
+            
+            # Save execution to Cosmos DB
+            if cosmos_service._initialized:
                 execution = AgentExecution(
                     id=execution_id,
                     workflow_id=execution_id,
                     workflow_type="insurance_claim_processing",
-                    claim_id=claim_data.get("claim_id", "unknown") if 'claim_data' in locals() else "unknown",
-                    agent_steps=[],
-                    final_result={"error": str(exc)},
-                    status=ExecutionStatus.FAILED,
-                    started_at=start,
-                    completed_at=now,
-                    duration_ms=(now - start).total_seconds() * 1000,
-                    error_message=str(exc)
+                    claim_id=claim_data.get("claim_id", "unknown"),
+                    agent_steps=agent_steps,
+                    final_result={"decision": final_decision, "success": True},
+                    status=ExecutionStatus.COMPLETED,
+                    started_at=started_at,
+                    completed_at=completed_at,
+                    duration_ms=duration_ms,
+                    agents_invoked=list(set(step.agent_type for step in agent_steps)),
+                    metadata={
+                        "total_steps": len(agent_steps)
+                    }
                 )
                 await cosmos_service.save_execution(execution)
-            except:
-                pass  # Don't fail on tracking errors
-        
-        raise HTTPException(status_code=500, detail=str(exc))
+            
+            # Finalize token tracking and disable span processor
+            await token_tracker.finalize_tracking()
+            
+            try:
+                from app.services.token_span_processor import get_token_span_processor
+                span_processor = get_token_span_processor()
+                if span_processor:
+                    span_processor.disable()
+                    logger.debug("Token span processor disabled after workflow completion")
+            except Exception as e:
+                logger.warning(f"Could not disable token span processor: {e}")
+
+            # ------------------------------------------------------------------
+            # 4. Return response with chronological stream only
+            # ------------------------------------------------------------------
+            workflow_span.set_attribute("workflow.status", "completed")
+            workflow_span.set_attribute("workflow.agent_count", len(agent_steps))
+            workflow_span.set_status(Status(StatusCode.OK))
+            
+            return ClaimOut(
+                success=True,
+                final_decision=final_decision,
+                conversation_chronological=chronological,
+            )
+
+        except Exception as exc:
+            # Mark workflow span as failed
+            workflow_span.set_status(Status(StatusCode.ERROR, str(exc)))
+            workflow_span.record_exception(exc)
+            
+            # Save failed execution
+            if cosmos_service._initialized:
+                try:
+                    now = datetime.utcnow()
+                    start = started_at if 'started_at' in locals() else now
+                    execution = AgentExecution(
+                        id=execution_id,
+                        workflow_id=execution_id,
+                        workflow_type="insurance_claim_processing",
+                        claim_id=claim_data.get("claim_id", "unknown") if 'claim_data' in locals() else "unknown",
+                        agent_steps=[],
+                        final_result={"error": str(exc)},
+                        status=ExecutionStatus.FAILED,
+                        started_at=start,
+                        completed_at=now,
+                        duration_ms=(now - start).total_seconds() * 1000,
+                        error_message=str(exc)
+                    )
+                    await cosmos_service.save_execution(execution)
+                except:
+                    pass  # Don't fail on tracking errors
+            
+            raise HTTPException(status_code=500, detail=str(exc))
 
 
 # ------------------------------------------------------------------

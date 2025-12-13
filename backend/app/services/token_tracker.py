@@ -196,14 +196,142 @@ class TokenUsageTracker:
             f"total={record.total_tokens}, cost=${record.total_cost:.4f}"
         )
     
+    async def record_token_usage(
+        self,
+        model_name: str,
+        deployment_name: str,
+        prompt_tokens: int,
+        completion_tokens: int,
+        agent_type: Optional[str] = None,
+        operation_type: str = "chat_completion",
+        **kwargs
+    ):
+        """Record token usage from an OpenAI/Azure AI API call.
+        
+        Args:
+            model_name: Model identifier (e.g., gpt-4.1-mini)
+            deployment_name: Azure deployment name
+            prompt_tokens: Number of prompt tokens used
+            completion_tokens: Number of completion tokens used
+            agent_type: Agent that made the call (optional)
+            operation_type: Type of operation (chat, embedding, etc.)
+            **kwargs: Additional metadata
+        """
+        if not self._current_claim_id or not self._current_workflow_id:
+            logger.warning("Token tracking not started - call start_tracking first")
+            return
+        
+        try:
+            record_id = str(uuid.uuid4())
+            total_tokens = prompt_tokens + completion_tokens
+            
+            # Calculate costs
+            model_key = self._get_model_key_for_pricing(model_name or deployment_name)
+            pricing = self.token_pricing.get(model_key, {"prompt": 0.0, "completion": 0.0})
+            prompt_cost = (prompt_tokens / 1000) * pricing["prompt"]
+            completion_cost = (completion_tokens / 1000) * pricing["completion"]
+            total_cost = prompt_cost + completion_cost
+            
+            # Create token usage record
+            record = TokenUsageRecord(
+                id=record_id,
+                record_id=record_id,
+                claim_id=self._current_claim_id,
+                execution_id=self._current_workflow_id,
+                service_type=ServiceType.AZURE_OPENAI,
+                operation_type=OperationType.CHAT_COMPLETION if "chat" in operation_type.lower() else OperationType.EMBEDDING,
+                agent_type=agent_type,
+                model_name=model_name,
+                deployment_name=deployment_name,
+                prompt_tokens=prompt_tokens,
+                completion_tokens=completion_tokens,
+                total_tokens=total_tokens,
+                prompt_cost=prompt_cost,
+                completion_cost=completion_cost,
+                total_cost=total_cost,
+                timestamp=datetime.now(timezone.utc),
+                success=True,
+                **kwargs
+            )
+            
+            # Store in active sessions for later saving
+            self._active_sessions[record_id] = record
+            
+            logger.info(f"💰 Recorded token usage: {total_tokens} tokens (${total_cost:.6f}) for {model_name} - will save to Cosmos on finalize")
+            logger.info(f"📊 Active session count: {len(self._active_sessions)}")
+            
+        except Exception as e:
+            logger.error(f"Failed to record token usage: {e}")
+    
+    def _get_model_key_for_pricing(self, model_identifier: str) -> str:
+        """Map model identifier to pricing key."""
+        if not model_identifier:
+            return "gpt-4o-mini"
+        
+        model_lower = model_identifier.lower()
+        
+        if "gpt-4o-mini" in model_lower or "gpt-4.1-mini" in model_lower:
+            return "gpt-4.1-mini"
+        elif "gpt-4o" in model_lower:
+            return "gpt-4o"
+        elif "gpt-4" in model_lower:
+            return "gpt-4"
+        elif "gpt-35-turbo" in model_lower or "gpt-3.5-turbo" in model_lower:
+            return "gpt-35-turbo"
+        elif "text-embedding-3-small" in model_lower:
+            return "text-embedding-3-small"
+        elif "text-embedding-3-large" in model_lower:
+            return "text-embedding-3-large"
+        elif "text-embedding-ada-002" in model_lower:
+            return "text-embedding-ada-002"
+        
+        return "gpt-4.1-mini"  # Default fallback
+    
     async def finalize_tracking(self):
-        """Finalize tracking for current workflow (simplified method)."""
-        if self._current_claim_id:
-            logger.info(f"✅ Finalized token tracking for claim {self._current_claim_id}")
-            # Note: Token usage is captured automatically via OpenTelemetry instrumentation
-            # This method is a placeholder for future enhancements
+        """Finalize tracking and save all token usage records to Cosmos DB."""
+        if not self._current_claim_id:
+            logger.warning("No active tracking session to finalize")
+            return
+        
+        try:
+            logger.info(f"🔄 Finalizing token tracking for claim {self._current_claim_id}")
+            logger.info(f"📊 Active sessions to save: {len(self._active_sessions)}")
+            
+            # Save all token usage records to Cosmos DB (if any manually tracked)
+            if self._cosmos_service and self._cosmos_service._initialized:
+                record_count = len(self._active_sessions)
+                if record_count > 0:
+                    logger.info(f"💾 Saving {record_count} token records to Cosmos DB...")
+                    saved_count = 0
+                    for record_id, record in list(self._active_sessions.items()):
+                        await self._save_token_record(record)
+                        del self._active_sessions[record_id]
+                        saved_count += 1
+                    
+                    logger.info(f"✅ Saved {saved_count}/{record_count} token records to Cosmos DB")
+                else:
+                    logger.warning(f"⚠️ No token usage records to save to Cosmos DB")
+            else:
+                logger.warning(f"⚠️ Cosmos service not initialized - cannot save token records")
+            
+            # Token usage is automatically captured via OpenTelemetry and sent to Application Insights
+            logger.info(f"✅ Token tracking finalized for claim {self._current_claim_id}")
+            logger.info("💡 View detailed token usage and costs in Azure Monitor Application Insights → Agents (Preview)")
+            
+        except Exception as e:
+            logger.error(f"Error finalizing token tracking: {e}")
+        finally:
             self._current_claim_id = None
             self._current_workflow_id = None
+            self._active_sessions.clear()
+    
+    async def _save_token_record(self, record: TokenUsageRecord):
+        """Save a single token usage record to Cosmos DB."""
+        try:
+            await self._cosmos_service.save_token_usage(record)
+            logger.debug(f"Saved token record {record.record_id} to Cosmos DB")
+        except Exception as e:
+            logger.error(f"Failed to save token record {record.record_id}: {e}")
     
     async def finalize_tracking_legacy(
         self,
@@ -360,13 +488,19 @@ class TokenUsageTracker:
 _token_tracker: Optional[TokenUsageTracker] = None
 
 
-def get_token_tracker() -> TokenUsageTracker:
+def get_token_tracker(cosmos_service=None) -> TokenUsageTracker:
     """Get or create the global token usage tracker instance.
     
+    Args:
+        cosmos_service: Optional Cosmos DB service to set/update
+        
     Returns:
         Token usage tracker
     """
     global _token_tracker
     if _token_tracker is None:
-        _token_tracker = TokenUsageTracker()
+        _token_tracker = TokenUsageTracker(cosmos_service)
+    elif cosmos_service is not None and _token_tracker._cosmos_service is None:
+        # Update cosmos_service if not already set
+        _token_tracker._cosmos_service = cosmos_service
     return _token_tracker

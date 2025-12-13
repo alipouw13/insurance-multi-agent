@@ -274,6 +274,17 @@ AZURE_STORAGE_CONTAINER_NAME=insurance-documents
 AZURE_SEARCH_ENDPOINT=https://your-search-service.search.windows.net
 AZURE_SEARCH_API_KEY=your-search-admin-key
 AZURE_SEARCH_INDEX_NAME=insurance-policies
+
+# Azure Cosmos DB (for agent persistence and telemetry)
+AZURE_COSMOS_ENDPOINT=https://your-cosmos-account.documents.azure.com:443/
+AZURE_COSMOS_DATABASE_NAME=insurance-agents
+AZURE_COSMOS_DEFINITIONS_CONTAINER=agent-definitions
+AZURE_COSMOS_EXECUTIONS_CONTAINER=agent-executions
+AZURE_COSMOS_TOKEN_USAGE_CONTAINER=token-usage
+
+# OpenTelemetry (optional - for Application Insights)
+ENABLE_TELEMETRY=true
+APPLICATION_INSIGHTS_CONNECTION_STRING=InstrumentationKey=your-key;IngestionEndpoint=https://...
 ```
 
 ### Azure Resources Required
@@ -298,6 +309,209 @@ The application requires the following Azure resources:
    - Vector search enabled with HNSW algorithm
    - Dimensions: 3072 (for text-embedding-3-large)
    - Supports hybrid search (vector + keyword)
+
+5. **Azure Cosmos DB**: For agent persistence and telemetry
+   - Database: `insurance-agents`
+   - Containers: `agent-definitions`, `agent-executions`, `token-usage`
+   - Partition keys: `/agent_type`, `/execution_id`, `/execution_id`
+   - Tracks agent workflows, execution history, and token usage
+
+### Cosmos DB Setup
+
+The application requires Azure Cosmos DB for NoSQL to persist agent definitions, execution history, and token usage telemetry.
+
+#### Creating Cosmos DB Resources
+
+**Option 1: Using Azure Portal**
+
+1. **Create Cosmos DB Account**:
+   - Navigate to [Azure Portal](https://portal.azure.com)
+   - Click "Create a resource" → "Azure Cosmos DB"
+   - Select "Azure Cosmos DB for NoSQL"
+   - Choose your subscription and resource group
+   - Account name: `your-cosmos-account-name`
+   - Location: Same as your other Azure resources
+   - Capacity mode: **Serverless** (recommended for development)
+   - Click "Review + create"
+
+2. **Create Database and Containers**:
+   
+   After the account is created, navigate to "Data Explorer" in your Cosmos DB account:
+
+   **Create Database**:
+   - Click "New Database"
+   - Database id: `insurance-agents`
+   - Leave "Provision throughput" unchecked (containers will manage their own)
+   - Click "OK"
+
+   **Create Container: agent-definitions**:
+   - Click "New Container"
+   - Database id: Select "Use existing" → `insurance-agents`
+   - Container id: `agent-definitions`
+   - Partition key: `/agent_type`
+   - Click "OK"
+
+   **Create Container: agent-executions**:
+   - Click "New Container"
+   - Database id: Select "Use existing" → `insurance-agents`
+   - Container id: `agent-executions`
+   - Partition key: `/execution_id`
+   - Click "OK"
+
+   **Create Container: token-usage**:
+   - Click "New Container"
+   - Database id: Select "Use existing" → `insurance-agents`
+   - Container id: `token-usage`
+   - Partition key: `/execution_id`
+   - Click "OK"
+
+**Option 2: Using Azure CLI**
+
+```bash
+# Variables
+RESOURCE_GROUP="your-resource-group"
+ACCOUNT_NAME="your-cosmos-account"
+LOCATION="eastus"
+DATABASE_NAME="insurance-agents"
+
+# Create Cosmos DB account (serverless)
+az cosmosdb create \
+  --name $ACCOUNT_NAME \
+  --resource-group $RESOURCE_GROUP \
+  --locations regionName=$LOCATION \
+  --capabilities EnableServerless \
+  --default-consistency-level Session
+
+# Create database
+az cosmosdb sql database create \
+  --account-name $ACCOUNT_NAME \
+  --resource-group $RESOURCE_GROUP \
+  --name $DATABASE_NAME
+
+# Create agent-definitions container
+az cosmosdb sql container create \
+  --account-name $ACCOUNT_NAME \
+  --resource-group $RESOURCE_GROUP \
+  --database-name $DATABASE_NAME \
+  --name agent-definitions \
+  --partition-key-path "/agent_type"
+
+# Create agent-executions container
+az cosmosdb sql container create \
+  --account-name $ACCOUNT_NAME \
+  --resource-group $RESOURCE_GROUP \
+  --database-name $DATABASE_NAME \
+  --name agent-executions \
+  --partition-key-path "/execution_id"
+
+# Create token-usage container
+az cosmosdb sql container create \
+  --account-name $ACCOUNT_NAME \
+  --resource-group $RESOURCE_GROUP \
+  --database-name $DATABASE_NAME \
+  --name token-usage \
+  --partition-key-path "/execution_id"
+```
+
+#### Permissions and Access Control
+
+**Using Azure CLI Authentication (Development)**:
+
+The application uses `DefaultAzureCredential` which supports Azure CLI authentication:
+
+```bash
+# Login with Azure CLI
+az login
+
+# Assign yourself Cosmos DB Data Contributor role
+az cosmosdb sql role assignment create \
+  --account-name $ACCOUNT_NAME \
+  --resource-group $RESOURCE_GROUP \
+  --role-definition-name "Cosmos DB Built-in Data Contributor" \
+  --principal-id $(az ad signed-in-user show --query id -o tsv) \
+  --scope "/"
+```
+
+**Using Managed Identity (Production)**:
+
+For Azure Container Apps or other Azure services:
+
+```bash
+# Get the managed identity principal ID (for Container App)
+PRINCIPAL_ID=$(az containerapp show \
+  --name your-app-name \
+  --resource-group $RESOURCE_GROUP \
+  --query identity.principalId -o tsv)
+
+# Assign Cosmos DB Data Contributor role to managed identity
+az cosmosdb sql role assignment create \
+  --account-name $ACCOUNT_NAME \
+  --resource-group $RESOURCE_GROUP \
+  --role-definition-name "Cosmos DB Built-in Data Contributor" \
+  --principal-id $PRINCIPAL_ID \
+  --scope "/"
+```
+
+**Firewall Configuration**:
+
+By default, Cosmos DB denies all network access. You need to configure network access:
+
+**Development (allow your local IP)**:
+```bash
+# Get your public IP
+MY_IP=$(curl -s https://api.ipify.org)
+
+# Add your IP to firewall
+az cosmosdb update \
+  --name $ACCOUNT_NAME \
+  --resource-group $RESOURCE_GROUP \
+  --ip-range-filter $MY_IP
+```
+
+**Production (allow Azure services)**:
+```bash
+# Allow access from Azure services
+az cosmosdb update \
+  --name $ACCOUNT_NAME \
+  --resource-group $RESOURCE_GROUP \
+  --enable-public-network true \
+  --enable-automatic-failover false
+```
+
+#### Environment Configuration
+
+Add these variables to your `.env` file:
+
+```env
+# Azure Cosmos DB Configuration
+AZURE_COSMOS_ENDPOINT=https://your-cosmos-account.documents.azure.com:443/
+AZURE_COSMOS_DATABASE_NAME=insurance-agents
+AZURE_COSMOS_DEFINITIONS_CONTAINER=agent-definitions
+AZURE_COSMOS_EXECUTIONS_CONTAINER=agent-executions
+AZURE_COSMOS_TOKEN_USAGE_CONTAINER=token-usage
+```
+
+**Note**: No connection string or key is needed when using `DefaultAzureCredential` with RBAC permissions.
+
+#### Verifying the Setup
+
+Test that Cosmos DB is properly configured:
+
+```bash
+cd backend
+uv run python tests/check_tokens.py
+```
+
+This test script will:
+- Connect to Cosmos DB using DefaultAzureCredential
+- Query the token-usage container
+- Display recent token usage records (if any)
+
+If you see "Token usage container not available" or connection errors, check:
+1. Your Azure CLI authentication (`az account show`)
+2. RBAC role assignment (Cosmos DB Data Contributor)
+3. Firewall settings (your IP is whitelisted)
+4. Environment variables in `.env` file
 
 ### Authentication for Azure AI Agent Service
 

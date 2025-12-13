@@ -55,8 +55,12 @@ def setup_tracing(
         if enable_content_recording:
             os.environ["AZURE_TRACING_GEN_AI_CONTENT_RECORDING_ENABLED"] = "true"
         
-        # Use connection string from parameter or settings
+        # Use connection string from parameter, settings, or retrieve from AI Foundry
         conn_str = connection_string or settings.application_insights_connection_string
+        
+        # Try to get from AI Foundry if not configured
+        if not conn_str:
+            conn_str = get_application_insights_connection_string()
         
         if conn_str:
             # Configure Azure Monitor with OpenTelemetry
@@ -73,7 +77,15 @@ def setup_tracing(
             _tracer_provider = TracerProvider()
             trace.set_tracer_provider(_tracer_provider)
         
-        # Instrument OpenAI SDK
+        # Instrument Azure AI Agents (captures token usage automatically)
+        try:
+            from azure.ai.agents.telemetry import AIAgentsInstrumentor
+            AIAgentsInstrumentor().instrument()
+            logger.info("✅ Azure AI Agents instrumented for telemetry")
+        except ImportError:
+            logger.warning("⚠️ Azure AI Agents instrumentation not available")
+        
+        # Instrument OpenAI SDK (for direct OpenAI calls)
         try:
             from opentelemetry.instrumentation.openai import OpenAIInstrumentor
             OpenAIInstrumentor().instrument()
@@ -90,6 +102,37 @@ def setup_tracing(
     except Exception as e:
         logger.error(f"❌ Failed to configure tracing: {e}")
         return False
+
+
+def get_application_insights_connection_string() -> Optional[str]:
+    """Retrieve Application Insights connection string from AI Foundry project.
+    
+    Returns:
+        Connection string or None if not available
+    """
+    try:
+        from azure.ai.projects import AIProjectClient
+        from azure.identity import DefaultAzureCredential
+        from app.core.config import get_settings
+        
+        settings = get_settings()
+        
+        if not settings.project_endpoint:
+            logger.debug("No Azure AI Project endpoint configured")
+            return None
+        
+        project_client = AIProjectClient(
+            endpoint=settings.project_endpoint,
+            credential=DefaultAzureCredential()
+        )
+        
+        connection_string = project_client.telemetry.get_application_insights_connection_string()
+        logger.info("✅ Retrieved Application Insights connection string from AI Foundry")
+        return connection_string
+        
+    except Exception as e:
+        logger.warning(f"⚠️ Could not retrieve App Insights connection from AI Foundry: {e}")
+        return None
 
 
 def get_tracer() -> Optional[Tracer]:
