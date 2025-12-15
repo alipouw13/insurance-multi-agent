@@ -68,7 +68,7 @@ class FoundryEvaluator:
             self.available_evaluators = {}
     
     async def evaluate(self, request: EvaluationRequest) -> EvaluationResult:
-        """Evaluate using Azure AI Foundry SDK with portal logging."""
+        """Evaluate using Azure AI Foundry SDK evaluators."""
         if not self.available_evaluators:
             raise ValueError("Azure AI Foundry evaluators not available")
         
@@ -93,10 +93,10 @@ class FoundryEvaluator:
             # Prepare evaluation parameters
             eval_params = {
                 "query": request.question,
-                "response": request.answer
+                "response": request.answer,
             }
             
-            # Add context if available
+            # Add context if available (required for groundedness)
             if request.context:
                 eval_params["context"] = "\n".join(request.context)
             
@@ -113,35 +113,58 @@ class FoundryEvaluator:
                 try:
                     evaluator = self.available_evaluators[metric_name]
                     
+                    # Prepare params for this specific evaluator
+                    evaluator_params = eval_params.copy()
+                    
+                    # Groundedness requires context, others don't
+                    if metric_name != 'groundedness' and 'context' in evaluator_params:
+                        del evaluator_params['context']
+                    
+                    logger.debug(f"Running {metric_name} evaluator with params: query={len(evaluator_params.get('query', ''))} chars, response={len(evaluator_params.get('response', ''))} chars")
+                    
                     # Run evaluator (they are synchronous)
                     eval_result = await asyncio.get_event_loop().run_in_executor(
-                        None, lambda: evaluator(**eval_params)
+                        None, lambda m=metric_name, p=evaluator_params: self.available_evaluators[m](**p)
                     )
                     
-                    # Extract score
+                    logger.debug(f"Evaluator {metric_name} returned: {type(eval_result)} = {eval_result}")
+                    
+                    # Extract score - SDK returns dict with score key
+                    score = None
+                    reasoning = ""
+                    
                     if isinstance(eval_result, dict):
+                        # Try different possible score keys
                         score = (
                             eval_result.get("score") or
                             eval_result.get(metric_name) or
                             eval_result.get(f"{metric_name}_score") or
-                            0.0
+                            eval_result.get(f"gpt_{metric_name}") or
+                            None
                         )
                         reasoning = eval_result.get("reasoning", "")
-                    else:
-                        score = float(eval_result) if eval_result is not None else 0.0
-                        reasoning = ""
+                    elif eval_result is not None:
+                        try:
+                            score = float(eval_result)
+                        except (ValueError, TypeError):
+                            logger.warning(f"Could not convert {metric_name} result to float: {eval_result}")
+                            score = None
+                    
+                    if score is None:
+                        logger.warning(f"No score extracted for {metric_name}, using 0.0. Raw result: {eval_result}")
+                        score = 0.0
                     
                     scores[metric_name] = score
                     detailed[metric_name] = {
                         "score": score,
-                        "reasoning": reasoning
+                        "reasoning": reasoning or f"Evaluated using Azure AI Foundry {metric_name} evaluator"
                     }
                     
                     logger.info(f"✅ {metric_name}: {score}")
                     
                 except Exception as e:
-                    logger.error(f"Error evaluating {metric_name}: {e}")
-                    scores[metric_name] = 0.0
+                    logger.error(f"Error evaluating {metric_name}: {e}", exc_info=True)
+                    scores[metric_name] = 0.0  # Default to 0.0 instead of None
             
             # Set scores on result
             result.groundedness_score = scores.get('groundedness')

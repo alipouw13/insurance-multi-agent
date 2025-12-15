@@ -33,6 +33,14 @@ class Settings(BaseSettings):  # noqa: D101
     project_endpoint: str | None = Field(
         default=None, alias="PROJECT_ENDPOINT")
     
+    # Azure AI Project details (for evaluation portal logging)
+    azure_subscription_id: str | None = Field(
+        default=None, alias="AZURE_SUBSCRIPTION_ID")
+    azure_resource_group: str | None = Field(
+        default=None, alias="AZURE_RESOURCE_GROUP")
+    azure_ai_project_name: str | None = Field(
+        default=None, alias="AZURE_AI_PROJECT_NAME")
+    
     # Azure Service Principal Authentication
     azure_tenant_id: str | None = Field(
         default=None, alias="AZURE_TENANT_ID")
