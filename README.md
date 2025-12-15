@@ -68,32 +68,34 @@ This implementation leverages **Azure AI Foundry's Agent Service** for productio
 
 ### High-Level Architecture
 
+![Architecture Diagram](./frontend/public/arch.png)
+
 ```
 ┌─────────────────────────────────────────────────────────────────┐
-│                         Client Layer                             │
-│  Next.js Frontend (React 19 + shadcn/ui) - Port 3000           │
+│                         Client Layer                            │
+│  Next.js Frontend (React 19 + shadcn/ui) - Port 3000            │
 └───────────────────────────┬─────────────────────────────────────┘
                             │ HTTP/REST
 ┌───────────────────────────▼─────────────────────────────────────┐
-│                    FastAPI Backend - Port 8000                   │
+│                    FastAPI Backend - Port 8000                  │
 │  ┌────────────────────────────────────────────────────────────┐ │
-│  │              API Layer (v1 Endpoints)                       │ │
+│  │              API Layer (v1 Endpoints)                      │ │
 │  │  /workflow/sample-claims  /agent/{name}/run                │ │
 │  └────────────────────┬───────────────────────────────────────┘ │
-│                       │                                          │
+│                       │                                         │
 │  ┌────────────────────▼───────────────────────────────────────┐ │
-│  │           Azure Agent Manager (Startup)                     │ │
+│  │           Azure Agent Manager (Startup)                    │ │
 │  │  - Deploy agents to Azure AI Foundry on startup            │ │
 │  │  - Check for existing agents (prevent duplicates)          │ │
 │  │  - Store agent IDs for routing                             │ │
 │  └────────────────────┬───────────────────────────────────────┘ │
-│                       │                                          │
+│                       │                                         │
 │  ┌────────────────────▼───────────────────────────────────────┐ │
-│  │         Single Agent Service (Routing Logic)                │ │
+│  │         Single Agent Service (Routing Logic)               │ │
 │  │  if Azure Agent Available: use Azure AI Agent Service      │ │
 │  │  else: fallback to LangGraph implementation                │ │
 │  └─────┬──────────────────────────────────────────────────────┘ │
-└────────┼─────────────────────────────────────────────────────────┘
+└────────┼────────────────────────────────────────────────────────┘
          │
          ├──────────────────┬──────────────────┐
          │                  │                  │
@@ -108,120 +110,30 @@ This implementation leverages **Azure AI Foundry's Agent Service** for productio
          │
          │ Deployed in Azure AI Foundry
 ┌────────▼──────────────────────────────────────────────────────┐
-│              Azure AI Foundry Project                          │
-│  https://insurance-resource.services.ai.azure.com              │
-│                                                                 │
-│  ┌─────────────────┐  ┌──────────────────┐  ┌──────────────┐ │
-│  │ Claim Assessor  │  │  Policy Checker  │  │Risk Analyst  │ │
-│  │  Agent          │  │  Agent           │  │  Agent       │ │
-│  │  asst_xxx...    │  │  asst_yyy...     │  │  asst_zzz... │ │
-│  │                 │  │                  │  │              │ │
-│  │ Tools:          │  │ Tools:           │  │ Tools:       │ │
-│  │ - get_vehicle   │  │ - get_policy     │  │ - get_claim  │ │
-│  │ - analyze_image │  │ - search_docs    │  │   _history   │ │
-│  └─────────────────┘  └──────────────────┘  └──────────────┘ │
-│                                                                 │
+│              Azure AI Foundry Project                         │
+│                                                               │
+│  ┌─────────────────┐  ┌──────────────────┐  ┌──────────────┐  │
+│  │ Claim Assessor  │  │  Policy Checker  │  │Risk Analyst  │  │
+│  │  Agent          │  │  Agent           │  │  Agent       │  │
+│  │                 │  │                  │  │              │  │
+│  │ Tools:          │  │ Tools:           │  │ Tools:       │  │
+│  │ - get_vehicle   │  │ - get_policy     │  │ - get_claim  │  │
+│  │ - analyze_image │  │ - search_docs    │  │   _history   │  │
+│  └─────────────────┘  └──────────────────┘  └──────────────┘  │
+│                                                               │
 │  ┌─────────────────────────────────────────────────────────┐  │
-│  │          Communication Agent                             │  │
-│  │          asst_aaa...                                     │  │
-│  │          (No tools - pure language model)                │  │
+│  │          Communication Agent                            │  │
+│  │          (No tools - pure language model)               │  │
 │  └─────────────────────────────────────────────────────────┘  │
-└─────────────────────────────────────────────────────────────────┘
+└───────────────────────────────────────────────────────────────┘
                           │
                           │ Uses
                           ▼
-┌─────────────────────────────────────────────────────────────────┐
-│                   Azure OpenAI Service                          │
-│  Model: gpt-4o / gpt-4.1-mini                                  │
-│  API Version: 2024-08-01-preview                               │
-└─────────────────────────────────────────────────────────────────┘
-```
-
-### Agent Workflow
-
-```
-User Request
-     │
-     ▼
-┌─────────────────────────────────────────────────────┐
-│  1. API Endpoint receives claim processing request  │
-└──────────────────┬──────────────────────────────────┘
-                   │
-                   ▼
-┌─────────────────────────────────────────────────────┐
-│  2. Single Agent Service checks agent availability  │
-│     - Is Azure agent deployed? Use Azure            │
-│     - Not deployed? Use LangGraph                   │
-└──────────────────┬──────────────────────────────────┘
-                   │
-       ┌───────────┴───────────┐
-       │                       │
-       ▼                       ▼
-┌──────────────────┐    ┌──────────────────┐
-│  Azure AI Agent  │    │   LangGraph      │
-│                  │    │   Agent          │
-│ 1. Create Thread │    │ 1. Create State  │
-│ 2. Add Message   │    │ 2. Execute Graph │
-│ 3. Run Agent     │    │ 3. Return Result │
-│ 4. Poll Status   │    │                  │
-│ 5. Fetch Result  │    │                  │
-└────────┬─────────┘    └────────┬─────────┘
-         │                       │
-         └───────────┬───────────┘
-                     │
-                     ▼
-┌─────────────────────────────────────────────────────┐
-│  3. Agent calls registered tools automatically       │
-│     - get_vehicle_details(vin)                      │
-│     - search_policy_documents(query)                │
-│     - get_claimant_history(claimant_id)            │
-└──────────────────┬──────────────────────────────────┘
-                   │
-                   ▼
-┌─────────────────────────────────────────────────────┐
-│  4. Agent generates assessment with tool results    │
-└──────────────────┬──────────────────────────────────┘
-                   │
-                   ▼
-┌─────────────────────────────────────────────────────┐
-│  5. Return structured response to client            │
-│     - Assessment text                               │
-│     - Tool call logs                                │
-│     - Confidence scores                             │
-└─────────────────────────────────────────────────────┘
-```
-
-### Agent Deployment Lifecycle
-
-```
-Application Startup
-     │
-     ▼
-┌─────────────────────────────────────────────────────┐
-│  Azure Agent Manager: deploy_azure_agents()         │
-└──────────────────┬──────────────────────────────────┘
-                   │
-                   ▼
-┌─────────────────────────────────────────────────────┐
-│  For each agent type:                               │
-│    1. Connect to Azure AI Foundry Project           │
-│    2. List existing agents                          │
-│    3. Search for agent by name                      │
-│    4. If found: reuse existing agent ID             │
-│    5. If not found: create new agent                │
-│    6. Register agent ID in global cache             │
-└──────────────────┬──────────────────────────────────┘
-                   │
-                   ▼
-┌─────────────────────────────────────────────────────┐
-│  Agent IDs cached in memory:                        │
-│  {                                                   │
-│    "claim_assessor": "asst_xxx...",                │
-│    "policy_checker": "asst_yyy...",                │
-│    "risk_analyst": "asst_zzz...",                  │
-│    "communication_agent": "asst_aaa..."            │
-│  }                                                   │
-└─────────────────────────────────────────────────────┘
+┌───────────────────────────────────────────────────────────────┐
+│                   Azure OpenAI Service                        │
+│  Model: gpt-5 / gpt-4.1-mini                                  │
+│  API Version: 2024-08-01-preview                              │
+└───────────────────────────────────────────────────────────────┘
 ```
 
 ## Key Features
