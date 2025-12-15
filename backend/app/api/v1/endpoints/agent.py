@@ -125,6 +125,7 @@ async def agent_run(agent_name: str, claim: ClaimIn):  # noqa: D401
             agent_name=agent_name,
             claim_body=claim_data,
             conversation_chronological=chronological,
+            execution_id=execution_id,
         )
 
     except UnknownAgentError as err:

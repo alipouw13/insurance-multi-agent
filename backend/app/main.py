@@ -125,7 +125,10 @@ from app.api.v1.endpoints import documents as documents_endpoints
 # Import and mount agent management endpoints (Cosmos DB + OpenTelemetry)
 from app.api.v1.endpoints import agent_management
 from app.api.v1.endpoints import index_management as index_endpoints
+# Import and mount evaluation endpoints
+from app.api.v1.endpoints import evaluation as evaluation_endpoints
 
 app.include_router(documents_endpoints.router, prefix="/api/v1")
 app.include_router(agent_management.router, prefix="/api/v1")
 app.include_router(index_endpoints.router, prefix="/api/v1")
+app.include_router(evaluation_endpoints.router, prefix="/api/v1/evaluation")

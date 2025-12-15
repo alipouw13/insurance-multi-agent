@@ -13,7 +13,8 @@ from app.services.claim_processing import run as run_workflow
 from app.sample_data import ALL_SAMPLE_CLAIMS
 from app.services.cosmos_service import get_cosmos_service
 from app.services.token_tracker import TokenUsageTracker, get_token_tracker
-from app.models.agent_models import AgentExecution, ExecutionStatus, AgentStepExecution
+from app.models.agent_models import AgentExecution, AgentStepExecution, ExecutionStatus
+from app.services.token_estimation import estimate_agent_step_tokens
 
 router = APIRouter(tags=["workflow"])
 
@@ -169,14 +170,23 @@ async def workflow_run(claim: ClaimIn):  # noqa: D401
                         # Track agent steps (only for recognized agents, skip supervisor)
                         if node_name in ["claim_assessor", "policy_checker", "risk_analyst", "communication_agent"]:
                             step_started = datetime.utcnow()
+                            
+                            # Prepare input/output data
+                            input_data = {"content": serialized.get("content", "")}
+                            output_data = {"role": serialized.get("role", ""), "content": serialized.get("content", "")}
+                            
+                            # Estimate token usage for this step
+                            estimated_tokens = estimate_agent_step_tokens(input_data, output_data)
+                            
                             agent_steps.append(AgentStepExecution(
                                 agent_type=node_name,  # AgentType enum value
                                 agent_version="1.0.0",
                                 started_at=step_started,
                                 completed_at=step_started,  # Immediate for message processing
                                 duration_ms=0.0,
-                                input_data={"content": serialized.get("content", "")},
-                                output_data={"role": serialized.get("role", ""), "content": serialized.get("content", "")},
+                                input_data=input_data,
+                                output_data=output_data,
+                                token_usage=estimated_tokens,
                                 status=ExecutionStatus.COMPLETED
                             ))
 
@@ -200,36 +210,28 @@ async def workflow_run(claim: ClaimIn):  # noqa: D401
             
             # Save execution to Cosmos DB
             if cosmos_service._initialized:
-                # Query token usage records for this execution
-                token_records = await cosmos_service.get_token_usage_by_execution(execution_id)
-                
-                # Group token records by agent type (rough matching)
-                # This aggregates all tokens used during workflow by agent type
-                token_by_agent = {}
-                total_tokens_all = 0
+                # Calculate total tokens and cost from agent steps (already estimated)
+                total_tokens_all = sum(step.token_usage.get('total_tokens', 0) for step in agent_steps)
                 total_cost_all = 0.0
                 
-                for record in token_records:
-                    agent_type = record.agent_type.value if record.agent_type else "unknown"
-                    if agent_type not in token_by_agent:
-                        token_by_agent[agent_type] = {
-                            "prompt_tokens": 0,
-                            "completion_tokens": 0,
-                            "total_tokens": 0
-                        }
-                    token_by_agent[agent_type]["prompt_tokens"] += record.prompt_tokens
-                    token_by_agent[agent_type]["completion_tokens"] += record.completion_tokens
-                    token_by_agent[agent_type]["total_tokens"] += record.total_tokens
-                    total_tokens_all += record.total_tokens
-                    total_cost_all += record.total_cost
-                
-                # Populate token usage in agent steps
-                # Note: This is approximate since we're matching by agent type
+                # Estimate cost using GPT-4.1-mini pricing ($0.00015 per 1K prompt, $0.0006 per 1K completion)
                 for step in agent_steps:
-                    agent_type_str = step.agent_type
-                    if agent_type_str in token_by_agent:
-                        step.token_usage = token_by_agent[agent_type_str]
-                        logger.debug(f"✅ Populated token usage for {agent_type_str}: {step.token_usage}")
+                    prompt_tokens = step.token_usage.get('prompt_tokens', 0)
+                    completion_tokens = step.token_usage.get('completion_tokens', 0)
+                    total_cost_all += (prompt_tokens * 0.00015 + completion_tokens * 0.0006) / 1000
+                
+                # Save token usage records to Cosmos DB for each agent step
+                for step in agent_steps:
+                    total_tokens = step.token_usage.get('total_tokens', 0) if isinstance(step.token_usage, dict) else 0
+                    if total_tokens > 0:
+                        await token_tracker.record_token_usage(
+                            model_name="gpt-4.1-mini",
+                            deployment_name="gpt-4.1-mini",
+                            prompt_tokens=step.token_usage.get('prompt_tokens', 0),
+                            completion_tokens=step.token_usage.get('completion_tokens', 0),
+                            agent_type=step.agent_type,
+                            operation_type="chat_completion"
+                        )
                 
                 execution = AgentExecution(
                     id=execution_id,
@@ -247,7 +249,7 @@ async def workflow_run(claim: ClaimIn):  # noqa: D401
                     agents_invoked=list(set(step.agent_type for step in agent_steps)),
                     metadata={
                         "total_steps": len(agent_steps),
-                        "token_records_found": len(token_records)
+                        "execution_id": execution_id
                     }
                 )
                 await cosmos_service.save_execution(execution)

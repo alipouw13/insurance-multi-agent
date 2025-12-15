@@ -367,4 +367,174 @@ export const generateMockWorkflowResponse = (request: WorkflowRequest): Workflow
     total_steps: 4,
     percentage: 25
   }
-}) 
+})
+
+// ===== Evaluation API =====
+
+export interface EvaluationRequest {
+  execution_id: string
+  claim_id?: string
+  agent_type: string
+  question: string
+  answer: string
+  context: string[]
+  metrics?: string[]
+  evaluator_type?: 'foundry' | 'custom'
+}
+
+export interface EvaluationResult {
+  id: string
+  evaluation_id: string
+  execution_id: string
+  claim_id?: string
+  agent_type: string
+  evaluator_type: string
+  groundedness_score?: number
+  relevance_score?: number
+  coherence_score?: number
+  fluency_score?: number
+  overall_score: number
+  reasoning?: string
+  feedback?: string
+  recommendations?: string[]
+  detailed_scores?: Record<string, number>
+  evaluation_timestamp: string
+  evaluation_duration?: number
+  metadata?: Record<string, unknown>
+}
+
+export interface EvaluationSummary {
+  execution_id?: string
+  claim_id?: string
+  total_evaluations: number
+  avg_groundedness?: number
+  avg_relevance?: number
+  avg_coherence?: number
+  avg_fluency?: number
+  avg_overall: number
+  evaluation_period?: {
+    start: string
+    end: string
+  }
+}
+
+export interface EvaluationStatusResponse {
+  available: boolean
+  evaluator_type: string
+  metrics: string[]
+}
+
+export async function checkEvaluationStatus(): Promise<ApiResponse<EvaluationStatusResponse>> {
+  try {
+    const response = await fetch(`${API_BASE_URL}/api/v1/evaluation/status`)
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`)
+    }
+    const data = await response.json()
+    return { success: true, data }
+  } catch (error) {
+    console.error('Error checking evaluation status:', error)
+    return { 
+      success: false, 
+      error: error instanceof Error ? error.message : 'Failed to check evaluation status' 
+    }
+  }
+}
+
+export async function evaluateExecution(request: EvaluationRequest): Promise<ApiResponse<EvaluationResult>> {
+  try {
+    const response = await fetch(`${API_BASE_URL}/api/v1/evaluation/evaluate`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(request),
+    })
+    
+    if (!response.ok) {
+      const errorData = await response.json()
+      throw new Error(errorData.detail || `HTTP error! status: ${response.status}`)
+    }
+    
+    const data = await response.json()
+    return { success: true, data }
+  } catch (error) {
+    console.error('Error evaluating execution:', error)
+    return { 
+      success: false, 
+      error: error instanceof Error ? error.message : 'Failed to evaluate execution' 
+    }
+  }
+}
+
+export async function getEvaluationsForExecution(executionId: string): Promise<ApiResponse<EvaluationResult[]>> {
+  try {
+    const response = await fetch(`${API_BASE_URL}/api/v1/evaluation/execution/${executionId}`)
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`)
+    }
+    const data = await response.json()
+    return { success: true, data }
+  } catch (error) {
+    console.error('Error fetching evaluations:', error)
+    return { 
+      success: false, 
+      error: error instanceof Error ? error.message : 'Failed to fetch evaluations' 
+    }
+  }
+}
+
+export async function getEvaluationsForClaim(claimId: string): Promise<ApiResponse<EvaluationResult[]>> {
+  try {
+    const response = await fetch(`${API_BASE_URL}/api/v1/evaluation/claim/${claimId}`)
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`)
+    }
+    const data = await response.json()
+    return { success: true, data }
+  } catch (error) {
+    console.error('Error fetching claim evaluations:', error)
+    return { 
+      success: false, 
+      error: error instanceof Error ? error.message : 'Failed to fetch claim evaluations' 
+    }
+  }
+}
+
+export async function getEvaluationSummary(params: { execution_id?: string; claim_id?: string }): Promise<ApiResponse<EvaluationSummary>> {
+  try {
+    const queryParams = new URLSearchParams()
+    if (params.execution_id) queryParams.append('execution_id', params.execution_id)
+    if (params.claim_id) queryParams.append('claim_id', params.claim_id)
+    
+    const response = await fetch(`${API_BASE_URL}/api/v1/evaluation/summary?${queryParams}`)
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`)
+    }
+    const data = await response.json()
+    return { success: true, data }
+  } catch (error) {
+    console.error('Error fetching evaluation summary:', error)
+    return { 
+      success: false, 
+      error: error instanceof Error ? error.message : 'Failed to fetch evaluation summary' 
+    }
+  }
+}
+
+export async function getEvaluationById(evaluationId: string): Promise<ApiResponse<EvaluationResult>> {
+  try {
+    const response = await fetch(`${API_BASE_URL}/api/v1/evaluation/${evaluationId}`)
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`)
+    }
+    const data = await response.json()
+    return { success: true, data }
+  } catch (error) {
+    console.error('Error fetching evaluation:', error)
+    return { 
+      success: false, 
+      error: error instanceof Error ? error.message : 'Failed to fetch evaluation' 
+    }
+  }
+} 

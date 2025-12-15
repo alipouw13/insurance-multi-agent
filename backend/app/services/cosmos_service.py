@@ -565,6 +565,166 @@ class CosmosAgentService:
         except Exception as e:
             logger.error(f"❌ Failed to get token usage analytics: {e}")
             return {"total_tokens": 0, "total_cost": 0.0, "by_agent": {}}
+    
+    # ==================== EVALUATIONS ====================
+    
+    async def store_evaluation_result(self, evaluation_dict: Dict[str, Any]) -> bool:
+        """Store an evaluation result in Cosmos DB.
+        
+        Args:
+            evaluation_dict: Evaluation result as dictionary
+            
+        Returns:
+            True if successful, False otherwise
+        """
+        if not self._initialized:
+            await self.initialize()
+        
+        if not self.client:
+            logger.warning("Cosmos client not available for storing evaluation")
+            return False
+        
+        try:
+            # Get database and evaluations container
+            database = self.client.get_database_client(self.settings.azure_cosmos_database_name)
+            evaluations_container = database.get_container_client('evaluations')
+            
+            # Ensure ID is set
+            if not evaluation_dict.get('id'):
+                evaluation_dict['id'] = str(uuid.uuid4())
+            
+            # Set type for filtering
+            evaluation_dict['type'] = 'evaluation'
+            
+            # Store in evaluations container
+            evaluations_container.upsert_item(evaluation_dict)
+            logger.info(f"✅ Stored evaluation result in evaluations container: {evaluation_dict['id']}")
+            return True
+            
+        except Exception as e:
+            logger.error(f"❌ Failed to store evaluation result: {e}")
+            return False
+    
+    async def get_evaluation_result(self, evaluation_id: str) -> Optional[Dict[str, Any]]:
+        """Retrieve an evaluation result by ID.
+        
+        Args:
+            evaluation_id: Evaluation ID
+            
+        Returns:
+            Evaluation dict if found, None otherwise
+        """
+        if not self._initialized:
+            await self.initialize()
+        
+        if not self.client:
+            return None
+        
+        try:
+            database = self.client.get_database_client(self.settings.azure_cosmos_database_name)
+            evaluations_container = database.get_container_client('evaluations')
+            
+            # Query for the evaluation (cross-partition)
+            query = "SELECT * FROM c WHERE c.id = @evaluation_id"
+            parameters = [{"name": "@evaluation_id", "value": evaluation_id}]
+            
+            items = list(evaluations_container.query_items(
+                query=query,
+                parameters=parameters,
+                enable_cross_partition_query=True,
+                max_item_count=1
+            ))
+            
+            return items[0] if items else None
+            
+        except exceptions.CosmosResourceNotFoundError:
+            logger.info(f"Evaluation not found: {evaluation_id}")
+            return None
+        except Exception as e:
+            logger.error(f"❌ Failed to get evaluation result: {e}")
+            return None
+    
+    async def get_evaluations_by_execution(self, execution_id: str) -> List[Dict[str, Any]]:
+        """Get all evaluations for an execution.
+        
+        Args:
+            execution_id: Execution ID
+            
+        Returns:
+            List of evaluation dicts
+        """
+        if not self._initialized:
+            await self.initialize()
+        
+        if not self.client:
+            return []
+        
+        try:
+            database = self.client.get_database_client(self.settings.azure_cosmos_database_name)
+            evaluations_container = database.get_container_client('evaluations')
+            
+            query = """
+                SELECT * FROM c 
+                WHERE c.type = 'evaluation' 
+                AND c.execution_id = @execution_id
+                ORDER BY c.evaluation_timestamp DESC
+            """
+            
+            parameters = [{"name": "@execution_id", "value": execution_id}]
+            
+            items = list(evaluations_container.query_items(
+                query=query,
+                parameters=parameters,
+                enable_cross_partition_query=True
+            ))
+            
+            logger.info(f"Found {len(items)} evaluations for execution: {execution_id} in evaluations container")
+            return items
+            
+        except Exception as e:
+            logger.error(f"❌ Failed to get evaluations for execution: {e}")
+            return []
+    
+    async def get_evaluations_by_claim(self, claim_id: str) -> List[Dict[str, Any]]:
+        """Get all evaluations for a claim.
+        
+        Args:
+            claim_id: Claim ID
+            
+        Returns:
+            List of evaluation dicts
+        """
+        if not self._initialized:
+            await self.initialize()
+        
+        if not self.client:
+            return []
+        
+        try:
+            database = self.client.get_database_client(self.settings.azure_cosmos_database_name)
+            evaluations_container = database.get_container_client('evaluations')
+            
+            query = """
+                SELECT * FROM c 
+                WHERE c.type = 'evaluation' 
+                AND c.claim_id = @claim_id
+                ORDER BY c.evaluation_timestamp DESC
+            """
+            
+            parameters = [{"name": "@claim_id", "value": claim_id}]
+            
+            items = list(evaluations_container.query_items(
+                query=query,
+                parameters=parameters,
+                enable_cross_partition_query=True
+            ))
+            
+            logger.info(f"Found {len(items)} evaluations for claim: {claim_id} in evaluations container")
+            return items
+            
+        except Exception as e:
+            logger.error(f"❌ Failed to get evaluations for claim: {e}")
+            return []
 
 
 # Global singleton instance

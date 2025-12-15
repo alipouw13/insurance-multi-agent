@@ -19,10 +19,13 @@ import {
   IconTool,
   IconBook
 } from '@tabler/icons-react'
+import { StarIcon } from 'lucide-react'
 import { toast } from 'sonner'
 import { getApiUrl } from '@/lib/config'
 import { AgentWorkflowVisualization } from '@/components/agent-workflow-visualization'
 import { FileUpload } from '@/components/ui/file-upload'
+import { EvaluationDialog } from '@/components/evaluation-dialog'
+import { evaluateExecution, EvaluationResult } from '@/lib/api'
 
 // Sample claims from API
 interface SampleClaim {
@@ -41,6 +44,7 @@ interface AssessmentResult {
     role: string
     content: string
   }>
+  execution_id?: string
 }
 
 export default function ClaimAssessorDemo() {
@@ -50,6 +54,9 @@ export default function ClaimAssessorDemo() {
   const [result, setResult] = useState<AssessmentResult | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [uploadedFiles, setUploadedFiles] = useState<File[]>([])
+  const [evaluationDialogOpen, setEvaluationDialogOpen] = useState(false)
+  const [evaluation, setEvaluation] = useState<EvaluationResult | null>(null)
+  const [evaluatingExecution, setEvaluatingExecution] = useState(false)
 
   // Fetch sample claims on component mount
   useEffect(() => {
@@ -139,6 +146,61 @@ export default function ClaimAssessorDemo() {
     setResult(null)
     setError(null)
     setUploadedFiles([])
+    setEvaluation(null)
+  }
+
+  const handleEvaluate = async () => {
+    if (!result || !result.execution_id) {
+      toast.error('No execution ID available for evaluation')
+      return
+    }
+
+    setEvaluatingExecution(true)
+    setEvaluationDialogOpen(true)
+
+    try {
+      // Extract question and answer from conversation
+      const conversation = result.conversation_chronological || []
+      const firstUserMessage = conversation.find(step => step.role === 'human')
+      const lastAssistantMessage = conversation
+        .filter(step => step.role === 'ai' && !step.content.startsWith('TOOL_CALL:'))
+        .pop()
+
+      const question = firstUserMessage?.content || `Assess claim ${result.claim_body.claim_id}`
+      const answer = lastAssistantMessage?.content || 'No response available'
+
+      // Extract context from claim body
+      const context = [
+        `Claim ID: ${result.claim_body.claim_id || 'N/A'}`,
+        `Claimant: ${result.claim_body.claimant_name || 'N/A'}`,
+        `Claim Type: ${result.claim_body.claim_type || 'N/A'}`,
+        `Description: ${result.claim_body.description || 'N/A'}`,
+        `Estimated Damage: $${result.claim_body.estimated_damage || 'N/A'}`,
+      ]
+
+      const evaluationResponse = await evaluateExecution({
+        execution_id: result.execution_id,
+        claim_id: String(result.claim_body.claim_id),
+        agent_type: 'claim_assessor',
+        question,
+        answer,
+        context,
+        metrics: ['groundedness', 'relevance', 'coherence', 'fluency'],
+      })
+
+      if (evaluationResponse.success && evaluationResponse.data) {
+        setEvaluation(evaluationResponse.data)
+        toast.success('Evaluation completed successfully!')
+      } else {
+        throw new Error(evaluationResponse.error || 'Evaluation failed')
+      }
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'Unknown error occurred'
+      toast.error('Evaluation failed: ' + errorMessage)
+      setEvaluationDialogOpen(false)
+    } finally {
+      setEvaluatingExecution(false)
+    }
   }
 
   const formatConversationStep = (step: { role: string; content: string }, index: number, isLast: boolean) => {
@@ -392,7 +454,16 @@ export default function ClaimAssessorDemo() {
           )}
 
           {result && (
-            <div className="pt-4">
+            <div className="pt-4 space-y-2">
+              <Button 
+                variant="default" 
+                onClick={handleEvaluate} 
+                className="w-full"
+                disabled={evaluatingExecution || !result.execution_id}
+              >
+                <StarIcon className="mr-2 h-4 w-4" />
+                {evaluatingExecution ? 'Evaluating...' : 'View Evaluation'}
+              </Button>
               <Button variant="outline" onClick={resetDemo} className="w-full">
                 <IconRefresh className="mr-2 h-4 w-4" />
                 Reset Demo
@@ -533,6 +604,14 @@ export default function ClaimAssessorDemo() {
 
       {/* Workflow Visualization */}
       <AgentWorkflowVisualization currentAgent="claim-assessor" />
+
+      {/* Evaluation Dialog */}
+      <EvaluationDialog
+        open={evaluationDialogOpen}
+        onOpenChange={setEvaluationDialogOpen}
+        evaluation={evaluation}
+        loading={evaluatingExecution}
+      />
     </div>
   )
 } 

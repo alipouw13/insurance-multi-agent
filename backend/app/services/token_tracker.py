@@ -232,14 +232,25 @@ class TokenUsageTracker:
             completion_cost = (completion_tokens / 1000) * pricing["completion"]
             total_cost = prompt_cost + completion_cost
             
+            # Determine service type and operation type based on operation
+            is_embedding = "embedding" in operation_type.lower()
+            service_type = ServiceType.OPENAI_EMBEDDING if is_embedding else ServiceType.OPENAI_CHAT
+            
+            # Map agent_type to operation_type
+            operation_type_enum = OperationType.DOCUMENT_EMBEDDING if is_embedding else self._map_agent_to_operation(agent_type)
+            
             # Create token usage record
+            # Use workflow_id as session_id, fallback to generating one if not set
+            session_id = self._current_workflow_id or f"session_{record_id}"
+            
             record = TokenUsageRecord(
                 id=record_id,
                 record_id=record_id,
+                session_id=session_id,
                 claim_id=self._current_claim_id,
                 execution_id=self._current_workflow_id,
-                service_type=ServiceType.AZURE_OPENAI,
-                operation_type=OperationType.CHAT_COMPLETION if "chat" in operation_type.lower() else OperationType.EMBEDDING,
+                service_type=service_type,
+                operation_type=operation_type_enum,
                 agent_type=agent_type,
                 model_name=model_name,
                 deployment_name=deployment_name,
@@ -265,6 +276,23 @@ class TokenUsageTracker:
             
         except Exception as e:
             logger.error(f"Failed to record token usage: {e}")
+    
+    def _map_agent_to_operation(self, agent_type: Optional[str]) -> OperationType:
+        """Map agent type to operation type."""
+        if not agent_type:
+            return OperationType.CLAIM_ASSESSMENT
+        
+        agent_lower = agent_type.lower()
+        if "claim" in agent_lower or "assessor" in agent_lower:
+            return OperationType.CLAIM_ASSESSMENT
+        elif "policy" in agent_lower or "checker" in agent_lower:
+            return OperationType.POLICY_CHECK
+        elif "risk" in agent_lower or "analyst" in agent_lower:
+            return OperationType.RISK_ANALYSIS
+        elif "communication" in agent_lower:
+            return OperationType.COMMUNICATION
+        else:
+            return OperationType.CLAIM_ASSESSMENT
     
     def _get_model_key_for_pricing(self, model_identifier: str) -> str:
         """Map model identifier to pricing key."""

@@ -91,6 +91,9 @@ class TokenUsageSpanProcessor(SpanProcessor):
                                           attributes.get('llm.request.model', 'unknown'))
                 deployment = attributes.get('server.address', model_name)
                 
+                # Extract agent type from span attributes if available
+                agent_type = attributes.get('agent.type') or attributes.get('gen_ai.agent.name')
+                
                 # Determine operation type from span name
                 operation_type = "embedding" if "embedding" in span_name.lower() else "chat_completion"
                 
@@ -106,6 +109,7 @@ class TokenUsageSpanProcessor(SpanProcessor):
                             deployment_name=deployment,
                             prompt_tokens=int(prompt_tokens),
                             completion_tokens=int(completion_tokens),
+                            agent_type=agent_type,
                             operation_type=operation_type
                         ))
                     except RuntimeError:
