@@ -308,7 +308,7 @@ export default function DocumentAnalyzePage() {
           </div>
 
           {/* Center Panel - Document Viewer */}
-          <div className="flex-1 flex flex-col bg-muted/5">
+          <div className="flex-[0.8] flex flex-col bg-muted/5">
             {selectedDoc ? (
               <>
                 <div className="border-b p-4 bg-background">
@@ -368,7 +368,7 @@ export default function DocumentAnalyzePage() {
           </div>
 
           {/* Right Panel - Extracted Results */}
-          <div className="w-96 border-l bg-background flex flex-col">
+          <div className="flex-1 border-l bg-background flex flex-col">
             {selectedDoc && selectedDoc.result ? (
               <>
                 <div className="border-b p-4">
@@ -385,7 +385,7 @@ export default function DocumentAnalyzePage() {
                   </div>
                 </div>
 
-                <Tabs defaultValue="fields" className="flex-1 flex flex-col">
+                <Tabs defaultValue="fields" className="flex-1 flex flex-col overflow-hidden">
                   <TabsList className="w-full rounded-none border-b">
                     <TabsTrigger value="fields" className="flex-1">
                       Fields ({selectedDoc.field_count})
@@ -395,7 +395,7 @@ export default function DocumentAnalyzePage() {
                     </TabsTrigger>
                   </TabsList>
 
-                  <TabsContent value="fields" className="flex-1 mt-0">
+                  <TabsContent value="fields" className="flex-1 mt-0 overflow-hidden">
                     <ScrollArea className="h-full">
                       <div className="p-4 space-y-3">
                         {Object.entries(selectedDoc.result.extracted_fields).map(([key, value]) => {
@@ -437,9 +437,9 @@ export default function DocumentAnalyzePage() {
                     </ScrollArea>
                   </TabsContent>
 
-                  <TabsContent value="tables" className="flex-1 mt-0 overflow-hidden">
+                  <TabsContent value="tables" className="flex-1 mt-0 overflow-hidden h-full">
                     <ScrollArea className="h-full">
-                      <div className="p-4 space-y-4">
+                      <div className="p-4 space-y-4 pb-8">
                         {selectedDoc.table_count === 0 ? (
                           <div className="text-center text-muted-foreground py-12">
                             <FileText className="h-12 w-12 mx-auto mb-2 opacity-50" />
