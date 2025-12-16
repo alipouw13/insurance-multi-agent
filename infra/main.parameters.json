@@ -15,7 +15,13 @@
             "value": "${SERVICE_WEB_IMAGE_NAME}"
         },
         "projectName": {
-            "value": "shadcn-fastapi"
+            "value": "insurance-multi-agent"
+        },
+        "azureOpenAIDeploymentName": {
+            "value": "${AZURE_OPENAI_DEPLOYMENT_NAME=gpt-4o-mini}"
+        },
+        "azureOpenAIEmbeddingModel": {
+            "value": "${AZURE_OPENAI_EMBEDDING_MODEL=text-embedding-3-large}"
         }
     }
 }

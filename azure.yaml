@@ -1,6 +1,6 @@
-name: shadcn-fastapi-starter
+name: insurance-multi-agent
 metadata:
-  template: shadcn-fastapi-starter@0.0.1-beta
+  template: insurance-multi-agent@1.0.0
 
 infra:
   provider: bicep
@@ -26,4 +26,20 @@ hooks:
       azd env set AZURE_CONTAINER_REGISTRY_ENDPOINT $(azd env get-value containerRegistryLoginServer)
       echo "Setting frontend origin for CORS..."
       azd env set FRONTEND_ORIGIN "https://$(azd env get-value frontendContainerAppFqdn)"
+      echo "Setting Azure service endpoints..."
+      azd env set AZURE_OPENAI_ENDPOINT $(azd env get-value openAIEndpoint)
+      azd env set AZURE_STORAGE_ACCOUNT_NAME $(azd env get-value storageAccountName)
+      azd env set AZURE_SEARCH_ENDPOINT $(azd env get-value searchServiceEndpoint)
+      azd env set AZURE_COSMOS_ENDPOINT $(azd env get-value cosmosAccountEndpoint)
+      azd env set AZURE_AI_PROJECT_NAME $(azd env get-value aiProjectName)
+      azd env set AZURE_AI_HUB_NAME $(azd env get-value aiHubName)
     continueOnError: false
+  
+  postdeploy:
+    shell: sh
+    run: |
+      echo "Initializing AI Search index..."
+      echo "Building policy document index..."
+      cd backend
+      python build_policy_index.py
+    continueOnError: true
