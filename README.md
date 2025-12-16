@@ -151,6 +151,10 @@ This implementation leverages **Azure AI Foundry's Agent Service** for productio
 - **Document Intelligence**: PDF processing and semantic search across policies
 - **Multimodal Processing**: Image analysis for damage assessment using Azure OpenAI vision
 - **Interactive Demos**: Individual agent testing and complete workflow simulation
+- **Azure AI Evaluation**: Automatic evaluation of workflow responses using Azure AI Foundry evaluation SDK
+  - Groundedness, relevance, coherence, and fluency metrics
+  - Evaluation results stored in Cosmos DB
+  - View evaluation scores directly in the UI
 - **Production Ready**: Deployed on Azure with enterprise security and managed identity
 
 ## Development Setup
@@ -165,39 +169,19 @@ This implementation leverages **Azure AI Foundry's Agent Service** for productio
 
 ### Environment Configuration
 
-Create a `.env` file in the backend directory:
+Create a `.env` file in the `backend/` directory by copying the sample:
 
-```env
-# Azure OpenAI Configuration
-AZURE_OPENAI_API_KEY=your_api_key_here
-AZURE_OPENAI_ENDPOINT=https://your-resource.openai.azure.com/
-AZURE_OPENAI_DEPLOYMENT_NAME=gpt-4o
-AZURE_OPENAI_EMBEDDING_MODEL=text-embedding-3-large
-AZURE_OPENAI_API_VERSION=2024-08-01-preview
-
-# Azure AI Foundry Project (for Azure AI Agent Service)
-PROJECT_ENDPOINT=https://your-project.services.ai.azure.com/api/projects/your-project-name
-
-# Azure Blob Storage (for document storage)
-AZURE_STORAGE_CONNECTION_STRING=DefaultEndpointsProtocol=https;AccountName=your-account;AccountKey=your-key;EndpointSuffix=core.windows.net
-AZURE_STORAGE_CONTAINER_NAME=insurance-documents
-
-# Azure AI Search (for document indexing)
-AZURE_SEARCH_ENDPOINT=https://your-search-service.search.windows.net
-AZURE_SEARCH_API_KEY=your-search-admin-key
-AZURE_SEARCH_INDEX_NAME=insurance-policies
-
-# Azure Cosmos DB (for agent persistence and telemetry)
-AZURE_COSMOS_ENDPOINT=https://your-cosmos-account.documents.azure.com:443/
-AZURE_COSMOS_DATABASE_NAME=insurance-agents
-AZURE_COSMOS_DEFINITIONS_CONTAINER=agent-definitions
-AZURE_COSMOS_EXECUTIONS_CONTAINER=agent-executions
-AZURE_COSMOS_TOKEN_USAGE_CONTAINER=token-usage
-
-# OpenTelemetry (optional - for Application Insights)
-ENABLE_TELEMETRY=true
-APPLICATION_INSIGHTS_CONNECTION_STRING=InstrumentationKey=your-key;IngestionEndpoint=https://...
+```bash
+cd backend
+cp .env.sample .env
 ```
+
+Then edit `.env` with your Azure resource details. See `backend/.env.sample` for all required configuration variables including:
+- Azure OpenAI credentials and endpoints
+- Azure AI Foundry project details
+- Azure Storage, AI Search, and Cosmos DB configuration  
+- Service principal authentication
+- Application Insights telemetry settings
 
 ### Azure Resources Required
 
@@ -600,7 +584,7 @@ See `tests/README.md` for detailed test documentation.
 ## Project Structure
 
 ```
-simple-insurance-multi-agent/
+insurance-multi-agent/
 ├── backend/                            # FastAPI application
 │   ├── app/
 │   │   ├── api/v1/                    # REST API endpoints
@@ -616,7 +600,13 @@ simple-insurance-multi-agent/
 │   │   │   ├── supervisor.py            # Workflow orchestration (LangGraph)
 │   │   │   └── registry.py              # Agent registry
 │   │   ├── core/                        # Configuration and logging
+│   │   ├── models/                      # Pydantic models
+│   │   │   ├── evaluation.py            # Evaluation request/result models
+│   │   │   └── ...
 │   │   └── services/                    # Business logic layer
+│   │       ├── evaluation_service.py    # Azure AI Foundry evaluation SDK integration
+│   │       ├── cosmos_service.py        # Cosmos DB data persistence
+│   │       └── ...
 │   ├── tests/                           # Agent tests with cleanup
 │   │   ├── test_azure_claim_assessor.py
 │   │   ├── test_azure_policy_checker.py
