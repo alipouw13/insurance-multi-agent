@@ -147,92 +147,23 @@ export default function DocumentsPage() {
         <div className="flex flex-1 h-[calc(100vh-var(--header-height))] bg-muted/50">
           {/* Document List Sidebar */}
           <div className="w-1/3 bg-background border-r flex flex-col">
-            {/* Tab Selector */}
-            <div className="border-b">
-              <div className="flex">
-                <button
-                  type="button"
-                  onClick={() => {
-                    setActiveTab('claims')
-                    setShowClaimsUpload(true)
-                    setSelectedDocument(null)
-                  }}
-                  className={activeTab === 'claims' 
-                    ? 'flex-1 px-4 py-3 text-sm font-medium transition-colors border-b-2 border-primary text-primary'
-                    : 'flex-1 px-4 py-3 text-sm font-medium transition-colors text-muted-foreground hover:text-foreground'
-                  }
-                >
-                  Claims Documents
-                </button>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setActiveTab('policy')
-                    setShowClaimsUpload(false)
-                    setSelectedDocument(null)
-                  }}
-                  className={activeTab === 'policy'
-                    ? 'flex-1 px-4 py-3 text-sm font-medium transition-colors border-b-2 border-primary text-primary'
-                    : 'flex-1 px-4 py-3 text-sm font-medium transition-colors text-muted-foreground hover:text-foreground'
-                  }
-                >
-                  Policy Documents
-                </button>
+            {/* Header */}
+            <div className="p-6 border-b">
+              <h2 className="text-lg font-semibold">Policy Documents</h2>
+              <p className="text-muted-foreground text-sm mt-1">Browse insurance policy documents</p>
+              
+              <div className="relative mt-4">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
+                <Input
+                  placeholder="Search documents..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="pl-10"
+                />
               </div>
             </div>
-
-            {/* Claims Documents Tab */}
-            {activeTab === 'claims' && (
-              <>
-                <div className="p-6 border-b">
-                  <h2 className="text-lg font-semibold">Claims Documents</h2>
-                  <p className="text-muted-foreground text-sm mt-1">Analyze claims with Content Understanding</p>
-                </div>
-                
-                <div className="flex-1 p-6">
-                  <Card 
-                    className="cursor-pointer transition-all hover:shadow-md hover:bg-accent"
-                    onClick={handleClaimsUploadClick}
-                  >
-                    <CardHeader className="pb-3">
-                      <div className="flex items-start gap-3">
-                        <div className="p-2 bg-primary/10 rounded-lg">
-                          <FileText className="h-5 w-5 text-primary" />
-                        </div>
-                        <div className="flex-1">
-                          <CardTitle className="text-sm font-medium">
-                            Upload & Analyze Claim
-                          </CardTitle>
-                          <CardDescription className="text-xs mt-2">
-                            Upload a claim document to extract key information using Azure Content Understanding
-                          </CardDescription>
-                        </div>
-                      </div>
-                    </CardHeader>
-                  </Card>
-                </div>
-              </>
-            )}
-
-            {/* Policy Documents Tab */}
-            {activeTab === 'policy' && (
-              <>
-                <div className="p-6 border-b">
-                  <h2 className="text-lg font-semibold">Policy Documents</h2>
-                  <p className="text-muted-foreground text-sm mt-1">Browse insurance policy documents</p>
-                  
-                  <div className="relative mt-4">
-                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
-                    <Input
-                      placeholder="Search documents..."
-                      value={searchTerm}
-                      onChange={(e) => setSearchTerm(e.target.value)}
-                      className="pl-10"
-                    />
-                  </div>
-                </div>
-                
-                <ScrollArea className="flex-1">
+            
+            <ScrollArea className="flex-1">
                   <div className="p-4 space-y-3">
                     {filteredDocuments.length === 0 ? (
                       <div className="text-center py-8">
@@ -280,15 +211,11 @@ export default function DocumentsPage() {
                     )}
                   </div>
                 </ScrollArea>
-              </>
-            )}
           </div>
 
-          {/* Document Viewer / Claims Upload */}
+          {/* Document Viewer */}
           <div className="flex-1 flex flex-col">
-            {showClaimsUpload ? (
-              <ContentUnderstandingTest />
-            ) : selectedDocument ? (
+            {selectedDocument ? (
               <>
                 {/* Document Header */}
                 <div className="bg-background border-b p-6">
@@ -365,13 +292,10 @@ export default function DocumentsPage() {
                 <div className="text-center">
                   <FileText className="h-16 w-16 text-muted-foreground mx-auto mb-4" />
                   <h3 className="text-lg font-medium mb-2">
-                    {activeTab === 'policy' ? 'Select a Document' : 'Upload a Claim'}
+                    Select a Document
                   </h3>
                   <p className="text-muted-foreground">
-                    {activeTab === 'policy' 
-                      ? 'Choose a policy document from the sidebar to view its contents'
-                      : 'Click "Upload & Analyze Claim" to upload and analyze a claim document'
-                    }
+                    Choose a policy document from the sidebar to view its contents
                   </p>
                 </div>
               </div>

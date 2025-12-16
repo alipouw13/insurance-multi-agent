@@ -1,0 +1,492 @@
+'use client'
+
+import { useState, useEffect } from 'react'
+import { toast } from 'sonner'
+import { AppSidebar } from "@/components/app-sidebar"
+import { SiteHeader } from "@/components/site-header"
+import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Button } from '@/components/ui/button'
+import { Badge } from '@/components/ui/badge'
+import { Input } from '@/components/ui/input'
+import { ScrollArea } from '@/components/ui/scroll-area'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { FileUpload } from '@/components/ui/file-upload'
+import { getApiUrl } from '@/lib/config'
+import {
+  FileText,
+  Upload,
+  CheckCircle,
+  AlertCircle,
+  Clock,
+  FileCheck,
+  TrendingUp,
+  Search
+} from 'lucide-react'
+
+interface AnalysisResult {
+  status: string
+  filename: string
+  extracted_fields: Record<string, unknown>
+  confidence_scores: Record<string, number>
+  tables: Array<Record<string, unknown>>
+  content_preview: string
+  field_count: number
+  table_count: number
+}
+
+interface AnalyzedDocument {
+  id: string
+  filename: string
+  timestamp: string
+  status: 'succeeded' | 'failed' | 'processing'
+  field_count: number
+  table_count: number
+  schema_score?: number
+  result?: AnalysisResult
+}
+
+export default function DocumentAnalyzePage() {
+  const [documents, setDocuments] = useState<AnalyzedDocument[]>([])
+  const [selectedDoc, setSelectedDoc] = useState<AnalyzedDocument | null>(null)
+  const [searchTerm, setSearchTerm] = useState('')
+  const [isAnalyzing, setIsAnalyzing] = useState(false)
+  const [documentUrl, setDocumentUrl] = useState<string | null>(null)
+
+  // Load document history from localStorage
+  useEffect(() => {
+    const saved = localStorage.getItem('analyzed_documents')
+    if (saved) {
+      setDocuments(JSON.parse(saved))
+    }
+  }, [])
+
+  // Save to localStorage whenever documents change
+  useEffect(() => {
+    if (documents.length > 0) {
+      localStorage.setItem('analyzed_documents', JSON.stringify(documents))
+    }
+  }, [documents])
+
+  const handleFileUpload = async (files: File[]) => {
+    if (files.length === 0) return
+
+    const file = files[0]
+    console.log('Starting file upload:', file.name)
+    setIsAnalyzing(true)
+
+    // Create document URL for preview
+    const url = URL.createObjectURL(file)
+    setDocumentUrl(url)
+
+    // Create pending document entry
+    const pendingDoc: AnalyzedDocument = {
+      id: Date.now().toString(),
+      filename: file.name,
+      timestamp: new Date().toISOString(),
+      status: 'processing',
+      field_count: 0,
+      table_count: 0
+    }
+
+    setDocuments(prev => [pendingDoc, ...prev])
+    setSelectedDoc(pendingDoc)
+
+    try {
+      const formData = new FormData()
+      formData.append('file', file)
+      const apiUrl = await getApiUrl()
+      console.log('API URL:', apiUrl)
+
+      // Step 1: Upload and analyze with Content Understanding
+      console.log('Sending analysis request to:', `${apiUrl}/api/v1/documents/analyze`)
+      const response = await fetch(`${apiUrl}/api/v1/documents/analyze`, {
+        method: 'POST',
+        body: formData
+      })
+
+      console.log('Analysis response status:', response.status)
+      if (!response.ok) {
+        const errorText = await response.text()
+        console.error('Analysis error:', errorText)
+        throw new Error(`Analysis failed: ${response.statusText}`)
+      }
+
+      const result: AnalysisResult = await response.json()
+      console.log('Analysis result:', result)
+
+      // Calculate schema score (percentage of fields with high confidence)
+      const confidenceValues = Object.values(result.confidence_scores)
+      const schemaScore = confidenceValues.length > 0
+        ? Math.round((confidenceValues.filter(c => c >= 0.9).length / confidenceValues.length) * 100)
+        : 0
+
+      // Update document with results
+      const updatedDoc: AnalyzedDocument = {
+        ...pendingDoc,
+        status: 'succeeded',
+        field_count: result.field_count,
+        table_count: result.table_count,
+        schema_score: schemaScore,
+        result
+      }
+
+      setDocuments(prev => prev.map(d => d.id === pendingDoc.id ? updatedDoc : d))
+      setSelectedDoc(updatedDoc)
+      toast.success(`Extracted ${result.field_count} fields from ${file.name}`)
+
+      // Step 2: Upload document to storage and index in AI Search
+      try {
+        const uploadFormData = new FormData()
+        uploadFormData.append('file', file)
+        
+        const indexResponse = await fetch(`${apiUrl}/api/v1/documents/upload`, {
+          method: 'POST',
+          body: uploadFormData
+        })
+
+        if (!indexResponse.ok) {
+          const errorData = await indexResponse.json().catch(() => ({ detail: 'Indexing failed' }))
+          console.warn('Indexing warning:', errorData.detail)
+          toast.warning('Document analyzed but indexing failed: ' + errorData.detail)
+        } else {
+          toast.success('Document uploaded and indexed successfully')
+        }
+      } catch (indexErr) {
+        console.warn('Failed to index document:', indexErr)
+        toast.warning('Document analyzed but indexing failed')
+      }
+
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'Unknown error'
+      console.error('Upload error:', err)
+      
+      // Update document as failed
+      setDocuments(prev => prev.map(d => 
+        d.id === pendingDoc.id 
+          ? { ...d, status: 'failed' as const }
+          : d
+      ))
+      
+      toast.error(errorMessage)
+    } finally {
+      setIsAnalyzing(false)
+    }
+  }
+
+  const filteredDocs = documents.filter(doc =>
+    doc.filename.toLowerCase().includes(searchTerm.toLowerCase())
+  )
+
+  const getStatusIcon = (status: AnalyzedDocument['status']) => {
+    switch (status) {
+      case 'succeeded':
+        return <CheckCircle className="h-4 w-4 text-green-500" />
+      case 'failed':
+        return <AlertCircle className="h-4 w-4 text-red-500" />
+      case 'processing':
+        return <Clock className="h-4 w-4 text-blue-500 animate-spin" />
+    }
+  }
+
+  const getStatusBadge = (status: AnalyzedDocument['status']) => {
+    const variants = {
+      succeeded: 'default',
+      failed: 'destructive',
+      processing: 'secondary'
+    }
+    return <Badge variant={variants[status] as any}>{status}</Badge>
+  }
+
+  const getConfidenceBadge = (confidence: number) => {
+    if (confidence >= 0.9) return { variant: 'default' as const, label: 'High', color: 'text-green-600' }
+    if (confidence >= 0.7) return { variant: 'secondary' as const, label: 'Medium', color: 'text-yellow-600' }
+    return { variant: 'destructive' as const, label: 'Low', color: 'text-red-600' }
+  }
+
+  const getFieldType = (value: unknown): string => {
+    if (typeof value === 'number') return 'number'
+    if (typeof value === 'boolean') return 'boolean'
+    if (Array.isArray(value)) return 'array'
+    if (typeof value === 'object' && value !== null) return 'object'
+    // Check if it's a date string
+    if (typeof value === 'string' && /^\d{4}-\d{2}-\d{2}/.test(value)) return 'date'
+    return 'string'
+  }
+
+  return (
+    <SidebarProvider
+      style={{
+        "--sidebar-width": "calc(var(--spacing) * 72)",
+        "--header-height": "calc(var(--spacing) * 12)",
+      } as React.CSSProperties}
+    >
+      <AppSidebar variant="inset" />
+      <SidebarInset>
+        <SiteHeader />
+        
+        <div className="flex h-[calc(100vh-var(--header-height))] overflow-hidden">
+          {/* Left Panel - Document Queue */}
+          <div className="w-80 border-r bg-muted/10 flex flex-col">
+            <div className="p-4 border-b space-y-4">
+              <div>
+                <h2 className="text-lg font-semibold">Processing Queue</h2>
+                <p className="text-sm text-muted-foreground">
+                  {documents.length} document{documents.length !== 1 ? 's' : ''} analyzed
+                </p>
+              </div>
+              
+              <FileUpload
+                onFilesChange={handleFileUpload}
+                disabled={isAnalyzing}
+                maxFiles={1}
+                accept=".pdf,.png,.jpg,.jpeg,.tiff"
+              />
+
+              <div className="relative">
+                <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+                <Input
+                  placeholder="Search documents..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="pl-8"
+                />
+              </div>
+            </div>
+
+            <ScrollArea className="flex-1">
+              <div className="p-2 space-y-2">
+                {filteredDocs.length === 0 ? (
+                  <div className="text-center py-8 text-muted-foreground">
+                    <FileText className="h-12 w-12 mx-auto mb-2 opacity-50" />
+                    <p className="text-sm">No documents analyzed yet</p>
+                  </div>
+                ) : (
+                  filteredDocs.map(doc => (
+                    <Card
+                      key={doc.id}
+                      className={`cursor-pointer transition-colors hover:bg-accent ${
+                        selectedDoc?.id === doc.id ? 'border-primary bg-accent' : ''
+                      }`}
+                      onClick={() => setSelectedDoc(doc)}
+                    >
+                      <CardContent className="p-3">
+                        <div className="flex items-start justify-between gap-2 mb-2">
+                          <div className="flex items-center gap-2 min-w-0">
+                            {getStatusIcon(doc.status)}
+                            <span className="text-sm font-medium truncate">
+                              {doc.filename}
+                            </span>
+                          </div>
+                          {getStatusBadge(doc.status)}
+                        </div>
+                        
+                        <div className="space-y-1 text-xs text-muted-foreground">
+                          <div className="flex justify-between">
+                            <span>Fields:</span>
+                            <span className="font-medium">{doc.field_count}</span>
+                          </div>
+                          {doc.schema_score !== undefined && (
+                            <div className="flex justify-between items-center">
+                              <span>Schema Score:</span>
+                              <div className="flex items-center gap-1">
+                                <span className="font-medium">{doc.schema_score}%</span>
+                                <TrendingUp className="h-3 w-3" />
+                              </div>
+                            </div>
+                          )}
+                          <div className="text-xs">
+                            {new Date(doc.timestamp).toLocaleString()}
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  ))
+                )}
+              </div>
+            </ScrollArea>
+          </div>
+
+          {/* Center Panel - Document Viewer */}
+          <div className="flex-1 flex flex-col bg-muted/5">
+            {selectedDoc ? (
+              <>
+                <div className="border-b p-4 bg-background">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <h3 className="font-semibold">{selectedDoc.filename}</h3>
+                      <p className="text-sm text-muted-foreground">
+                        {new Date(selectedDoc.timestamp).toLocaleString()}
+                      </p>
+                    </div>
+                    <div className="flex gap-2">
+                      {selectedDoc.schema_score !== undefined && (
+                        <Badge variant="outline" className="text-lg px-3 py-1">
+                          <TrendingUp className="h-4 w-4 mr-1" />
+                          {selectedDoc.schema_score}% Schema Score
+                        </Badge>
+                      )}
+                    </div>
+                  </div>
+                </div>
+
+                <div className="flex-1 overflow-auto p-4">
+                  {documentUrl && (
+                    <div className="w-full h-full flex items-center justify-center bg-background rounded-lg border">
+                      {selectedDoc.filename.endsWith('.pdf') ? (
+                        <iframe
+                          src={documentUrl}
+                          className="w-full h-full rounded-lg"
+                          title="Document Preview"
+                        />
+                      ) : (
+                        <img
+                          src={documentUrl}
+                          alt="Document Preview"
+                          className="max-w-full max-h-full object-contain"
+                        />
+                      )}
+                    </div>
+                  )}
+                  {!documentUrl && (
+                    <div className="text-center text-muted-foreground py-12">
+                      <FileText className="h-16 w-16 mx-auto mb-4 opacity-50" />
+                      <p>Document preview not available</p>
+                    </div>
+                  )}
+                </div>
+              </>
+            ) : (
+              <div className="flex-1 flex items-center justify-center text-muted-foreground">
+                <div className="text-center">
+                  <Upload className="h-16 w-16 mx-auto mb-4 opacity-50" />
+                  <p className="text-lg font-medium mb-2">No document selected</p>
+                  <p className="text-sm">Upload a document to get started</p>
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Right Panel - Extracted Results */}
+          <div className="w-96 border-l bg-background flex flex-col">
+            {selectedDoc && selectedDoc.result ? (
+              <>
+                <div className="border-b p-4">
+                  <h3 className="font-semibold mb-2">Extracted Results</h3>
+                  <div className="grid grid-cols-2 gap-2 text-sm">
+                    <div className="space-y-1">
+                      <p className="text-muted-foreground">Fields</p>
+                      <p className="text-2xl font-bold">{selectedDoc.field_count}</p>
+                    </div>
+                    <div className="space-y-1">
+                      <p className="text-muted-foreground">Tables</p>
+                      <p className="text-2xl font-bold">{selectedDoc.table_count}</p>
+                    </div>
+                  </div>
+                </div>
+
+                <Tabs defaultValue="fields" className="flex-1 flex flex-col">
+                  <TabsList className="w-full rounded-none border-b">
+                    <TabsTrigger value="fields" className="flex-1">
+                      Fields ({selectedDoc.field_count})
+                    </TabsTrigger>
+                    <TabsTrigger value="tables" className="flex-1">
+                      Tables ({selectedDoc.table_count})
+                    </TabsTrigger>
+                  </TabsList>
+
+                  <TabsContent value="fields" className="flex-1 mt-0">
+                    <ScrollArea className="h-full">
+                      <div className="p-4 space-y-3">
+                        {Object.entries(selectedDoc.result.extracted_fields).map(([key, value]) => {
+                          const confidence = selectedDoc.result!.confidence_scores[key] || 0
+                          const confBadge = getConfidenceBadge(confidence)
+                          const fieldType = getFieldType(value)
+
+                          return (
+                            <Card key={key} className="p-3">
+                              <div className="space-y-2">
+                                <div className="flex items-start justify-between gap-2">
+                                  <div className="space-y-1 min-w-0 flex-1">
+                                    <p className="text-sm font-medium text-muted-foreground truncate">
+                                      {key.replace(/_/g, ' ')}
+                                    </p>
+                                    <div className="flex items-center gap-2">
+                                      <Badge variant="outline" className="text-xs">
+                                        {fieldType}
+                                      </Badge>
+                                      <Badge variant={confBadge.variant} className="text-xs">
+                                        {(confidence * 100).toFixed(0)}%
+                                      </Badge>
+                                    </div>
+                                  </div>
+                                  <FileCheck className={`h-4 w-4 ${confBadge.color}`} />
+                                </div>
+                                
+                                <div className="text-sm font-mono bg-muted p-2 rounded break-words">
+                                  {fieldType === 'array' || fieldType === 'object' 
+                                    ? JSON.stringify(value, null, 2)
+                                    : String(value)
+                                  }
+                                </div>
+                              </div>
+                            </Card>
+                          )
+                        })}
+                      </div>
+                    </ScrollArea>
+                  </TabsContent>
+
+                  <TabsContent value="tables" className="flex-1 mt-0 overflow-hidden">
+                    <ScrollArea className="h-full">
+                      <div className="p-4 space-y-4">
+                        {selectedDoc.table_count === 0 ? (
+                          <div className="text-center text-muted-foreground py-12">
+                            <FileText className="h-12 w-12 mx-auto mb-2 opacity-50" />
+                            <p>No tables extracted</p>
+                          </div>
+                        ) : (
+                          <>
+                            {selectedDoc.result.tables.map((table, idx) => (
+                              <Card key={idx} className="p-4">
+                                <CardHeader className="p-0 pb-3">
+                                  <CardTitle className="text-sm">Table {idx + 1}</CardTitle>
+                                  <CardDescription className="text-xs">
+                                    {table.row_count} rows × {table.column_count} columns
+                                  </CardDescription>
+                                </CardHeader>
+                                <CardContent className="p-0">
+                                  <ScrollArea className="h-[300px] w-full">
+                                    <pre className="text-xs bg-muted p-3 rounded">
+                                      {JSON.stringify(table, null, 2)}
+                                    </pre>
+                                  </ScrollArea>
+                                </CardContent>
+                              </Card>
+                            ))}
+                          </>
+                        )}
+                      </div>
+                    </ScrollArea>
+                  </TabsContent>
+                </Tabs>
+              </>
+            ) : (
+              <div className="flex-1 flex items-center justify-center text-muted-foreground p-8">
+                <div className="text-center">
+                  <FileCheck className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                  <p className="text-sm">
+                    {selectedDoc?.status === 'processing' 
+                      ? 'Analyzing document...'
+                      : 'No results available'
+                    }
+                  </p>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      </SidebarInset>
+    </SidebarProvider>
+  )
+}

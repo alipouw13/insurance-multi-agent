@@ -98,9 +98,14 @@ const data = {
       icon: IconFileDescription,
     },
     {
+      name: "Document Analyzer",
+      url: "/documents/analyze",
+      icon: IconFileAi,
+    },
+    {
       name: "Document Management",
       url: "/documents/manage",
-      icon: IconFileAi,
+      icon: IconFileDescription,
     },
     {
       name: "Index Management",

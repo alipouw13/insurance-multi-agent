@@ -296,9 +296,26 @@ class ContentUnderstandingClient:
         else:
             logger.warning("No fields found in 'contents', 'documents', or root 'fields' object")
         
-        # Extract tables
+        # Extract tables - check multiple possible locations
         tables = []
-        if "tables" in analyze_result:
+        
+        # Try contents array first (2025 API)
+        if "contents" in analyze_result and analyze_result["contents"]:
+            content_item = analyze_result["contents"][0]
+            if "tables" in content_item:
+                logger.info(f"Found {len(content_item['tables'])} tables in contents[0]")
+                for table in content_item["tables"]:
+                    table_data = {
+                        "row_count": table.get("rowCount", 0),
+                        "column_count": table.get("columnCount", 0),
+                        "cells": table.get("cells", [])
+                    }
+                    tables.append(table_data)
+                    logger.info(f"Extracted table: {table_data['row_count']}x{table_data['column_count']} with {len(table_data['cells'])} cells")
+        
+        # Fall back to root-level tables (older API)
+        if not tables and "tables" in analyze_result:
+            logger.info(f"Found {len(analyze_result['tables'])} tables at root level")
             for table in analyze_result["tables"]:
                 table_data = {
                     "row_count": table.get("rowCount", 0),

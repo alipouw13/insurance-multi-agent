@@ -1,0 +1,52 @@
+{
+	"fieldSchema": {
+		"fields": {
+			"policyholder_first_name": {
+				"type": "string",
+				"method": "extract",
+				"description": "The insured person's first name."
+			},
+			"policyholder_last_name": {
+				"type": "string",
+				"method": "extract",
+				"description": "The insured person's last name."
+			},
+			"telephone_number": {
+				"type": "string",
+				"method": "extract",
+				"description": "Phone number in any common format. Strip spaces/hyphens if needed."
+			},
+			"policy_number": {
+				"type": "string",
+				"method": "extract",
+				"description": "The unique identifier for the policy."
+			},
+			"coverage_type": {
+				"type": "string",
+				"method": "extract",
+				"description": "Type of insurance coverage (e.g., Homeowners, Auto, Renters)."
+			},
+			"claim_number": {
+				"type": "string",
+				"method": "extract",
+				"description": "The carrier‑assigned claim identifier."
+			},
+			"policy_effective_date": {
+				"type": "date",
+				"method": "extract",
+				"description": "Policy start date. Must be normalized as YYYY‑MM‑DD."
+			},
+			"policy_expiration_date": {
+				"type": "date",
+				"method": "extract",
+				"description": "Policy end date."
+			},
+			"damage_deductible": {
+				"type": "number",
+				"method": "extract",
+				"description": "Deductible amount in numeric form (strip $ and commas)."
+			}
+		},
+		"definitions": {}
+	}
+}

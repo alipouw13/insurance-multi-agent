@@ -165,6 +165,7 @@ This implementation leverages **Azure AI Foundry's Agent Service** for productio
 - [uv](https://github.com/astral-sh/uv) for Python dependency management
 - Azure OpenAI account
 - Azure AI Foundry project (for Azure AI Agent Service)
+- Azure Content Understanding resource with custom analyzer (for document processing)
 - Azure CLI (`az login` for authentication)
 
 ### Environment Configuration
@@ -211,6 +212,73 @@ The application requires the following Azure resources:
    - Containers: `agent-definitions`, `agent-executions`, `token-usage`
    - Partition keys: `/agent_type`, `/execution_id`, `/execution_id`
    - Tracks agent workflows, execution history, and token usage
+
+6. **Azure Content Understanding**: For automated claim form processing
+   - Custom analyzer: `contoso-claim` (trained on insurance claim forms)
+   - API version: `2025-05-01-preview`
+   - Extracts 19+ fields including policyholder info, dates, amounts, and damaged items
+   - Processes PDF, PNG, JPG, JPEG, and TIFF formats
+
+### Azure Content Understanding Setup
+
+The Document Analyzer page uses Azure Content Understanding to automatically extract structured data from insurance claim forms. You need to create and train a custom analyzer before using this feature.
+
+#### Creating a Custom Analyzer
+
+1. **Navigate to Azure AI Studio**:
+   - Go to [Azure AI Studio](https://ai.azure.com)
+   - Select your Azure Content Understanding resource
+
+2. **Create Custom Document Model**:
+   - Click "Custom extraction models"
+   - Choose "Build a custom model"
+   - Select "Template" for form-based documents
+   - Name: `contoso-claim`
+
+3. **Upload Training Documents**:
+   - Use the sample claim forms in `docs/sample-claims/`:
+     - `ClaimForm_1.pdf` through `ClaimForm_7.pdf` (printed forms)
+     - `claimform_handwritten_1.pdf` (handwritten form)
+   - Upload at least 5 documents for optimal training
+
+4. **Define Field Schema**:
+   - Use the schema provided in `docs/cu-contoso-claims_prebuilt-documentAnalyzer_2025-05-01.json`
+   - This includes 19 fields and 1 table:
+     - **Text fields**: policyholder names, policy number, claim number, addresses, cause of loss, loss description
+     - **Date fields**: policy dates, loss date, date prepared, signature date
+     - **Number fields**: deductible amount, phone number
+     - **Table**: damaged_items (with columns for item name, description, date acquired, cost, repair cost)
+
+5. **Label Training Documents**:
+   - For each uploaded document, mark the locations of all fields
+   - Ensure consistent labeling across documents
+   - Include the damaged items table in at least 3 documents
+
+6. **Train the Model**:
+   - Click "Train" to start the training process
+   - Wait for training to complete (typically 5-10 minutes)
+   - Review the model performance metrics
+
+7. **Deploy the Analyzer**:
+   - After training, deploy the model as `contoso-claim`
+   - Copy the analyzer ID and endpoint details
+   - Update your `.env` file with:
+     ```
+     AZURE_CONTENT_UNDERSTANDING_ENDPOINT=https://your-resource.cognitiveservices.azure.com
+     AZURE_CONTENT_UNDERSTANDING_KEY=your-key
+     AZURE_CONTENT_UNDERSTANDING_ANALYZER_ID=contoso-claim
+     ```
+
+#### Testing the Analyzer
+
+After deployment, you can test the analyzer using the Document Analyzer page:
+1. Navigate to **Documents → Document Analyzer** in the application
+2. Upload one of the sample claim forms from `docs/sample-claims/`
+3. Verify that all fields and tables are extracted correctly
+4. Expected results:
+   - 19 fields extracted with 100% confidence
+   - 1 table (damaged_items) with multiple rows
+   - Document uploaded to Azure Storage and indexed in AI Search
 
 ### Cosmos DB Setup
 

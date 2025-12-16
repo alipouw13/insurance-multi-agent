@@ -10,8 +10,9 @@ import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 
 interface FileUploadProps {
-  onFilesChange: (files: File[]) => void
-  accept?: string
+  onFilesChange?: (files: File[]) => void
+  onChange?: (files: File[]) => void  // Alternative prop name
+  accept?: string | Record<string, string[]>
   maxFiles?: number
   maxSize?: number // in bytes
   className?: string
@@ -25,6 +26,7 @@ interface FileWithPreview extends File {
 
 export function FileUpload({
   onFilesChange,
+  onChange,
   accept = "image/*",
   maxFiles = 5,
   maxSize = 10 * 1024 * 1024, // 10MB
@@ -37,6 +39,12 @@ export function FileUpload({
   const [errors, setErrors] = React.useState<string[]>([])
   const [selectedImage, setSelectedImage] = React.useState<{ src: string; name: string } | null>(null)
   const inputRef = React.useRef<HTMLInputElement>(null)
+  
+  // Use either callback prop
+  const handleFilesChange = onFilesChange || onChange || (() => {})
+  
+  // Convert accept to string for display
+  const acceptString = typeof accept === 'string' ? accept : Object.keys(accept).join(', ')
 
   // Update files when value prop changes
   React.useEffect(() => {
@@ -101,7 +109,7 @@ export function FileUpload({
     if (validFiles.length > 0) {
       const updatedFiles = [...files, ...validFiles]
       setFiles(updatedFiles)
-      onFilesChange(updatedFiles)
+      handleFilesChange(updatedFiles)
     }
 
     setErrors(newErrors)
@@ -116,7 +124,7 @@ export function FileUpload({
     }
     
     setFiles(updatedFiles)
-    onFilesChange(updatedFiles)
+    handleFilesChange(updatedFiles)
   }
 
   const handleDrag = (e: React.DragEvent) => {
@@ -212,8 +220,8 @@ export function FileUpload({
               {dragActive ? "Drop files here" : "Click to upload or drag and drop"}
             </p>
             <p className="text-xs text-muted-foreground">
-              {accept.includes('image') ? 'Images only' : 
-               accept.includes('.pdf') ? 'PDF, Markdown, Text, and Word documents' : 'Files'} up to {Math.round(maxSize / (1024 * 1024))}MB each (max {maxFiles} files)
+              {acceptString.includes('image') ? 'Images only' : 
+               acceptString.includes('.pdf') ? 'PDF, Markdown, Text, and Word documents' : 'Files'} up to {Math.round(maxSize / (1024 * 1024))}MB each (max {maxFiles} files)
             </p>
           </div>
         </div>
