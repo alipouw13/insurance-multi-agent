@@ -422,3 +422,129 @@ async def index_document(document_id: str) -> StatusResponse:
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Failed to index document: {str(e)}"
         )
+
+
+# ============================================================================
+# Content Understanding Endpoints
+# ============================================================================
+
+@router.post("/documents/analyze")
+async def analyze_document_with_content_understanding(
+    file: UploadFile = File(...)
+) -> Dict[str, Any]:
+    """
+    Analyze an uploaded document using Azure Content Understanding.
+    
+    Extracts key-value pairs, tables, and provides confidence scores
+    for each extracted field. This endpoint is designed for testing
+    Content Understanding capabilities before integrating into workflows.
+    
+    Args:
+        file: The document file to analyze (PDF, PNG, JPG, TIFF)
+        
+    Returns:
+        Dictionary containing:
+        - extracted_fields: Key-value pairs found in the document
+        - confidence_scores: Confidence score (0-1) for each field
+        - tables: Any tables found in the document
+        - content_preview: First 500 chars of extracted text
+        - field_count: Number of fields extracted
+        - table_count: Number of tables found
+    """
+    from app.services.content_understanding_service import get_content_understanding_service
+    
+    # Validate file type
+    allowed_types = [
+        "application/pdf",
+        "image/png", 
+        "image/jpeg",
+        "image/tiff"
+    ]
+    
+    if file.content_type not in allowed_types:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Unsupported file type: {file.content_type}. Supported types: PDF, PNG, JPG, TIFF"
+        )
+    
+    # Check file size (max 20MB)
+    content = await file.read()
+    if len(content) > 20 * 1024 * 1024:
+        raise HTTPException(
+            status_code=400,
+            detail="File too large. Maximum size is 20MB"
+        )
+    
+    # Get Content Understanding service
+    cu_service = get_content_understanding_service()
+    
+    if not cu_service.is_available():
+        raise HTTPException(
+            status_code=503,
+            detail="Content Understanding service not configured. Please add AZURE_CONTENT_UNDERSTANDING_* environment variables."
+        )
+    
+    try:
+        logger.info(f"Analyzing document with Content Understanding: {file.filename} ({len(content)} bytes)")
+        
+        # Analyze the document
+        result = await cu_service.analyze_claim_document(
+            file_data=content,
+            filename=file.filename
+        )
+        
+        logger.info(f"Analysis complete: {result['field_count']} fields, {result['table_count']} tables")
+        
+        # Add helpful guidance if no fields were extracted
+        if result['field_count'] == 0 and result['table_count'] == 0:
+            logger.warning(
+                "No fields or tables extracted. This usually means the analyzer needs to be trained. "
+                "Options: 1) Use a prebuilt analyzer (prebuilt-document, prebuilt-invoice, prebuilt-receipt), "
+                "2) Train a custom analyzer in Azure AI Studio with sample documents."
+            )
+            result['message'] = (
+                "Analysis completed but no structured data was extracted. "
+                "The analyzer may need to be trained with sample documents in Azure AI Studio, "
+                "or you can use a prebuilt analyzer like 'prebuilt-document' or 'prebuilt-invoice'."
+            )
+        
+        return result
+        
+    except Exception as e:
+        logger.error(f"Document analysis failed: {e}", exc_info=True)
+        raise HTTPException(
+            status_code=500,
+            detail=f"Document analysis failed: {str(e)}"
+        )
+
+
+@router.get("/documents/analyzer-status")
+async def get_content_understanding_status() -> Dict[str, Any]:
+    """
+    Check if Content Understanding is configured and available.
+    
+    Returns:
+        Dictionary with:
+        - available: Whether the service is ready
+        - configured: Whether environment variables are set
+        - endpoint: The configured endpoint (if available)
+        - analyzer_id: The configured analyzer ID (if available)
+    """
+    from app.services.content_understanding_service import get_content_understanding_service
+    from app.core.config import get_settings
+    
+    cu_service = get_content_understanding_service()
+    settings = get_settings()
+    
+    configured = all([
+        settings.azure_content_understanding_endpoint,
+        settings.azure_content_understanding_key,
+        settings.azure_content_understanding_analyzer_id
+    ])
+    
+    return {
+        "available": cu_service.is_available(),
+        "configured": configured,
+        "endpoint": settings.azure_content_understanding_endpoint if configured else None,
+        "analyzer_id": settings.azure_content_understanding_analyzer_id if configured else None
+    }
