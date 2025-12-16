@@ -15,6 +15,8 @@ from app.services.cosmos_service import get_cosmos_service
 from app.services.token_tracker import TokenUsageTracker, get_token_tracker
 from app.models.agent_models import AgentExecution, AgentStepExecution, ExecutionStatus
 from app.services.token_estimation import estimate_agent_step_tokens
+from app.services.evaluation_service import get_evaluation_service
+from app.models.evaluation import EvaluationRequest
 
 router = APIRouter(tags=["workflow"])
 
@@ -281,7 +283,65 @@ async def workflow_run(claim: ClaimIn):  # noqa: D401
                 logger.warning(f"Could not disable token span processor: {e}")
 
             # ------------------------------------------------------------------
-            # 4. Return response with chronological stream only
+            # 4. Run evaluation on workflow execution
+            # ------------------------------------------------------------------
+            evaluation_results = None
+            try:
+                evaluation_service = get_evaluation_service()
+                if evaluation_service.is_available():
+                    logger.info(f"Running evaluation for execution: {execution_id}")
+                    
+                    # Extract question and answer from conversation
+                    first_user_message = next((msg for msg in chronological if msg.get('role') == 'human'), None)
+                    last_assistant_message = next(
+                        (msg for msg in reversed(chronological) 
+                         if msg.get('role') == 'ai' and not msg.get('content', '').startswith('TOOL_CALL:')),
+                        None
+                    )
+                    
+                    question = first_user_message.get('content', f"Process claim {claim_data.get('claim_id')}") if first_user_message else f"Process claim {claim_data.get('claim_id')}"
+                    answer = last_assistant_message.get('content', 'No response available') if last_assistant_message else 'No response available'
+                    
+                    # Extract context from claim data
+                    context = [
+                        f"Claim ID: {claim_data.get('claim_id', 'N/A')}",
+                        f"Claimant: {claim_data.get('claimant_name', 'N/A')}",
+                        f"Claim Type: {claim_data.get('claim_type', 'N/A')}",
+                        f"Description: {claim_data.get('description', 'N/A')}",
+                        f"Estimated Damage: ${claim_data.get('estimated_damage', 'N/A')}",
+                    ]
+                    
+                    # Run evaluation
+                    eval_request = EvaluationRequest(
+                        execution_id=execution_id,
+                        claim_id=str(claim_data.get('claim_id', 'unknown')),
+                        agent_type='workflow',
+                        question=question,
+                        answer=answer,
+                        context=context,
+                        metrics=['groundedness', 'relevance', 'coherence', 'fluency']
+                    )
+                    
+                    eval_result = await evaluation_service.evaluate_execution(eval_request)
+                    
+                    if eval_result:
+                        evaluation_results = {
+                            'evaluation_id': eval_result.evaluation_id,
+                            'overall_score': eval_result.overall_score,
+                            'groundedness_score': eval_result.groundedness_score,
+                            'relevance_score': eval_result.relevance_score,
+                            'coherence_score': eval_result.coherence_score,
+                            'fluency_score': eval_result.fluency_score,
+                            'reasoning': eval_result.reasoning
+                        }
+                        logger.info(f"✅ Evaluation completed with score: {eval_result.overall_score:.2f}")
+                else:
+                    logger.info("Evaluation service not available, skipping evaluation")
+            except Exception as eval_err:
+                logger.warning(f"Evaluation failed, continuing without it: {eval_err}")
+            
+            # ------------------------------------------------------------------
+            # 5. Return response with chronological stream and evaluation
             # ------------------------------------------------------------------
             workflow_span.set_attribute("workflow.status", "completed")
             workflow_span.set_attribute("workflow.agent_count", len(agent_steps))
@@ -291,6 +351,8 @@ async def workflow_run(claim: ClaimIn):  # noqa: D401
                 success=True,
                 final_decision=final_decision,
                 conversation_chronological=chronological,
+                execution_id=execution_id,
+                evaluation_results=evaluation_results,
             )
 
         except Exception as exc:

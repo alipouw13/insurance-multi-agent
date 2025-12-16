@@ -9,6 +9,13 @@ import { Label } from "@/components/ui/label"
 import { toast } from "sonner"
 
 import { Alert, AlertDescription } from "@/components/ui/alert"
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog"
 import { getApiUrl } from "@/lib/config"
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
@@ -48,6 +55,16 @@ interface WorkflowResult {
   success: boolean
   final_decision: string
   conversation_chronological: ConversationEntry[]
+  execution_id?: string
+  evaluation_results?: {
+    evaluation_id: string
+    overall_score: number
+    groundedness_score?: number
+    relevance_score?: number
+    coherence_score?: number
+    fluency_score?: number
+    reasoning?: string
+  }
 }
 
 // Agent configuration with icons and colors (matching backend agent names)
@@ -108,6 +125,7 @@ export function WorkflowDemo() {
   const [workflowResult, setWorkflowResult] = useState<WorkflowResult | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [uploadedFiles, setUploadedFiles] = useState<File[]>([])
+  const [showEvaluationDialog, setShowEvaluationDialog] = useState(false)
 
 
   // Fetch available claims on component mount
@@ -515,10 +533,22 @@ export function WorkflowDemo() {
                 </CardDescription>
               </div>
               {workflowResult && (
-                <Button onClick={resetDemo} variant="outline" size="sm">
-                  <IconRefresh className="h-4 w-4 mr-2" />
-                  Reset
-                </Button>
+                <div className="flex gap-2">
+                  {workflowResult.evaluation_results && (
+                    <Button
+                      onClick={() => setShowEvaluationDialog(true)}
+                      variant="outline"
+                      size="sm"
+                    >
+                      <IconEye className="h-4 w-4 mr-2" />
+                      View Evaluation
+                    </Button>
+                  )}
+                  <Button onClick={resetDemo} variant="outline" size="sm">
+                    <IconRefresh className="h-4 w-4 mr-2" />
+                    Reset
+                  </Button>
+                </div>
               )}
             </CardHeader>
             <CardContent>
@@ -567,6 +597,96 @@ export function WorkflowDemo() {
           </Card>
         </div>
       )}
+
+      {/* Evaluation Results Dialog */}
+      <Dialog open={showEvaluationDialog} onOpenChange={setShowEvaluationDialog}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>Evaluation Results</DialogTitle>
+            <DialogDescription>
+              Azure AI Foundry evaluation metrics for this workflow
+            </DialogDescription>
+          </DialogHeader>
+          {workflowResult?.evaluation_results && (
+            <div className="space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <Card>
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-sm font-medium text-muted-foreground">
+                      Overall Score
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-3xl font-bold">
+                      {workflowResult.evaluation_results.overall_score?.toFixed(2) || 'N/A'}
+                    </div>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      Average of all metrics
+                    </p>
+                  </CardContent>
+                </Card>
+                
+                <Card>
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-sm font-medium text-muted-foreground">
+                      Evaluation ID
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-sm font-mono break-all">
+                      {workflowResult.evaluation_results.evaluation_id || 'N/A'}
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
+
+              <div className="space-y-3">
+                <h4 className="text-sm font-semibold">Individual Metrics</h4>
+                
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="flex items-center justify-between p-3 border rounded-lg">
+                    <span className="text-sm font-medium">Groundedness</span>
+                    <Badge variant="secondary" className="text-base">
+                      {workflowResult.evaluation_results.groundedness_score?.toFixed(2) || 'N/A'}
+                    </Badge>
+                  </div>
+
+                  <div className="flex items-center justify-between p-3 border rounded-lg">
+                    <span className="text-sm font-medium">Relevance</span>
+                    <Badge variant="secondary" className="text-base">
+                      {workflowResult.evaluation_results.relevance_score?.toFixed(2) || 'N/A'}
+                    </Badge>
+                  </div>
+
+                  <div className="flex items-center justify-between p-3 border rounded-lg">
+                    <span className="text-sm font-medium">Coherence</span>
+                    <Badge variant="secondary" className="text-base">
+                      {workflowResult.evaluation_results.coherence_score?.toFixed(2) || 'N/A'}
+                    </Badge>
+                  </div>
+
+                  <div className="flex items-center justify-between p-3 border rounded-lg">
+                    <span className="text-sm font-medium">Fluency</span>
+                    <Badge variant="secondary" className="text-base">
+                      {workflowResult.evaluation_results.fluency_score?.toFixed(2) || 'N/A'}
+                    </Badge>
+                  </div>
+                </div>
+              </div>
+
+              {workflowResult.execution_id && (
+                <Alert>
+                  <AlertDescription className="text-xs">
+                    <strong>Execution ID:</strong> {workflowResult.execution_id}
+                    <br />
+                    Check Azure AI Foundry portal for detailed evaluation results (may take 1-2 minutes to appear)
+                  </AlertDescription>
+                </Alert>
+              )}
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   )
 } 

@@ -46,3 +46,5 @@ class ClaimOut(BaseModel):
     success: bool = True
     final_decision: Optional[str] = None
     conversation_chronological: Optional[list[Dict[str, str]]] = None
+    execution_id: Optional[str] = None
+    evaluation_results: Optional[Dict[str, Any]] = None
