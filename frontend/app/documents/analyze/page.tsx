@@ -52,14 +52,52 @@ export default function DocumentAnalyzePage() {
   const [searchTerm, setSearchTerm] = useState('')
   const [isAnalyzing, setIsAnalyzing] = useState(false)
   const [documentUrl, setDocumentUrl] = useState<string | null>(null)
+  
+  // Panel widths (percentages)
+  const [leftWidth, setLeftWidth] = useState(20)
+  const [centerWidth, setCenterWidth] = useState(40)
+  const [isResizing, setIsResizing] = useState<'left' | 'right' | null>(null)
 
-  // Load document history from localStorage
+  // Load document history from storage on mount
   useEffect(() => {
-    const saved = localStorage.getItem('analyzed_documents')
-    if (saved) {
-      setDocuments(JSON.parse(saved))
-    }
+    loadClaimsFromStorage()
   }, [])
+
+  const loadClaimsFromStorage = async () => {
+    try {
+      const apiUrl = await getApiUrl()
+      const response = await fetch(`${apiUrl}/api/v1/documents?category=claim`)
+      
+      if (response.ok) {
+        const data = await response.json()
+        // Transform storage documents to AnalyzedDocument format
+        const storageDocs: AnalyzedDocument[] = data.documents.map((doc: any) => ({
+          id: doc.id,
+          filename: doc.filename,
+          timestamp: doc.upload_date,
+          status: 'succeeded' as const,
+          field_count: 0,
+          table_count: 0,
+          schema_score: 100
+        }))
+        setDocuments(storageDocs)
+        console.log(`Loaded ${storageDocs.length} claims from storage`)
+      } else {
+        // Fallback to localStorage if API fails
+        const saved = localStorage.getItem('analyzed_documents')
+        if (saved) {
+          setDocuments(JSON.parse(saved))
+        }
+      }
+    } catch (err) {
+      console.error('Failed to load claims from storage:', err)
+      // Fallback to localStorage
+      const saved = localStorage.getItem('analyzed_documents')
+      if (saved) {
+        setDocuments(JSON.parse(saved))
+      }
+    }
+  }
 
   // Save to localStorage whenever documents change
   useEffect(() => {
@@ -67,6 +105,14 @@ export default function DocumentAnalyzePage() {
       localStorage.setItem('analyzed_documents', JSON.stringify(documents))
     }
   }, [documents])
+
+  const handleClearCache = () => {
+    localStorage.removeItem('analyzed_documents')
+    setDocuments([])
+    setSelectedDoc(null)
+    setDocumentUrl(null)
+    toast.success('Document cache cleared')
+  }
 
   const handleFileUpload = async (files: File[]) => {
     if (files.length === 0) return
@@ -135,12 +181,12 @@ export default function DocumentAnalyzePage() {
       setSelectedDoc(updatedDoc)
       toast.success(`Extracted ${result.field_count} fields from ${file.name}`)
 
-      // Step 2: Upload document to storage and index in AI Search
+      // Step 2: Upload document to storage (claim category) and index in AI Search
       try {
         const uploadFormData = new FormData()
         uploadFormData.append('file', file)
         
-        const indexResponse = await fetch(`${apiUrl}/api/v1/documents/upload`, {
+        const indexResponse = await fetch(`${apiUrl}/api/v1/documents/upload?category=claim&auto_index=true`, {
           method: 'POST',
           body: uploadFormData
         })
@@ -214,6 +260,43 @@ export default function DocumentAnalyzePage() {
     return 'string'
   }
 
+  // Handle resize
+  const handleMouseMove = (e: MouseEvent) => {
+    if (!isResizing) return
+    
+    const containerWidth = window.innerWidth - 288 // Subtract sidebar width
+    const mouseX = e.clientX - 288 // Adjust for sidebar
+    
+    if (isResizing === 'left') {
+      const newLeftWidth = (mouseX / containerWidth) * 100
+      if (newLeftWidth >= 15 && newLeftWidth <= 35) {
+        setLeftWidth(newLeftWidth)
+      }
+    } else if (isResizing === 'right') {
+      const newCenterWidth = (mouseX / containerWidth) * 100 - leftWidth
+      if (newCenterWidth >= 25 && newCenterWidth <= 60) {
+        setCenterWidth(newCenterWidth)
+      }
+    }
+  }
+
+  const handleMouseUp = () => {
+    setIsResizing(null)
+  }
+
+  useEffect(() => {
+    if (isResizing) {
+      document.addEventListener('mousemove', handleMouseMove)
+      document.addEventListener('mouseup', handleMouseUp)
+      return () => {
+        document.removeEventListener('mousemove', handleMouseMove)
+        document.removeEventListener('mouseup', handleMouseUp)
+      }
+    }
+  }, [isResizing, leftWidth, centerWidth])
+
+  const rightWidth = 100 - leftWidth - centerWidth
+
   return (
     <SidebarProvider
       style={{
@@ -225,15 +308,30 @@ export default function DocumentAnalyzePage() {
       <SidebarInset>
         <SiteHeader />
         
-        <div className="flex h-[calc(100vh-var(--header-height))] overflow-hidden">
+        <div className="flex h-[calc(100vh-var(--header-height))] overflow-hidden relative">
           {/* Left Panel - Document Queue */}
-          <div className="w-80 border-r bg-muted/10 flex flex-col">
+          <div 
+            className="border-r bg-muted/10 flex flex-col"
+            style={{ width: `${leftWidth}%` }}
+          >
             <div className="p-4 border-b space-y-4">
-              <div>
-                <h2 className="text-lg font-semibold">Processing Queue</h2>
-                <p className="text-sm text-muted-foreground">
-                  {documents.length} document{documents.length !== 1 ? 's' : ''} analyzed
-                </p>
+              <div className="flex items-center justify-between">
+                <div>
+                  <h2 className="text-lg font-semibold">Processing Queue</h2>
+                  <p className="text-sm text-muted-foreground">
+                    {documents.length} document{documents.length !== 1 ? 's' : ''} analyzed
+                  </p>
+                </div>
+                {documents.length > 0 && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={handleClearCache}
+                    className="h-8 text-xs"
+                  >
+                    Clear All
+                  </Button>
+                )}
               </div>
               
               <FileUpload
@@ -307,8 +405,19 @@ export default function DocumentAnalyzePage() {
             </ScrollArea>
           </div>
 
+          {/* Resize Handle - Left */}
+          <div
+            className="w-1 hover:w-2 bg-border hover:bg-primary cursor-col-resize transition-all relative group"
+            onMouseDown={() => setIsResizing('left')}
+          >
+            <div className="absolute inset-y-0 -left-1 -right-1" />
+          </div>
+
           {/* Center Panel - Document Viewer */}
-          <div className="flex-[0.8] flex flex-col bg-muted/5">
+          <div 
+            className="flex flex-col bg-muted/5"
+            style={{ width: `${centerWidth}%` }}
+          >
             {selectedDoc ? (
               <>
                 <div className="border-b p-4 bg-background">
@@ -367,8 +476,19 @@ export default function DocumentAnalyzePage() {
             )}
           </div>
 
+          {/* Resize Handle - Right */}
+          <div
+            className="w-1 hover:w-2 bg-border hover:bg-primary cursor-col-resize transition-all relative group"
+            onMouseDown={() => setIsResizing('right')}
+          >
+            <div className="absolute inset-y-0 -left-1 -right-1" />
+          </div>
+
           {/* Right Panel - Extracted Results */}
-          <div className="flex-1 border-l bg-background flex flex-col">
+          <div 
+            className="border-l bg-background flex flex-col"
+            style={{ width: `${rightWidth}%` }}
+          >
             {selectedDoc && selectedDoc.result ? (
               <>
                 <div className="border-b p-4">
