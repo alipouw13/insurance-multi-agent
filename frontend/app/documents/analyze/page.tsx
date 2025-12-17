@@ -106,6 +106,44 @@ export default function DocumentAnalyzePage() {
     }
   }, [documents])
 
+  // Fetch document preview when selectedDoc changes (only for stored documents)
+  useEffect(() => {
+    const fetchDocumentPreview = async () => {
+      if (!selectedDoc) {
+        // Only clear if we don't have a valid blob URL
+        if (!documentUrl || !documentUrl.startsWith('blob:')) {
+          setDocumentUrl(null)
+        }
+        return
+      }
+
+      // Skip fetching if document is still processing or if we already have a valid preview
+      if (selectedDoc.status === 'processing' || (documentUrl && documentUrl.startsWith('blob:'))) {
+        return
+      }
+
+      try {
+        // Try to get document from storage
+        const response = await fetch(`${getApiUrl()}/api/v1/documents/${selectedDoc.id}/download`)
+        if (response.ok) {
+          const blob = await response.blob()
+          const url = URL.createObjectURL(blob)
+          // Clean up old URL before setting new one
+          if (documentUrl && documentUrl.startsWith('blob:')) {
+            URL.revokeObjectURL(documentUrl)
+          }
+          setDocumentUrl(url)
+        } else {
+          console.warn('Document preview not available from storage:', selectedDoc.filename)
+        }
+      } catch (error) {
+        console.error('Error fetching document preview:', error)
+      }
+    }
+
+    fetchDocumentPreview()
+  }, [selectedDoc?.id, selectedDoc?.status])
+
   const handleClearCache = () => {
     localStorage.removeItem('analyzed_documents')
     setDocuments([])
@@ -184,7 +222,7 @@ export default function DocumentAnalyzePage() {
       // Step 2: Upload document to storage (claim category) and index in AI Search
       try {
         const uploadFormData = new FormData()
-        uploadFormData.append('file', file)
+        uploadFormData.append('files', file)  // Backend expects 'files' (plural)
         
         const indexResponse = await fetch(`${apiUrl}/api/v1/documents/upload?category=claim&auto_index=true`, {
           method: 'POST',
@@ -192,9 +230,10 @@ export default function DocumentAnalyzePage() {
         })
 
         if (!indexResponse.ok) {
-          const errorData = await indexResponse.json().catch(() => ({ detail: 'Indexing failed' }))
-          console.warn('Indexing warning:', errorData.detail)
-          toast.warning('Document analyzed but indexing failed: ' + errorData.detail)
+          const errorText = await indexResponse.text()
+          console.error('Upload failed:', indexResponse.status, errorText)
+          toast.warning(`Document analyzed but upload failed: ${errorText}`)
+          const errorData = { detail: `Upload failed with status ${indexResponse.status}` }
         } else {
           toast.success('Document uploaded and indexed successfully')
         }
@@ -311,8 +350,12 @@ export default function DocumentAnalyzePage() {
         <div className="flex h-[calc(100vh-var(--header-height))] overflow-hidden relative">
           {/* Left Panel - Document Queue */}
           <div 
-            className="border-r bg-muted/10 flex flex-col"
-            style={{ width: `${leftWidth}%` }}
+            className="border-r bg-muted/10 flex flex-col overflow-hidden"
+            style={{ 
+              width: `${leftWidth}%`,
+              minWidth: '280px',
+              maxWidth: '600px'
+            }}
           >
             <div className="p-4 border-b space-y-4">
               <div className="flex items-center justify-between">
@@ -415,8 +458,11 @@ export default function DocumentAnalyzePage() {
 
           {/* Center Panel - Document Viewer */}
           <div 
-            className="flex flex-col bg-muted/5"
-            style={{ width: `${centerWidth}%` }}
+            className="flex flex-col bg-muted/5 overflow-hidden"
+            style={{ 
+              width: `${centerWidth}%`,
+              minWidth: '300px'
+            }}
           >
             {selectedDoc ? (
               <>
@@ -442,7 +488,7 @@ export default function DocumentAnalyzePage() {
                 <div className="flex-1 overflow-auto p-4">
                   {documentUrl && (
                     <div className="w-full h-full flex items-center justify-center bg-background rounded-lg border">
-                      {selectedDoc.filename.endsWith('.pdf') ? (
+                      {selectedDoc.filename.toLowerCase().endsWith('.pdf') ? (
                         <iframe
                           src={documentUrl}
                           className="w-full h-full rounded-lg"
@@ -486,8 +532,11 @@ export default function DocumentAnalyzePage() {
 
           {/* Right Panel - Extracted Results */}
           <div 
-            className="border-l bg-background flex flex-col"
-            style={{ width: `${rightWidth}%` }}
+            className="border-l bg-background flex flex-col overflow-hidden"
+            style={{ 
+              width: `${rightWidth}%`,
+              minWidth: '300px'
+            }}
           >
             {selectedDoc && selectedDoc.result ? (
               <>

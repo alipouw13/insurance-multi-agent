@@ -8,7 +8,7 @@ from __future__ import annotations
 import json
 import logging
 import uuid
-from datetime import datetime
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import List, Optional, Dict, Any
 from io import BytesIO
@@ -91,7 +91,7 @@ def _initialize_cache_from_storage():
                     category=blob_metadata.get("category", parts[0]),
                     size=blob.get("size", 0),
                     content_type=blob.get("content_type", "application/octet-stream"),
-                    upload_date=blob.get("created", datetime.now()),
+                    upload_date=blob.get("created", datetime.now(timezone.utc)),
                     indexed=True,  # Assume migrated documents are indexed
                     blob_name=blob_name,
                     blob_url=f"https://{storage_service.account_name}.blob.core.windows.net/{storage_service.container_name}/{blob_name}",
@@ -111,18 +111,18 @@ def _initialize_cache_from_storage():
 @router.post("/documents/upload", response_model=DocumentUploadResponse)
 async def upload_documents_for_indexing(
     files: List[UploadFile] = File(...),
-    category: str = Query("policy", description="Document category: policy, regulation, or reference"),
+    category: str = Query("policy", description="Document category: policy, regulation, reference, or claim"),
     auto_index: bool = Query(True, description="Automatically add to search index")
 ) -> DocumentUploadResponse:
     """Upload documents to Azure Blob Storage with optional AI Search indexing.
     
     Documents are stored in Azure Blob Storage and can be automatically
-    added to the Azure AI Search index for policy queries.
+    added to the Azure AI Search index for policy queries or stored for claim processing.
     """
     if not files:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="No files uploaded")
     
-    if category not in ["policy", "regulation", "reference"]:
+    if category not in ["policy", "regulation", "reference", "claim"]:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid category")
     
     storage_service = get_azure_storage_service()
@@ -136,12 +136,13 @@ async def upload_documents_for_indexing(
                 
             # Check file type
             file_extension = Path(upload.filename).suffix.lower()
-            allowed_extensions = {'.txt', '.md', '.pdf', '.doc', '.docx'}
+            # Allow documents and images for claim forms
+            allowed_extensions = {'.txt', '.md', '.pdf', '.doc', '.docx', '.png', '.jpg', '.jpeg', '.tiff'}
             
             if file_extension not in allowed_extensions:
                 raise HTTPException(
                     status_code=status.HTTP_400_BAD_REQUEST,
-                    detail=f"File \"{upload.filename}\" has an unsupported format. Supported formats: PDF, Markdown, Text, Word documents."
+                    detail=f"File \"{upload.filename}\" has an unsupported format. Supported formats: PDF, Markdown, Text, Word documents, PNG, JPG, TIFF."
                 )
             
             # Read file content
@@ -182,7 +183,7 @@ async def upload_documents_for_indexing(
                 category=category,
                 size=len(file_content),
                 content_type=upload.content_type or "application/octet-stream",
-                upload_date=datetime.now(),
+                upload_date=datetime.now(timezone.utc),
                 indexed=False,
                 blob_name=blob_name,
                 blob_url=blob_url
