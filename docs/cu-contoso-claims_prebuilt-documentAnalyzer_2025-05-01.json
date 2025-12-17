@@ -1,52 +1,137 @@
+
 {
-	"fieldSchema": {
-		"fields": {
-			"policyholder_first_name": {
-				"type": "string",
-				"method": "extract",
-				"description": "The insured person's first name."
-			},
-			"policyholder_last_name": {
-				"type": "string",
-				"method": "extract",
-				"description": "The insured person's last name."
-			},
-			"telephone_number": {
-				"type": "string",
-				"method": "extract",
-				"description": "Phone number in any common format. Strip spaces/hyphens if needed."
-			},
-			"policy_number": {
-				"type": "string",
-				"method": "extract",
-				"description": "The unique identifier for the policy."
-			},
-			"coverage_type": {
-				"type": "string",
-				"method": "extract",
-				"description": "Type of insurance coverage (e.g., Homeowners, Auto, Renters)."
-			},
-			"claim_number": {
-				"type": "string",
-				"method": "extract",
-				"description": "The carrier‑assigned claim identifier."
-			},
-			"policy_effective_date": {
-				"type": "date",
-				"method": "extract",
-				"description": "Policy start date. Must be normalized as YYYY‑MM‑DD."
-			},
-			"policy_expiration_date": {
-				"type": "date",
-				"method": "extract",
-				"description": "Policy end date."
-			},
-			"damage_deductible": {
-				"type": "number",
-				"method": "extract",
-				"description": "Deductible amount in numeric form (strip $ and commas)."
-			}
-		},
-		"definitions": {}
-	}
+  "fieldSchema": {
+    "fields": {
+      "policyholder_first_name": {
+        "type": "string",
+        "method": "extract",
+        "description": "The insured person's first name."
+      },
+      "policyholder_last_name": {
+        "type": "string",
+        "method": "extract",
+        "description": "The insured person's last name."
+      },
+      "telephone_number": {
+        "type": "string",
+        "method": "extract",
+        "description": "Phone number in any common format. Strip spaces and hyphens if needed."
+      },
+      "policy_number": {
+        "type": "string",
+        "method": "extract",
+        "description": "The unique identifier for the policy."
+      },
+      "coverage_type": {
+        "type": "string",
+        "method": "extract",
+        "description": "Type of insurance coverage (e.g., Homeowners, Auto, Renters)."
+      },
+      "claim_number": {
+        "type": "string",
+        "method": "extract",
+        "description": "The carrier-assigned claim identifier."
+      },
+      "policy_effective_date": {
+        "type": "date",
+        "method": "extract",
+        "description": "Policy start date. Must be normalized as YYYY-MM-DD."
+      },
+      "policy_expiration_date": {
+        "type": "date",
+        "method": "extract",
+        "description": "Policy end date."
+      },
+      "damage_deductible": {
+        "type": "number",
+        "method": "extract",
+        "description": "Deductible amount in numeric form. Remove currency symbols and commas."
+      },
+      "date_of_loss": {
+        "type": "date",
+        "method": "extract",
+        "description": "Date the damage or loss occurred."
+      },
+      "time_of_loss": {
+        "type": "string",
+        "method": "extract",
+        "description": "Reported time of loss. Prefer HH:MM in 24-hour format."
+      },
+      "date_prepared": {
+        "type": "date",
+        "method": "extract",
+        "description": "Date the claim form was completed."
+      },
+      "property_address": {
+        "type": "string",
+        "method": "extract",
+        "description": "Full address where the covered property is located."
+      },
+      "mailing_address": {
+        "type": "string",
+        "method": "extract",
+        "description": "Mailing address for correspondence. May match property address."
+      },
+      "cause_of_loss": {
+        "type": "string",
+        "method": "extract",
+        "description": "Narrative cause of the loss (e.g., burst pipe, fire, natural disaster)."
+      },
+      "loss_description": {
+        "type": "string",
+        "method": "extract",
+        "description": "Detailed description of the damage, including affected rooms, systems, and impact."
+      },
+
+      "damaged_items": {
+        "type": "array",
+        "method": "extract",
+        "description": "A table listing each damaged item, its description, acquisition date, and costs.",
+        "items": {
+          "type": "object",
+          "properties": {
+            "item_name": {
+              "type": "string",
+              "description": "Name of the item (e.g., 'LG OLED TV')."
+            },
+            "item_description": {
+              "type": "string",
+              "description": "Additional details about the item."
+            },
+            "date_acquired": {
+              "type": "date",
+              "description": "Purchase date for the item. Format as YYYY-MM-DD."
+            },
+            "cost_new_replacement": {
+              "type": "number",
+              "description": "Original or replacement cost. Convert from currency format."
+            },
+            "repair_cost": {
+              "type": "number",
+              "description": "Estimated or actual repair cost."
+            }
+          }
+        }
+      },
+
+      "claim_disclaimer_text": {
+        "type": "string",
+        "method": "extract",
+        "description": "Full disclaimer text appearing in the form. No summarization."
+      },
+
+      "policyholder_signature": {
+        "type": "string",
+        "method": "extract",
+        "description": "Name or representation of the policyholder's signature."
+      },
+      "signature_date": {
+        "type": "date",
+        "method": "extract",
+        "description": "Date the signature was made, if provided."
+      }
+    },
+
+    "definitions": {}
+  }
 }
