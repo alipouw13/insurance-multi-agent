@@ -19,7 +19,9 @@ from pydantic import BaseModel
 
 from app.services.azure_storage import get_azure_storage_service
 from app.services.azure_search import get_azure_search_service
+from app.services.content_understanding_service import ContentUnderstandingClient
 from app.workflow.pdf_processor import get_pdf_processor
+from app.core.config import get_settings
 from langchain_community.document_loaders import TextLoader
 from langchain_core.documents import Document as LangChainDocument
 
@@ -206,47 +208,130 @@ async def upload_documents_for_indexing(
     # Auto-index if requested
     if auto_index and uploaded_docs:
         try:
-            search_service = get_azure_search_service()
-            indexed_count = 0
-            
-            for doc in uploaded_docs:
-                # Download document from blob storage
-                blob_content = storage_service.download_document(doc.blob_name)
+            # Route to appropriate index based on category
+            if category == "claim":
+                # Use claims search service for claim documents
+                from app.services.azure_claims_search import get_azure_claims_search_service
+                claims_search_service = get_azure_claims_search_service()
+                indexed_count = 0
                 
-                # Convert to LangChain documents
-                langchain_docs = []
-                file_extension = Path(doc.filename).suffix.lower()
+                for doc in uploaded_docs:
+                    # Download document from blob storage
+                    blob_content = storage_service.download_document(doc.blob_name)
+                    
+                    # Get content as text
+                    file_extension = Path(doc.filename).suffix.lower()
+                    content = ""
+                    
+                    if file_extension == '.pdf':
+                        # Extract PDF text
+                        temp_path = Path(f"/tmp/{doc.id}{file_extension}")
+                        try:
+                            with open(temp_path, 'wb') as f:
+                                f.write(blob_content)
+                            pdf_processor = get_pdf_processor()
+                            langchain_docs = pdf_processor.pdf_to_langchain_documents(temp_path, chunk_pages=False)
+                            content = "\n\n".join([d.page_content for d in langchain_docs])
+                        finally:
+                            if temp_path.exists():
+                                temp_path.unlink()
+                    elif file_extension in ['.txt', '.md']:
+                        content = blob_content.decode('utf-8')
+                    elif file_extension in ['.png', '.jpg', '.jpeg', '.tiff']:
+                        # For images, we'll index minimal metadata (full OCR could be added later)
+                        content = f"Image file: {doc.original_filename}"
+                    
+                    if content:
+                        # Extract structured data from claim documents using Content Understanding
+                        extracted_data = {}
+                        if file_extension == '.pdf':
+                            try:
+                                settings = get_settings()
+                                if (settings.azure_content_understanding_endpoint and 
+                                    settings.azure_content_understanding_key and 
+                                    settings.azure_content_understanding_analyzer_id):
+                                    logger.info(f"Extracting structured data from claim PDF: {doc.original_filename}")
+                                    cu_client = ContentUnderstandingClient(
+                                        endpoint=settings.azure_content_understanding_endpoint,
+                                        subscription_key=settings.azure_content_understanding_key
+                                    )
+                                    
+                                    # Analyze the document using configured analyzer
+                                    analysis_result = cu_client.analyze_document(
+                                        analyzer_id=settings.azure_content_understanding_analyzer_id,
+                                        file_data=blob_content,
+                                        content_type="application/pdf"
+                                    )
+                                    extracted_data = analysis_result.key_value_pairs
+                                    logger.info(f"Extracted {len(extracted_data)} fields from claim document: {list(extracted_data.keys())[:10]}")
+                                else:
+                                    logger.warning("Content Understanding not configured - indexing without structured extraction")
+                            except Exception as e:
+                                logger.error(f"Failed to extract structured data from claim: {e}", exc_info=True)
+                                # Continue with plain content indexing if extraction fails
+                        
+                        # Add to claims index with extracted data
+                        chunks_indexed = claims_search_service.add_claim_document(
+                            content=content,
+                            blob_name=doc.blob_name,
+                            metadata={
+                                "source": doc.original_filename,
+                                "file_type": file_extension[1:] if file_extension else "unknown",
+                                "document_type": "claim_form",
+                                "claim_status": "pending",
+                            },
+                            extracted_data=extracted_data if extracted_data else None
+                        )
+                        if chunks_indexed > 0:
+                            _metadata_cache[doc.id].indexed = True
+                            indexed_count += 1
+                            logger.info(f"Indexed claim document: {doc.original_filename} ({chunks_indexed} chunks)")
                 
-                if file_extension == '.pdf':
-                    # Save temporarily for PDF processing
-                    temp_path = Path(f"/tmp/{doc.id}{file_extension}")
-                    try:
-                        with open(temp_path, 'wb') as f:
-                            f.write(blob_content)
-                        pdf_processor = get_pdf_processor()
-                        langchain_docs = pdf_processor.pdf_to_langchain_documents(temp_path, chunk_pages=False)
-                    finally:
-                        if temp_path.exists():
-                            temp_path.unlink()
-                            
-                elif file_extension in ['.txt', '.md']:
-                    # Process text files
-                    content = blob_content.decode('utf-8')
-                    langchain_docs = [LangChainDocument(
-                        page_content=content,
-                        metadata={"source": doc.original_filename}
-                    )]
+                if indexed_count > 0:
+                    logger.info(f"Successfully indexed {indexed_count} claim documents to claims index")
+            else:
+                # Use policy search service for policies, regulations, reference docs
+                search_service = get_azure_search_service()
+                indexed_count = 0
                 
-                if langchain_docs:
-                    # Add to search index
-                    chunks_indexed = search_service.add_documents(langchain_docs, blob_name=doc.blob_name)
-                    if chunks_indexed > 0:
-                        _metadata_cache[doc.id].indexed = True
-                        indexed_count += 1
-                        logger.info(f"Indexed document: {doc.original_filename} ({chunks_indexed} chunks)")
-            
-            if indexed_count > 0:
-                logger.info(f"Successfully indexed {indexed_count} out of {len(uploaded_docs)} documents")
+                for doc in uploaded_docs:
+                    # Download document from blob storage
+                    blob_content = storage_service.download_document(doc.blob_name)
+                    
+                    # Convert to LangChain documents
+                    langchain_docs = []
+                    file_extension = Path(doc.filename).suffix.lower()
+                    
+                    if file_extension == '.pdf':
+                        # Save temporarily for PDF processing
+                        temp_path = Path(f"/tmp/{doc.id}{file_extension}")
+                        try:
+                            with open(temp_path, 'wb') as f:
+                                f.write(blob_content)
+                            pdf_processor = get_pdf_processor()
+                            langchain_docs = pdf_processor.pdf_to_langchain_documents(temp_path, chunk_pages=False)
+                        finally:
+                            if temp_path.exists():
+                                temp_path.unlink()
+                                
+                    elif file_extension in ['.txt', '.md']:
+                        # Process text files
+                        content = blob_content.decode('utf-8')
+                        langchain_docs = [LangChainDocument(
+                            page_content=content,
+                            metadata={"source": doc.original_filename}
+                        )]
+                    
+                    if langchain_docs:
+                        # Add to policy search index
+                        chunks_indexed = search_service.add_documents(langchain_docs, blob_name=doc.blob_name)
+                        if chunks_indexed > 0:
+                            _metadata_cache[doc.id].indexed = True
+                            indexed_count += 1
+                            logger.info(f"Indexed policy document: {doc.original_filename} ({chunks_indexed} chunks)")
+                
+                if indexed_count > 0:
+                    logger.info(f"Successfully indexed {indexed_count} policy documents to policy index")
             
         except Exception as e:
             logger.error(f"Failed to auto-index documents: {e}")
@@ -299,10 +384,15 @@ async def delete_document(document_id: str) -> StatusResponse:
         storage_service = get_azure_storage_service()
         storage_service.delete_document(doc_metadata.blob_name)
         
-        # Delete from search index if indexed
+        # Delete from appropriate search index if indexed
         if doc_metadata.indexed:
-            search_service = get_azure_search_service()
-            search_service.delete_documents_by_blob(doc_metadata.blob_name)
+            if doc_metadata.category == "claim":
+                from app.services.azure_claims_search import get_azure_claims_search_service
+                claims_search_service = get_azure_claims_search_service()
+                claims_search_service.delete_documents_by_blob(doc_metadata.blob_name)
+            else:
+                search_service = get_azure_search_service()
+                search_service.delete_documents_by_blob(doc_metadata.blob_name)
         
         # Remove from metadata cache
         del _metadata_cache[document_id]
@@ -486,6 +576,8 @@ async def analyze_document_with_content_understanding(
         )
     
     try:
+        import time
+        start_time = time.time()
         logger.info(f"Analyzing document with Content Understanding: {file.filename} ({len(content)} bytes)")
         
         # Analyze the document
@@ -494,7 +586,8 @@ async def analyze_document_with_content_understanding(
             filename=file.filename
         )
         
-        logger.info(f"Analysis complete: {result['field_count']} fields, {result['table_count']} tables")
+        elapsed_time = time.time() - start_time
+        logger.info(f"Analysis complete in {elapsed_time:.2f}s: {result['field_count']} fields, {result['table_count']} tables")
         
         # Add helpful guidance if no fields were extracted
         if result['field_count'] == 0 and result['table_count'] == 0:

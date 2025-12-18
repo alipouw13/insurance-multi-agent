@@ -58,6 +58,10 @@ class Settings(BaseSettings):  # noqa: D101
     # Azure AI Search (for document indexing)
     azure_search_endpoint: str | None = Field(
         default=None, alias="AZURE_SEARCH_ENDPOINT")
+    azure_search_policy_index_name: str | None = Field(
+        default="insurance-policies", alias="AZURE_SEARCH_POLICY_INDEX_NAME")
+    azure_search_claim_index_name: str | None = Field(
+        default="insurance-claims", alias="AZURE_SEARCH_CLAIM_INDEX_NAME")
     
     # Azure Content Understanding (for document analysis)
     azure_content_understanding_endpoint: str | None = Field(
@@ -66,6 +70,8 @@ class Settings(BaseSettings):  # noqa: D101
         default=None, alias="AZURE_CONTENT_UNDERSTANDING_KEY")
     azure_content_understanding_analyzer_id: str | None = Field(
         default=None, alias="AZURE_CONTENT_UNDERSTANDING_ANALYZER_ID")
+    
+    # Legacy field for backward compatibility
     azure_search_index_name: str | None = Field(
         default="insurance-policies", alias="AZURE_SEARCH_INDEX_NAME")
     

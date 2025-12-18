@@ -38,6 +38,7 @@ import {
 import { getApiUrl } from '@/lib/config'
 
 interface IndexStatus {
+  index_name: string
   is_built: boolean
   last_rebuild?: string
   document_count: number
@@ -50,6 +51,11 @@ interface IndexStatus {
 
 interface IndexStatusResponse {
   status: IndexStatus
+}
+
+interface CombinedIndexStatusResponse {
+  policy_index: IndexStatus
+  claims_index: IndexStatus
 }
 
 interface IndexRebuildResponse {
@@ -65,24 +71,32 @@ interface IndexResetResponse {
   status: IndexStatus
 }
 
+type IndexType = 'policy' | 'claims'
+
 export default function IndexManagementPage() {
-  const [indexStatus, setIndexStatus] = useState<IndexStatus | null>(null)
+  const [selectedIndex, setSelectedIndex] = useState<IndexType>('policy')
+  const [policyStatus, setPolicyStatus] = useState<IndexStatus | null>(null)
+  const [claimsStatus, setClaimsStatus] = useState<IndexStatus | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [isRebuilding, setIsRebuilding] = useState(false)
   const [isResetting, setIsResetting] = useState(false)
+  
+  const currentStatus = selectedIndex === 'policy' ? policyStatus : claimsStatus
 
   // Fetch index status
   const fetchIndexStatus = async () => {
+    setIsLoading(true)
     try {
       const apiUrl = await getApiUrl()
-      const response = await fetch(`${apiUrl}/api/v1/index/status`)
+      const response = await fetch(`${apiUrl}/api/v1/index/status/combined`)
       
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`)
       }
       
-      const data: IndexStatusResponse = await response.json()
-      setIndexStatus(data.status)
+      const data: CombinedIndexStatusResponse = await response.json()
+      setPolicyStatus(data.policy_index)
+      setClaimsStatus(data.claims_index)
     } catch (error) {
       console.error('Failed to fetch index status:', error)
       toast.error('Failed to load index status')
@@ -111,7 +125,11 @@ export default function IndexManagementPage() {
       
       if (data.success) {
         toast.success(data.message)
-        setIndexStatus(data.status)
+        if (selectedIndex === 'policy') {
+          setPolicyStatus(data.status)
+        } else {
+          setClaimsStatus(data.status)
+        }
       } else {
         toast.error(data.message)
       }
@@ -140,7 +158,11 @@ export default function IndexManagementPage() {
       
       if (data.success) {
         toast.success(data.message)
-        setIndexStatus(data.status)
+        if (selectedIndex === 'policy') {
+          setPolicyStatus(data.status)
+        } else {
+          setClaimsStatus(data.status)
+        }
       } else {
         toast.error(data.message)
       }
@@ -226,13 +248,33 @@ export default function IndexManagementPage() {
             <div>
               <h1 className="text-3xl font-bold">Index Management</h1>
               <p className="text-muted-foreground">
-                Monitor and control the policy search index
+                Monitor and control search indexes
               </p>
             </div>
-            <Button onClick={fetchIndexStatus} variant="outline" size="sm">
-              <RefreshCw className="h-4 w-4 mr-2" />
-              Refresh Status
-            </Button>
+            <div className="flex items-center gap-3">
+              <div className="flex items-center gap-2 bg-muted p-1 rounded-lg">
+                <Button 
+                  variant={selectedIndex === 'policy' ? 'default' : 'ghost'} 
+                  size="sm"
+                  onClick={() => setSelectedIndex('policy')}
+                >
+                  <Database className="h-4 w-4 mr-2" />
+                  Policies
+                </Button>
+                <Button 
+                  variant={selectedIndex === 'claims' ? 'default' : 'ghost'} 
+                  size="sm"
+                  onClick={() => setSelectedIndex('claims')}
+                >
+                  <FileText className="h-4 w-4 mr-2" />
+                  Claims
+                </Button>
+              </div>
+              <Button onClick={fetchIndexStatus} variant="outline" size="sm">
+                <RefreshCw className="h-4 w-4 mr-2" />
+                Refresh Status
+              </Button>
+            </div>
           </div>
 
           {isLoading ? (
@@ -240,7 +282,7 @@ export default function IndexManagementPage() {
               <RefreshCw className="h-8 w-8 animate-spin mx-auto mb-4 text-muted-foreground" />
               <p className="text-muted-foreground">Loading index status...</p>
             </div>
-          ) : !indexStatus ? (
+          ) : !currentStatus ? (
             <div className="text-center py-12">
               <AlertTriangle className="h-12 w-12 mx-auto mb-4 text-destructive" />
               <h3 className="text-lg font-medium mb-2">Failed to Load Status</h3>
@@ -256,7 +298,7 @@ export default function IndexManagementPage() {
                     Index Status
                   </CardTitle>
                   <CardDescription>
-                    Current status and statistics of the policy search index
+                    Current status and statistics of the {currentStatus.index_name} index
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
@@ -267,7 +309,7 @@ export default function IndexManagementPage() {
                         <Settings className="h-4 w-4 text-muted-foreground" />
                         <span className="text-sm font-medium">Status</span>
                       </div>
-                      {getStatusBadge(indexStatus.status)}
+                      {getStatusBadge(currentStatus.status)}
                     </div>
 
                     {/* Document Count */}
@@ -276,9 +318,9 @@ export default function IndexManagementPage() {
                         <FileText className="h-4 w-4 text-muted-foreground" />
                         <span className="text-sm font-medium">Total Documents</span>
                       </div>
-                      <div className="text-2xl font-bold">{indexStatus.document_count}</div>
+                      <div className="text-2xl font-bold">{currentStatus.document_count}</div>
                       <div className="text-xs text-muted-foreground">
-                        {indexStatus.original_policies_count} original + {indexStatus.indexed_uploaded_count} uploaded
+                        {currentStatus.original_policies_count} original + {currentStatus.indexed_uploaded_count} uploaded
                       </div>
                     </div>
 
@@ -289,7 +331,7 @@ export default function IndexManagementPage() {
                         <span className="text-sm font-medium">Index Size</span>
                       </div>
                       <div className="text-2xl font-bold">
-                        {indexStatus.index_size_mb ? `${indexStatus.index_size_mb} MB` : 'N/A'}
+                        {currentStatus.index_size_mb ? `${currentStatus.index_size_mb} MB` : 'N/A'}
                       </div>
                     </div>
 
@@ -299,7 +341,7 @@ export default function IndexManagementPage() {
                         <Clock className="h-4 w-4 text-muted-foreground" />
                         <span className="text-sm font-medium">Last Rebuild</span>
                       </div>
-                      <div className="text-sm">{formatDate(indexStatus.last_rebuild)}</div>
+                      <div className="text-sm">{formatDate(currentStatus.last_rebuild)}</div>
                     </div>
                   </div>
                 </CardContent>
@@ -327,7 +369,7 @@ export default function IndexManagementPage() {
                         </div>
                       </div>
                       <Badge variant="secondary">
-                        {indexStatus.original_policies_count} documents
+                        {currentStatus.original_policies_count} documents
                       </Badge>
                     </div>
 
@@ -338,17 +380,17 @@ export default function IndexManagementPage() {
                         <div>
                           <div className="font-medium">Uploaded Documents</div>
                           <div className="text-sm text-muted-foreground">
-                            User-uploaded documents ({indexStatus.indexed_uploaded_count} indexed, {indexStatus.uploaded_docs_count - indexStatus.indexed_uploaded_count} pending)
+                            User-uploaded documents ({currentStatus.indexed_uploaded_count} indexed, {currentStatus.uploaded_docs_count - currentStatus.indexed_uploaded_count} pending)
                           </div>
                         </div>
                       </div>
                       <div className="flex items-center gap-2">
                         <Badge variant="default">
-                          {indexStatus.indexed_uploaded_count} indexed
+                          {currentStatus.indexed_uploaded_count} indexed
                         </Badge>
-                        {indexStatus.uploaded_docs_count - indexStatus.indexed_uploaded_count > 0 && (
+                        {currentStatus.uploaded_docs_count - currentStatus.indexed_uploaded_count > 0 && (
                           <Badge variant="outline">
-                            {indexStatus.uploaded_docs_count - indexStatus.indexed_uploaded_count} pending
+                            {currentStatus.uploaded_docs_count - currentStatus.indexed_uploaded_count} pending
                           </Badge>
                         )}
                       </div>
@@ -455,7 +497,7 @@ export default function IndexManagementPage() {
                   </div>
 
                   {/* Status Messages */}
-                  {indexStatus.status === 'error' && (
+                  {currentStatus.status === 'error' && (
                     <div className="p-4 border border-destructive/20 bg-destructive/5 rounded-lg">
                       <div className="flex items-center gap-2 text-destructive">
                         <AlertTriangle className="h-4 w-4" />
@@ -467,7 +509,7 @@ export default function IndexManagementPage() {
                     </div>
                   )}
 
-                  {indexStatus.status === 'empty' && (
+                  {currentStatus.status === 'empty' && (
                     <div className="p-4 border border-yellow-200 bg-yellow-50 rounded-lg">
                       <div className="flex items-center gap-2 text-yellow-700">
                         <Clock className="h-4 w-4" />
@@ -479,14 +521,14 @@ export default function IndexManagementPage() {
                     </div>
                   )}
 
-                  {indexStatus.uploaded_docs_count > indexStatus.indexed_uploaded_count && (
+                  {currentStatus.uploaded_docs_count > currentStatus.indexed_uploaded_count && (
                     <div className="p-4 border border-blue-200 bg-blue-50 rounded-lg">
                       <div className="flex items-center gap-2 text-blue-700">
                         <Upload className="h-4 w-4" />
                         <span className="font-medium">Pending Documents</span>
                       </div>
                       <p className="text-sm text-blue-600 mt-1">
-                        {indexStatus.uploaded_docs_count - indexStatus.indexed_uploaded_count} uploaded document(s) 
+                        {currentStatus.uploaded_docs_count - currentStatus.indexed_uploaded_count} uploaded document(s) 
                         are not yet indexed. Rebuild the index to include them in search results.
                       </p>
                     </div>

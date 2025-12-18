@@ -18,6 +18,7 @@ node_modules/
 backend/.env
 backend/migrate_to_azure.py
 backend/register_agents.py
+backend/migrate_claims_to_new_index.py
 
 # Editor directories and files
 .idea

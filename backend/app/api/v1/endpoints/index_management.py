@@ -26,6 +26,7 @@ INDEX_STATUS_FILE = WORKFLOW_DATA_DIR / "index_status.json"
 
 # Pydantic models
 class IndexStatus(BaseModel):
+    index_name: str
     is_built: bool
     last_rebuild: Optional[datetime] = None
     document_count: int = 0
@@ -34,6 +35,10 @@ class IndexStatus(BaseModel):
     indexed_uploaded_count: int = 0
     index_size_mb: Optional[float] = None
     status: str = "unknown"  # building, ready, error, empty
+
+class CombinedIndexStatus(BaseModel):
+    policy_index: IndexStatus
+    claims_index: IndexStatus
 
 class IndexRebuildResponse(BaseModel):
     success: bool
@@ -48,6 +53,10 @@ class IndexResetResponse(BaseModel):
 
 class IndexStatusResponse(BaseModel):
     status: IndexStatus
+
+class CombinedIndexStatusResponse(BaseModel):
+    policy_index: IndexStatus
+    claims_index: IndexStatus
 
 class IndexUpdateResponse(BaseModel):
     success: bool
@@ -99,17 +108,29 @@ def get_index_status() -> IndexStatus:
             logger.info(f"Retrieved document count: {document_count}")
             
             # Count uploaded documents from metadata
+            # Import the metadata cache from documents.py to get all uploaded documents
             uploaded_docs_count = 0
             indexed_uploaded_count = 0
             
-            if METADATA_FILE.exists():
-                try:
-                    with open(METADATA_FILE, 'r') as f:
-                        metadata = json.load(f)
-                    uploaded_docs_count = len(metadata)
-                    indexed_uploaded_count = sum(1 for doc in metadata.values() if doc.get('indexed', False))
-                except Exception:
-                    pass
+            try:
+                from app.api.v1.endpoints.documents import _metadata_cache
+                # Filter for non-claim documents (policies, regulations, etc.)
+                policy_docs = [doc for doc in _metadata_cache.values() if doc.category != "claim"]
+                uploaded_docs_count = len(policy_docs)
+                indexed_uploaded_count = sum(1 for doc in policy_docs if doc.indexed)
+                logger.info(f"Counted {uploaded_docs_count} uploaded policy documents ({indexed_uploaded_count} indexed) from metadata cache")
+            except Exception as e:
+                logger.warning(f"Could not read metadata cache: {e}")
+                # Fallback to file-based metadata
+                if METADATA_FILE.exists():
+                    try:
+                        with open(METADATA_FILE, 'r') as f:
+                            metadata = json.load(f)
+                        policy_docs = {k: v for k, v in metadata.items() if v.get('category') != 'claim'}
+                        uploaded_docs_count = len(policy_docs)
+                        indexed_uploaded_count = sum(1 for doc in policy_docs.values() if doc.get('indexed', False))
+                    except Exception:
+                        pass
             
             # Get last rebuild time
             last_rebuild = None
@@ -128,6 +149,7 @@ def get_index_status() -> IndexStatus:
             status_str = "ready" if is_built else "empty"
             
             return IndexStatus(
+                index_name=search_service.index_name,
                 is_built=is_built,
                 last_rebuild=last_rebuild,
                 document_count=document_count,
@@ -141,6 +163,7 @@ def get_index_status() -> IndexStatus:
         except Exception as e:
             logger.error(f"Error connecting to Azure AI Search: {e}")
             return IndexStatus(
+                index_name="insurance-policies",
                 is_built=False,
                 document_count=0,
                 original_policies_count=0,
@@ -152,6 +175,101 @@ def get_index_status() -> IndexStatus:
     except Exception as e:
         logger.error(f"Error getting index status: {e}")
         return IndexStatus(
+            index_name="insurance-policies",
+            is_built=False,
+            document_count=0,
+            original_policies_count=0,
+            uploaded_docs_count=0,
+            indexed_uploaded_count=0,
+            status="error"
+        )
+
+def get_claims_index_status() -> IndexStatus:
+    """Get current claims index status information from Azure AI Search."""
+    try:
+        settings = get_settings()
+        
+        if not settings.azure_search_endpoint:
+            return IndexStatus(
+                index_name="insurance-claims",
+                is_built=False,
+                document_count=0,
+                original_policies_count=0,
+                uploaded_docs_count=0,
+                indexed_uploaded_count=0,
+                status="not_configured",
+                index_size_mb=None
+            )
+        
+        if not settings.azure_tenant_id or not settings.azure_client_id or not settings.azure_client_secret:
+            return IndexStatus(
+                index_name="insurance-claims",
+                is_built=False,
+                document_count=0,
+                original_policies_count=0,
+                uploaded_docs_count=0,
+                indexed_uploaded_count=0,
+                status="not_configured",
+                index_size_mb=None
+            )
+        
+        try:
+            logger.info("Attempting to initialize Azure Claims Search service...")
+            from app.services.azure_claims_search import get_azure_claims_search_service
+            claims_service = get_azure_claims_search_service()
+            logger.info(f"Azure Claims Search service initialized: {claims_service.index_name}")
+            
+            # Get index statistics
+            stats = claims_service.get_index_statistics()
+            document_count = stats.get("document_count", 0)
+            logger.info(f"Retrieved claims document count: {document_count}")
+            
+            # Count uploaded claim documents from metadata
+            uploaded_docs_count = 0
+            indexed_uploaded_count = 0
+            
+            try:
+                from app.api.v1.endpoints.documents import _metadata_cache
+                # Filter for claim documents only
+                claim_docs = [doc for doc in _metadata_cache.values() if doc.category == "claim"]
+                uploaded_docs_count = len(claim_docs)
+                indexed_uploaded_count = sum(1 for doc in claim_docs if doc.indexed)
+                logger.info(f"Counted {uploaded_docs_count} claim documents ({indexed_uploaded_count} indexed)")
+            except Exception as e:
+                logger.warning(f"Could not read metadata cache for claims: {e}")
+            
+            # Determine status
+            is_built = document_count > 0
+            status_str = "ready" if is_built else "empty"
+            
+            return IndexStatus(
+                index_name=claims_service.index_name,
+                is_built=is_built,
+                last_rebuild=None,
+                document_count=document_count,
+                original_policies_count=0,
+                uploaded_docs_count=uploaded_docs_count,
+                indexed_uploaded_count=indexed_uploaded_count,
+                index_size_mb=None,
+                status=status_str
+            )
+            
+        except Exception as e:
+            logger.error(f"Error connecting to Azure Claims Search: {e}")
+            return IndexStatus(
+                index_name="insurance-claims",
+                is_built=False,
+                document_count=0,
+                original_policies_count=0,
+                uploaded_docs_count=0,
+                indexed_uploaded_count=0,
+                status="error"
+            )
+        
+    except Exception as e:
+        logger.error(f"Error getting claims index status: {e}")
+        return IndexStatus(
+            index_name="insurance-claims",
             is_built=False,
             document_count=0,
             original_policies_count=0,
@@ -212,16 +330,16 @@ def rebuild_index_sync(include_uploaded: bool = True) -> IndexStatus:
 # API endpoints
 @router.get("/index/status", response_model=IndexStatusResponse)
 async def get_index_status_endpoint() -> IndexStatusResponse:
-    """Get current index status and statistics."""
+    """Get current policy index status and statistics (legacy endpoint)."""
     try:
-        logger.info("Getting index status...")
+        logger.info("Getting policy index status...")
         status = get_index_status()
-        logger.info(f"Index status retrieved: {status.status}, document_count={status.document_count}")
+        logger.info(f"Policy index status retrieved: {status.status}, document_count={status.document_count}")
         return IndexStatusResponse(status=status)
     except Exception as e:
         logger.error(f"Error in get_index_status_endpoint: {e}", exc_info=True)
-        # Return a safe error status instead of raising exception
         error_status = IndexStatus(
+            index_name="insurance-policies",
             is_built=False,
             document_count=0,
             original_policies_count=0,
@@ -230,6 +348,46 @@ async def get_index_status_endpoint() -> IndexStatusResponse:
             status="error"
         )
         return IndexStatusResponse(status=error_status)
+
+@router.get("/index/status/combined", response_model=CombinedIndexStatusResponse)
+async def get_combined_index_status() -> CombinedIndexStatusResponse:
+    """Get status for both policy and claims indexes."""
+    try:
+        logger.info("Getting combined index status...")
+        policy_status = get_index_status()
+        claims_status = get_claims_index_status()
+        
+        logger.info(f"Policy index: {policy_status.document_count} docs, Claims index: {claims_status.document_count} docs")
+        
+        return CombinedIndexStatusResponse(
+            policy_index=policy_status,
+            claims_index=claims_status
+        )
+    except Exception as e:
+        logger.error(f"Error in get_combined_index_status: {e}", exc_info=True)
+        # Return safe error statuses
+        error_policy = IndexStatus(
+            index_name="insurance-policies",
+            is_built=False,
+            document_count=0,
+            original_policies_count=0,
+            uploaded_docs_count=0,
+            indexed_uploaded_count=0,
+            status="error"
+        )
+        error_claims = IndexStatus(
+            index_name="insurance-claims",
+            is_built=False,
+            document_count=0,
+            original_policies_count=0,
+            uploaded_docs_count=0,
+            indexed_uploaded_count=0,
+            status="error"
+        )
+        return CombinedIndexStatusResponse(
+            policy_index=error_policy,
+            claims_index=error_claims
+        )
 
 @router.post("/index/rebuild", response_model=IndexRebuildResponse)
 async def rebuild_index(
