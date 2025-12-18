@@ -671,14 +671,23 @@ class AzureClaimsSearchService:
             index = self.index_client.get_index(self.index_name)
             stats = self.index_client.get_index_statistics(self.index_name)
             
-            return {
-                "index_name": self.index_name,
-                "document_count": stats.document_count,
-                "storage_size": stats.storage_size,
-                "vector_index_size": getattr(stats, 'vector_index_size', None),
-            }
+            # Stats can be either an object or a dict depending on SDK version
+            if isinstance(stats, dict):
+                return {
+                    "index_name": self.index_name,
+                    "document_count": stats.get("document_count", 0),
+                    "storage_size": stats.get("storage_size", 0),
+                    "vector_index_size": stats.get("vector_index_size"),
+                }
+            else:
+                return {
+                    "index_name": self.index_name,
+                    "document_count": stats.document_count,
+                    "storage_size": stats.storage_size,
+                    "vector_index_size": getattr(stats, 'vector_index_size', None),
+                }
         except Exception as e:
-            logger.error(f"Failed to get index statistics: {e}")
+            logger.error(f"Failed to get index statistics: {e}", exc_info=True)
             return {
                 "index_name": self.index_name,
                 "document_count": 0,

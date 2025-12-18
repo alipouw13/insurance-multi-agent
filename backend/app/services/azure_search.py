@@ -459,7 +459,7 @@ class AzureSearchService:
         """Get statistics about the search index.
         
         Returns:
-            Dictionary with index statistics
+            Dictionary with index statistics including storage size
         """
         try:
             # Check if index exists first
@@ -470,15 +470,31 @@ class AzureSearchService:
                 return {
                     "document_count": 0,
                     "index_name": self.index_name,
-                    "index_exists": False
+                    "index_exists": False,
+                    "storage_size_bytes": 0
                 }
             
-            # Get document count
-            stats = self.search_client.get_document_count()
+            # Get document count from search client
+            document_count = self.search_client.get_document_count()
+            
+            # Get storage statistics from index client
+            storage_size_bytes = 0
+            try:
+                index_stats = self.index_client.get_index_statistics(self.index_name)
+                # Handle both dict and object returns
+                if isinstance(index_stats, dict):
+                    storage_size_bytes = index_stats.get("storage_size", 0)
+                else:
+                    storage_size_bytes = getattr(index_stats, 'storage_size', 0)
+                logger.info(f"Retrieved storage size: {storage_size_bytes} bytes")
+            except Exception as storage_err:
+                logger.warning(f"Could not retrieve storage size: {storage_err}")
+            
             return {
-                "document_count": stats,
+                "document_count": document_count,
                 "index_name": self.index_name,
-                "index_exists": True
+                "index_exists": True,
+                "storage_size_bytes": storage_size_bytes
             }
         except Exception as e:
             logger.error(f"Failed to get index statistics: {e}")
@@ -486,6 +502,7 @@ class AzureSearchService:
                 "document_count": 0,
                 "index_name": self.index_name,
                 "index_exists": False,
+                "storage_size_bytes": 0,
                 "error": str(e)
             }
 

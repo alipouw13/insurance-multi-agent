@@ -105,7 +105,10 @@ def get_index_status() -> IndexStatus:
             logger.info("Getting index statistics...")
             stats = search_service.get_index_statistics()
             document_count = stats.get("document_count", 0)
-            logger.info(f"Retrieved document count: {document_count}")
+            storage_size_bytes = stats.get("storage_size_bytes", 0)
+            # Convert bytes to MB
+            index_size_mb = round(storage_size_bytes / (1024 * 1024), 2) if storage_size_bytes > 0 else None
+            logger.info(f"Retrieved document count: {document_count}, storage size: {storage_size_bytes} bytes ({index_size_mb} MB)")
             
             # Count uploaded documents from metadata
             # Import the metadata cache from documents.py to get all uploaded documents
@@ -113,7 +116,10 @@ def get_index_status() -> IndexStatus:
             indexed_uploaded_count = 0
             
             try:
-                from app.api.v1.endpoints.documents import _metadata_cache
+                from app.api.v1.endpoints.documents import _metadata_cache, _initialize_cache_from_storage
+                # Initialize cache from Azure Blob Storage first
+                _initialize_cache_from_storage()
+                
                 # Filter for non-claim documents (policies, regulations, etc.)
                 policy_docs = [doc for doc in _metadata_cache.values() if doc.category != "claim"]
                 uploaded_docs_count = len(policy_docs)
@@ -144,6 +150,11 @@ def get_index_status() -> IndexStatus:
                 except Exception:
                     pass
             
+            # Calculate original policies count
+            # Original policies are in the index but NOT in uploaded metadata
+            # Total documents = original + indexed_uploaded
+            original_policies_count = max(0, document_count - indexed_uploaded_count)
+            
             # Determine status
             is_built = document_count > 0
             status_str = "ready" if is_built else "empty"
@@ -153,10 +164,10 @@ def get_index_status() -> IndexStatus:
                 is_built=is_built,
                 last_rebuild=last_rebuild,
                 document_count=document_count,
-                original_policies_count=0,  # Not tracked separately in Azure AI Search
+                original_policies_count=original_policies_count,
                 uploaded_docs_count=uploaded_docs_count,
                 indexed_uploaded_count=indexed_uploaded_count,
-                index_size_mb=None,  # Azure AI Search doesn't expose size directly
+                index_size_mb=index_size_mb,
                 status=status_str
             )
             
@@ -222,14 +233,20 @@ def get_claims_index_status() -> IndexStatus:
             # Get index statistics
             stats = claims_service.get_index_statistics()
             document_count = stats.get("document_count", 0)
-            logger.info(f"Retrieved claims document count: {document_count}")
+            storage_size_bytes = stats.get("storage_size", 0)
+            # Convert bytes to MB
+            index_size_mb = round(storage_size_bytes / (1024 * 1024), 2) if storage_size_bytes > 0 else None
+            logger.info(f"Retrieved claims document count: {document_count}, storage size: {storage_size_bytes} bytes ({index_size_mb} MB)")
             
             # Count uploaded claim documents from metadata
             uploaded_docs_count = 0
             indexed_uploaded_count = 0
             
             try:
-                from app.api.v1.endpoints.documents import _metadata_cache
+                from app.api.v1.endpoints.documents import _metadata_cache, _initialize_cache_from_storage
+                # Initialize cache from Azure Blob Storage first
+                _initialize_cache_from_storage()
+                
                 # Filter for claim documents only
                 claim_docs = [doc for doc in _metadata_cache.values() if doc.category == "claim"]
                 uploaded_docs_count = len(claim_docs)
@@ -237,6 +254,11 @@ def get_claims_index_status() -> IndexStatus:
                 logger.info(f"Counted {uploaded_docs_count} claim documents ({indexed_uploaded_count} indexed)")
             except Exception as e:
                 logger.warning(f"Could not read metadata cache for claims: {e}")
+            
+            # Calculate original claims count (claims in index but not in uploaded metadata)
+            # For claims, there are no "original" claims - all are uploaded
+            # So original_policies_count should be 0 for claims index
+            original_policies_count = 0
             
             # Determine status
             is_built = document_count > 0
@@ -247,10 +269,10 @@ def get_claims_index_status() -> IndexStatus:
                 is_built=is_built,
                 last_rebuild=None,
                 document_count=document_count,
-                original_policies_count=0,
+                original_policies_count=original_policies_count,
                 uploaded_docs_count=uploaded_docs_count,
                 indexed_uploaded_count=indexed_uploaded_count,
-                index_size_mb=None,
+                index_size_mb=index_size_mb,
                 status=status_str
             )
             
