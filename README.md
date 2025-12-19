@@ -191,7 +191,7 @@ Then edit `.env` with your Azure resource details. See `backend/.env.sample` for
 The application requires the following Azure resources:
 
 1. **Azure OpenAI Service**: For LLM and embedding models
-   - Deployments: `gpt-4o`, `gpt-4.1-mini`, `text-embedding-3-large`
+   - Deployments: `gpt-4o` / `gpt-4.1-mini`, `text-embedding-3-large`
    - API version: `2024-08-01-preview`
 
 2. **Azure AI Foundry Project**: For Azure AI Agent Service
@@ -227,9 +227,9 @@ The Document Analyzer page uses Azure Content Understanding to automatically ext
 
 #### Creating a Custom Analyzer
 
-1. **Navigate to Azure AI Studio**:
-   - Go to [Azure AI Studio](https://ai.azure.com)
-   - Select your Azure Content Understanding resource
+1. **Navigate to Azure AI Foundry**:
+   - Go to Azure AI Foundry
+   - Select Content Understanding
 
 2. **Create Custom Document Model**:
    - Click "Custom extraction models"
@@ -331,53 +331,13 @@ The application requires Azure Cosmos DB for NoSQL to persist agent definitions,
    - Partition key: `/execution_id`
    - Click "OK"
 
-**Option 2: Using Azure CLI**
+   **Create Container: evals**:
+   - Click "New Container"
+   - Database id: Select "Use existing" → `insurance-agents`
+   - Container id: `evals`
+   - Partition key: `/evaluation_id`
+   - Click "OK"
 
-```bash
-# Variables
-RESOURCE_GROUP="your-resource-group"
-ACCOUNT_NAME="your-cosmos-account"
-LOCATION="eastus"
-DATABASE_NAME="insurance-agents"
-
-# Create Cosmos DB account (serverless)
-az cosmosdb create \
-  --name $ACCOUNT_NAME \
-  --resource-group $RESOURCE_GROUP \
-  --locations regionName=$LOCATION \
-  --capabilities EnableServerless \
-  --default-consistency-level Session
-
-# Create database
-az cosmosdb sql database create \
-  --account-name $ACCOUNT_NAME \
-  --resource-group $RESOURCE_GROUP \
-  --name $DATABASE_NAME
-
-# Create agent-definitions container
-az cosmosdb sql container create \
-  --account-name $ACCOUNT_NAME \
-  --resource-group $RESOURCE_GROUP \
-  --database-name $DATABASE_NAME \
-  --name agent-definitions \
-  --partition-key-path "/agent_type"
-
-# Create agent-executions container
-az cosmosdb sql container create \
-  --account-name $ACCOUNT_NAME \
-  --resource-group $RESOURCE_GROUP \
-  --database-name $DATABASE_NAME \
-  --name agent-executions \
-  --partition-key-path "/execution_id"
-
-# Create token-usage container
-az cosmosdb sql container create \
-  --account-name $ACCOUNT_NAME \
-  --resource-group $RESOURCE_GROUP \
-  --database-name $DATABASE_NAME \
-  --name token-usage \
-  --partition-key-path "/execution_id"
-```
 
 #### Permissions and Access Control
 
@@ -444,40 +404,7 @@ az cosmosdb update \
   --enable-automatic-failover false
 ```
 
-#### Environment Configuration
-
-Add these variables to your `.env` file:
-
-```env
-# Azure Cosmos DB Configuration
-AZURE_COSMOS_ENDPOINT=https://your-cosmos-account.documents.azure.com:443/
-AZURE_COSMOS_DATABASE_NAME=insurance-agents
-AZURE_COSMOS_DEFINITIONS_CONTAINER=agent-definitions
-AZURE_COSMOS_EXECUTIONS_CONTAINER=agent-executions
-AZURE_COSMOS_TOKEN_USAGE_CONTAINER=token-usage
-```
-
 **Note**: No connection string or key is needed when using `DefaultAzureCredential` with RBAC permissions.
-
-#### Verifying the Setup
-
-Test that Cosmos DB is properly configured:
-
-```bash
-cd backend
-uv run python tests/check_tokens.py
-```
-
-This test script will:
-- Connect to Cosmos DB using DefaultAzureCredential
-- Query the token-usage container
-- Display recent token usage records (if any)
-
-If you see "Token usage container not available" or connection errors, check:
-1. Your Azure CLI authentication (`az account show`)
-2. RBAC role assignment (Cosmos DB Data Contributor)
-3. Firewall settings (your IP is whitelisted)
-4. Environment variables in `.env` file
 
 ### Authentication for Azure AI Agent Service
 
@@ -511,18 +438,6 @@ Start the backend server:
 uv run fastapi dev
 ```
 
-On startup, the application will:
-1. Connect to Azure AI Foundry using `DefaultAzureCredential`
-2. Check for existing agents by name (duplicate prevention)
-3. Deploy 4 specialized agents if they don't exist:
-   - Claim Assessor (`asst_xxx...`)
-   - Policy Checker (`asst_yyy...`)
-   - Communication Agent (`asst_aaa...`)
-   - Risk Analyst (`asst_zzz...`)
-4. Store agent IDs in global cache for request routing
-5. Initialize Azure Blob Storage container (`insurance-documents`)
-6. Create Azure AI Search index (`insurance-policies`) with vector search
-
 The API will be available at http://localhost:8000
 
 ### Document Management with Azure
@@ -545,11 +460,6 @@ The application uses Azure Blob Storage and AI Search for document management:
 - Results include source attribution and policy section references
 - Configurable score thresholds filter low-quality matches
 
-**Migration from Local Storage**:
-To migrate existing local documents to Azure:
-1. Documents currently in `backend/app/workflow/data/uploaded_docs/` 
-2. Can be uploaded via the `/api/v1/documents/upload` endpoint
-3. The old FAISS index in `backend/app/workflow/data/policy_index/` is replaced by Azure AI Search
 
 ### Frontend Setup
 
@@ -562,7 +472,7 @@ npm run dev
 The frontend will be available at http://localhost:3000
 
 
-## 🌐 Azure Deployment
+## Azure Deployment
 
 ### Prerequisites
 - [Azure Developer CLI (azd)](https://docs.microsoft.com/en-us/azure/developer/azure-developer-cli/)
@@ -613,142 +523,6 @@ The system includes realistic test scenarios:
 - Dutch language insurance claim
 - High-risk fraud scenario (CLM-002)
 
-## Testing Azure AI Agents
-
-The project includes comprehensive tests for all Azure AI Agent Service agents:
-
-### Running Tests
-
-```bash
-cd backend
-
-# Run all agent tests
-uv run python tests/run_all_tests.py
-
-# Run individual agent test
-uv run pytest tests/test_azure_claim_assessor.py
-uv run pytest tests/test_azure_policy_checker.py
-uv run pytest tests/test_azure_communication_agent.py
-uv run pytest tests/test_azure_risk_analyst.py
-
-# Cleanup test agents (if needed)
-uv run python tests/cleanup_agents.py
-```
-
-### Test Coverage
-
-Each agent test validates:
-- Agent deployment to Azure AI Foundry
-- Function tool calling and execution
-- Response quality and reasoning
-- Proper cleanup (agent deletion after tests)
-
-Test scenarios include:
-- Claim Assessor: Vehicle damage assessment with image analysis
-- Policy Checker: Policy verification and document search
-- Communication Agent: Email drafting in professional tone
-- Risk Analyst: Low-risk and high-risk fraud detection
-
-See `tests/README.md` for detailed test documentation.
-
-## Project Structure
-
-```
-insurance-multi-agent/
-├── backend/                            # FastAPI application
-│   ├── app/
-│   │   ├── api/v1/                    # REST API endpoints
-│   │   ├── workflow/                  # Agent orchestration
-│   │   │   ├── agents/                # Azure AI Agent Service implementations
-│   │   │   │   ├── azure_claim_assessor.py       # Damage assessment agent
-│   │   │   │   ├── azure_policy_checker.py       # Policy verification agent
-│   │   │   │   ├── azure_communication_agent.py  # Email generation agent
-│   │   │   │   └── azure_risk_analyst.py         # Fraud detection agent
-│   │   │   ├── azure_agent_manager.py   # Agent deployment orchestrator
-│   │   │   ├── azure_agent_client.py    # Azure AI Foundry client
-│   │   │   ├── tools.py                 # Function tools for agents
-│   │   │   ├── supervisor.py            # Workflow orchestration (LangGraph)
-│   │   │   └── registry.py              # Agent registry
-│   │   ├── core/                        # Configuration and logging
-│   │   ├── models/                      # Pydantic models
-│   │   │   ├── evaluation.py            # Evaluation request/result models
-│   │   │   └── ...
-│   │   └── services/                    # Business logic layer
-│   │       ├── evaluation_service.py    # Azure AI Foundry evaluation SDK integration
-│   │       ├── cosmos_service.py        # Cosmos DB data persistence
-│   │       └── ...
-│   ├── tests/                           # Agent tests with cleanup
-│   │   ├── test_azure_claim_assessor.py
-│   │   ├── test_azure_policy_checker.py
-│   │   ├── test_azure_communication_agent.py
-│   │   ├── test_azure_risk_analyst.py
-│   │   ├── run_all_tests.py             # Test orchestrator
-│   │   └── cleanup_agents.py            # Manual cleanup utility
-│   └── pyproject.toml                   # Python dependencies
-├── frontend/                            # Next.js application
-│   ├── app/                            # App router pages
-│   ├── components/                     # Reusable UI components
-│   └── lib/                            # API clients and utilities
-├── infra/                              # Azure Bicep templates
-└── azure.yaml                          # Azure deployment configuration
-```
-
-## Explainable AI Features
-
-- **Decision Trees**: Visual representation of agent reasoning
-- **Source Attribution**: Links decisions to specific policy documents  
-- **Confidence Scoring**: Quantitative assessment of decision certainty
-- **Audit Trails**: Complete log of agent interactions for compliance
-- **Human Intervention Points**: Clear override capabilities for human reviewers
-
-## Azure AI Agent Service Integration Details
-
-### Agent Lifecycle Management
-
-Agents are automatically deployed on application startup:
-
-1. **Initialization**: `azure_agent_manager.py` deploys all 4 agents
-2. **Duplicate Prevention**: `find_agent_by_name()` checks for existing agents
-3. **Agent Creation**: Only creates agents that don't exist in Azure AI Foundry
-4. **ID Caching**: Stores agent IDs in global `_AZURE_AGENT_IDS` dictionary
-5. **Request Routing**: FastAPI routes requests to appropriate agent by cached ID
-
-### Function Tool Registration
-
-Each agent registers custom tools for specialized tasks:
-
-- **Claim Assessor**: `get_vehicle_details()`, `analyze_image()`
-- **Policy Checker**: `get_policy_details()`, `search_policy_documents()`
-- **Risk Analyst**: `get_claimant_history()`
-- **Communication Agent**: No tools (pure language model)
-
-Tools are registered using `FunctionTool.from_function_def()` with structured schemas.
-
-### Thread-based Conversations
-
-Each agent interaction creates an isolated thread:
-
-1. Create thread via `project_client.agents.create_thread()`
-2. Add user message to thread
-3. Create run with agent ID and enable function calling
-4. Poll run status until completion
-5. Fetch response messages from thread
-6. Extract assistant responses
-
-### Fallback Architecture
-
-The system maintains both Azure AI Agent Service and LangGraph implementations:
-
-- Primary: Azure AI Agent Service (managed agents in Azure AI Foundry)
-- Fallback: LangGraph (local multi-agent workflows)
-- Selection: Configurable via environment or feature flags
-
-This ensures high availability and allows gradual migration.
-
 ## License
 
 MIT License - see LICENSE file for details.
-
----
-
-Built with Azure AI Agent Service to demonstrate the future of insurance claim processing.
