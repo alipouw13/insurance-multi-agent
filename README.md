@@ -1,8 +1,10 @@
 # Contoso Claims - Multi-Agent Insurance Claims Platform
 
+> **⚠️ Demonstration Project**: This is a demonstration application showcasing the capabilities of Azure AI Foundry, Azure Content Understanding, and multi-agent architectures. It is not intended for production use without significant hardening, security review, and enterprise-grade implementation practices.
+
 ## Original Source
 
-This project is based on the [Insurance Multi-Agent Demo](https://github.com/alisoliman/insurance-multi-agent). It has been enhanced with **Azure AI Agent Service** integration for production-ready agentic workflows.
+This project is based on the [Insurance Multi-Agent Demo](https://github.com/alisoliman/insurance-multi-agent). It has been enhanced with **Azure AI Agent Service** integration and Content Understanding.
 
 We also referenced the [Content Processing Solution Accelerator](https://github.com/microsoft/content-processing-solution-accelerator) for implementing document processing and Azure Content Understanding integration.
 
