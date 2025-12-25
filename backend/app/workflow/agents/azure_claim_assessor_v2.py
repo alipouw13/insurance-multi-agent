@@ -35,6 +35,38 @@ def analyze_image(image_path: str) -> Dict[str, Any]:
     return analyze_tool.invoke(image_path)
 
 
+def process_claim_document(file_path: str) -> Dict[str, Any]:
+    """Process a claim document (PDF, image) using Azure Content Understanding.
+    
+    Extracts structured data from insurance claim forms including:
+    - claim_number, policy_number
+    - claimant info (name, address, phone)
+    - incident details (date, time, location, description)
+    - damage information and amounts
+    
+    Args:
+        file_path: Path to the claim document file (PDF, PNG, JPG, TIFF)
+        
+    Returns:
+        Dictionary with extracted fields, confidence scores, and tables
+    """
+    from app.workflow.tools import process_claim_document as process_tool
+    return process_tool.invoke(file_path)
+
+
+def get_claim_assessor_functions() -> Dict[str, Any]:
+    """Get the callable functions for the Claim Assessor agent.
+    
+    Returns:
+        Dict mapping function names to callables for manual tool execution
+    """
+    return {
+        "get_vehicle_details": get_vehicle_details,
+        "analyze_image": analyze_image,
+        "process_claim_document": process_claim_document,
+    }
+
+
 def create_claim_assessor_agent_v2(project_client: AIProjectClient = None):
     """Create and return a configured Claim Assessor agent using new Azure AI Agent Service SDK.
 
@@ -63,6 +95,7 @@ def create_claim_assessor_agent_v2(project_client: AIProjectClient = None):
     user_functions = {
         get_vehicle_details,
         analyze_image,
+        process_claim_document,
     }
     
     # Create function tool and toolset using azure.ai.agents.models
@@ -83,14 +116,23 @@ Your responsibilities:
 - Use vehicle details to validate damage estimates.
 - Identify any red flags or inconsistencies.
 
-CRITICAL: When you receive a claim with "supporting_images" field containing image paths:
-1. ALWAYS call `analyze_image` on EACH image path in the supporting_images list
-2. Use the extracted data from images in your assessment
-3. If analyze_image fails, note the failure but continue with available information
+TOOLS AVAILABLE:
 
-Use the `get_vehicle_details` tool when you have a VIN number to validate damage estimates.
+1. `process_claim_document(file_path)` - Use this FIRST when you receive a claim document file path.
+   This extracts structured data including claim number, policy number, claimant info, 
+   damage details, and amounts using Azure Content Understanding.
 
-Provide detailed assessments with specific cost justifications that incorporate vehicle details and insights derived from images.
+2. `analyze_image(image_path)` - Use for damage photos to classify and extract damage details.
+
+3. `get_vehicle_details(vin)` - Use when you have a VIN to validate damage estimates.
+
+WORKFLOW:
+1. If a document path is provided, call `process_claim_document` to extract structured data
+2. If supporting_images are provided, call `analyze_image` on each image
+3. If a VIN is available, call `get_vehicle_details` for vehicle context
+4. Synthesize all information into your assessment
+
+Provide detailed assessments with specific cost justifications.
 End your assessment with: VALID, QUESTIONABLE, or INVALID."""
 
     # Check if agent already exists by name

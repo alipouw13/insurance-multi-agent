@@ -92,6 +92,11 @@ class Settings(BaseSettings):  # noqa: D101
         default=True, alias="ENABLE_TELEMETRY")
     application_insights_connection_string: str | None = Field(
         default=None, alias="APPLICATION_INSIGHTS_CONNECTION_STRING")
+    
+    # Agent Implementation Toggle
+    # Set to "true" to use Azure AI Agent Service (v2), "false" for LangGraph (v1)
+    use_azure_agents: bool = Field(
+        default=False, alias="USE_AZURE_AGENTS")
 
     # FastAPI
     app_name: str = "Insurance Multi-Agent Backend"

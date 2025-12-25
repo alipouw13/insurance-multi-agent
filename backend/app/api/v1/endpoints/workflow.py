@@ -155,15 +155,26 @@ async def workflow_run(claim: ClaimIn):  # noqa: D401
                     if isinstance(node_data, list):
                         msgs = node_data
                     elif isinstance(node_data, dict) and "messages" in node_data:
-                        msgs = node_data["messages"]
-                    elif isinstance(node_data, dict) and set(node_data.keys()) == {"messages"}:
-                        # Handle supervisor-style single messages key
+                        # Handles both LangGraph format and Azure AI Agents v2 format
+                        # V2 chunks may have additional keys like "final_assessment"
                         msgs = node_data["messages"]
                     else:
                         continue
 
-                    prev_len = seen_lengths.get(node_name, 0)
-                    new_msgs = msgs[prev_len:]
+                    # Handle deduplication differently based on workflow type:
+                    # - LangGraph accumulates messages in each chunk (need prev_len tracking)
+                    # - Azure AI Agents v2 returns separate chunks per message (no tracking needed)
+                    # Detect V2 format by checking for "source" marker
+                    is_v2_chunk = isinstance(node_data, dict) and node_data.get("source") == "azure_agents_v2"
+                    
+                    if is_v2_chunk:
+                        # V2: Each chunk contains independent messages, no deduplication needed
+                        new_msgs = msgs
+                    else:
+                        # LangGraph: Messages accumulate, track seen lengths to avoid duplicates
+                        prev_len = seen_lengths.get(node_name, 0)
+                        new_msgs = msgs[prev_len:]
+                        seen_lengths[node_name] = len(msgs)
 
                     for msg in new_msgs:
                         serialized = _serialize_msg(node_name, msg)
@@ -293,9 +304,10 @@ async def workflow_run(claim: ClaimIn):  # noqa: D401
                     
                     # Extract question and answer from conversation
                     first_user_message = next((msg for msg in chronological if msg.get('role') == 'human'), None)
+                    # Look for 'ai' (LangGraph) or 'assistant' (Azure AI Agents v2)
                     last_assistant_message = next(
                         (msg for msg in reversed(chronological) 
-                         if msg.get('role') == 'ai' and not msg.get('content', '').startswith('TOOL_CALL:')),
+                         if msg.get('role') in ('ai', 'assistant') and not msg.get('content', '').startswith('TOOL_CALL:')),
                         None
                     )
                     
@@ -325,16 +337,20 @@ async def workflow_run(claim: ClaimIn):  # noqa: D401
                     eval_result = await evaluation_service.evaluate_execution(eval_request)
                     
                     if eval_result:
+                        # Determine score quality for display (1-5 scale, 5 is best)
+                        score_quality = "poor" if eval_result.overall_score < 2 else "fair" if eval_result.overall_score < 3 else "good" if eval_result.overall_score < 4 else "excellent"
                         evaluation_results = {
                             'evaluation_id': eval_result.evaluation_id,
                             'overall_score': eval_result.overall_score,
+                            'score_scale': '1-5 (5 is best)',
+                            'score_quality': score_quality,
                             'groundedness_score': eval_result.groundedness_score,
                             'relevance_score': eval_result.relevance_score,
                             'coherence_score': eval_result.coherence_score,
                             'fluency_score': eval_result.fluency_score,
                             'reasoning': eval_result.reasoning
                         }
-                        logger.info(f"✅ Evaluation completed with score: {eval_result.overall_score:.2f}")
+                        logger.info(f"✅ Evaluation completed with score: {eval_result.overall_score:.2f}/5.0 ({score_quality})")
                 else:
                     logger.info("Evaluation service not available, skipping evaluation")
             except Exception as eval_err:
@@ -392,17 +408,26 @@ async def workflow_run(claim: ClaimIn):  # noqa: D401
 
 def _serialize_msg(node: str, msg: Any, *, include_node: bool = True) -> dict:  # noqa: D401
     """Return a serializable dict for a LangChain message including tool calls."""
-    role = getattr(msg, "role", getattr(msg, "type", "assistant"))
-
-    # Handle tool call messages (AIMessage with tool_calls attr)
-    if hasattr(msg, "tool_calls") and msg.tool_calls:
-        content_repr = f"TOOL_CALL: {msg.tool_calls}"
+    # Handle dict messages (from Azure AI Agents v2)
+    if isinstance(msg, dict):
+        role = msg.get("role", "assistant")
+        # Normalize 'assistant' to 'ai' for consistency with LangGraph format
+        if role == "assistant":
+            role = "ai"
+        content_repr = msg.get("content", "")
     else:
-        content_repr = getattr(msg, "content", str(msg)) or ""
+        # Handle LangChain message objects
+        role = getattr(msg, "role", getattr(msg, "type", "assistant"))
+        
+        # Handle tool call messages (AIMessage with tool_calls attr)
+        if hasattr(msg, "tool_calls") and msg.tool_calls:
+            content_repr = f"TOOL_CALL: {msg.tool_calls}"
+        else:
+            content_repr = getattr(msg, "content", str(msg)) or ""
 
     data = {
         "role": role,
-        "content": content_repr.strip(),
+        "content": content_repr.strip() if isinstance(content_repr, str) else str(content_repr),
     }
     if include_node:
         data["node"] = node

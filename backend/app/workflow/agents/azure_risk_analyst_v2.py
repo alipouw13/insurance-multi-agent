@@ -22,6 +22,17 @@ def get_claimant_history(claimant_id: str) -> Dict[str, Any]:
     return get_history_tool.invoke(claimant_id)
 
 
+def get_risk_analyst_functions() -> Dict[str, Any]:
+    """Get the callable functions for the Risk Analyst agent.
+    
+    Returns:
+        Dict mapping function names to callables for manual tool execution
+    """
+    return {
+        "get_claimant_history": get_claimant_history,
+    }
+
+
 def create_risk_analyst_agent_v2(project_client: AIProjectClient = None):
     """Create and return a configured Risk Analyst agent using new Azure AI Agent Service SDK.
 

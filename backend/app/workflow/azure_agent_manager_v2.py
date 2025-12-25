@@ -17,6 +17,8 @@ logger = logging.getLogger(__name__)
 _AZURE_AGENT_IDS_V2: Dict[str, str] = {}
 # Global cache of toolsets for each agent (v2)
 _AZURE_AGENT_TOOLSETS_V2: Dict[str, Any] = {}
+# Global cache of Python callable functions for each agent (for manual tool execution)
+_AZURE_AGENT_FUNCTIONS_V2: Dict[str, Dict[str, Any]] = {}
 
 
 def get_azure_agent_id_v2(agent_name: str) -> Optional[str]:
@@ -43,6 +45,21 @@ def get_azure_agent_toolset_v2(agent_name: str) -> Optional[Any]:
     return _AZURE_AGENT_TOOLSETS_V2.get(agent_name)
 
 
+def get_azure_agent_functions_v2(agent_name: str) -> Optional[Dict[str, Any]]:
+    """Get the Python callable functions for a given agent name (v2).
+    
+    These functions are used for manual tool execution when the supervisor
+    delegates to specialist agents.
+    
+    Args:
+        agent_name: Name of the agent (e.g., "claim_assessor", "policy_checker")
+        
+    Returns:
+        Dict mapping function names to callables, or None if not found
+    """
+    return _AZURE_AGENT_FUNCTIONS_V2.get(agent_name)
+
+
 def is_azure_agent_available_v2(agent_name: str) -> bool:
     """Check if an Azure AI agent is available for the given name (v2).
     
@@ -66,7 +83,7 @@ def deploy_azure_agents_v2() -> Dict[str, str]:
     Returns:
         Dictionary mapping agent names to their Azure AI agent IDs
     """
-    global _AZURE_AGENT_IDS_V2, _AZURE_AGENT_TOOLSETS_V2
+    global _AZURE_AGENT_IDS_V2, _AZURE_AGENT_TOOLSETS_V2, _AZURE_AGENT_FUNCTIONS_V2
     
     logger.info("🚀 Deploying Azure AI Agent Service agents (v2)...")
     
@@ -85,10 +102,11 @@ def deploy_azure_agents_v2() -> Dict[str, str]:
         deployed_count = 0
         for agent_name, creator_func in agent_creators.items():
             try:
-                agent_id, toolset = creator_func(project_client)
+                agent_id, toolset, functions = creator_func(project_client)
                 _AZURE_AGENT_IDS_V2[agent_name] = agent_id
                 _AZURE_AGENT_TOOLSETS_V2[agent_name] = toolset
-                logger.info(f"✅ Deployed {agent_name} (v2): {agent_id} (tools: {'Yes' if toolset else 'No'})")
+                _AZURE_AGENT_FUNCTIONS_V2[agent_name] = functions
+                logger.info(f"✅ Deployed {agent_name} (v2): {agent_id} (tools: {'Yes' if toolset else 'No'}, functions: {len(functions) if functions else 0})")
                 deployed_count += 1
             except Exception as e:
                 logger.warning(f"⚠️  Failed to deploy {agent_name} (v2): {e}")
@@ -106,61 +124,65 @@ def deploy_azure_agents_v2() -> Dict[str, str]:
         return {}
 
 
-def _deploy_claim_assessor_v2(project_client: AIProjectClient) -> tuple[str, Any]:
+def _deploy_claim_assessor_v2(project_client: AIProjectClient) -> tuple[str, Any, Dict[str, Any]]:
     """Deploy or retrieve Claim Assessor agent (v2).
     
     Args:
         project_client: Azure AI Project client
         
     Returns:
-        Tuple of (agent_id, toolset)
+        Tuple of (agent_id, toolset, functions_dict)
     """
-    from app.workflow.agents.azure_claim_assessor_v2 import create_claim_assessor_agent_v2
+    from app.workflow.agents.azure_claim_assessor_v2 import create_claim_assessor_agent_v2, get_claim_assessor_functions
     
     agent, toolset = create_claim_assessor_agent_v2(project_client)
-    return agent.id, toolset
+    functions = get_claim_assessor_functions()
+    return agent.id, toolset, functions
 
 
-def _deploy_policy_checker_v2(project_client: AIProjectClient) -> tuple[str, Any]:
+def _deploy_policy_checker_v2(project_client: AIProjectClient) -> tuple[str, Any, Dict[str, Any]]:
     """Deploy or retrieve Policy Checker agent (v2).
     
     Args:
         project_client: Azure AI Project client
         
     Returns:
-        Tuple of (agent_id, toolset)
+        Tuple of (agent_id, toolset, functions_dict)
     """
-    from app.workflow.agents.azure_policy_checker_v2 import create_policy_checker_agent_v2
+    from app.workflow.agents.azure_policy_checker_v2 import create_policy_checker_agent_v2, get_policy_checker_functions
     
     agent, toolset = create_policy_checker_agent_v2(project_client)
-    return agent.id, toolset
+    functions = get_policy_checker_functions()
+    return agent.id, toolset, functions
 
 
-def _deploy_communication_agent_v2(project_client: AIProjectClient) -> tuple[str, Any]:
+def _deploy_communication_agent_v2(project_client: AIProjectClient) -> tuple[str, Any, Dict[str, Any]]:
     """Deploy or retrieve Communication agent (v2).
     
     Args:
         project_client: Azure AI Project client
         
     Returns:
-        Tuple of (agent_id, toolset)
+        Tuple of (agent_id, toolset, functions_dict)
     """
     from app.workflow.agents.azure_communication_agent_v2 import create_communication_agent_v2
     
     agent, toolset = create_communication_agent_v2(project_client)
-    return agent.id, toolset
+    # Communication agent has no tools
+    return agent.id, toolset, {}
 
 
-def _deploy_risk_analyst_v2(project_client: AIProjectClient) -> tuple[str, Any]:
+def _deploy_risk_analyst_v2(project_client: AIProjectClient) -> tuple[str, Any, Dict[str, Any]]:
     """Deploy or retrieve Risk Analyst agent (v2).
     
     Args:
         project_client: Azure AI Project client
         
     Returns:
-        Tuple of (agent_id, toolset)
+        Tuple of (agent_id, toolset, functions_dict)
     """
-    from app.workflow.agents.azure_risk_analyst_v2 import create_risk_analyst_agent_v2
+    from app.workflow.agents.azure_risk_analyst_v2 import create_risk_analyst_agent_v2, get_risk_analyst_functions
     
     agent, toolset = create_risk_analyst_agent_v2(project_client)
-    return agent.id, toolset
+    functions = get_risk_analyst_functions()
+    return agent.id, toolset, functions

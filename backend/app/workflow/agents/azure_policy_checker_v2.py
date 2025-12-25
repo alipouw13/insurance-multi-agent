@@ -36,6 +36,18 @@ def search_policy_documents(query: str, score_threshold: float = 0.7) -> str:
     return search_tool.invoke({"query": query, "score_threshold": score_threshold})
 
 
+def get_policy_checker_functions() -> Dict[str, Any]:
+    """Get the callable functions for the Policy Checker agent.
+    
+    Returns:
+        Dict mapping function names to callables for manual tool execution
+    """
+    return {
+        "get_policy_details": get_policy_details,
+        "search_policy_documents": search_policy_documents,
+    }
+
+
 def create_policy_checker_agent_v2(project_client: AIProjectClient = None):
     """Create and return a configured Policy Checker agent using new Azure AI Agent Service SDK.
 

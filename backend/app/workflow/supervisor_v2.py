@@ -8,7 +8,7 @@ from __future__ import annotations
 
 import json
 import logging
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Set, Callable
 
 from azure.ai.projects import AIProjectClient
 from azure.ai.agents.models import FunctionTool, ToolSet
@@ -20,6 +20,7 @@ from app.workflow.azure_agent_client_v2 import get_project_client_v2
 from app.workflow.azure_agent_manager_v2 import (
     get_azure_agent_id_v2,
     get_azure_agent_toolset_v2,
+    get_azure_agent_functions_v2,
     deploy_azure_agents_v2,
 )
 
@@ -36,6 +37,7 @@ logger = logging.getLogger(__name__)
 
 _SUPERVISOR_AGENT_ID: Optional[str] = None
 _SUPERVISOR_TOOLSET: Optional[ToolSet] = None
+_AUTO_FUNCTION_CALLS_ENABLED: bool = False
 
 
 # ---------------------------------------------------------------------------
@@ -58,7 +60,7 @@ def call_claim_assessor(claim_data: str) -> str:
     from app.workflow.azure_agent_client_v2 import run_agent_v2
     
     agent_id = get_azure_agent_id_v2("claim_assessor")
-    toolset = get_azure_agent_toolset_v2("claim_assessor")
+    functions = get_azure_agent_functions_v2("claim_assessor")
     
     if not agent_id:
         return "Error: Claim Assessor agent not available"
@@ -75,7 +77,7 @@ Provide a detailed assessment including:
 5. Final verdict: VALID, QUESTIONABLE, or INVALID"""
 
     try:
-        messages, usage = run_agent_v2(agent_id, prompt, toolset=toolset)
+        messages, usage, _ = run_agent_v2(agent_id, prompt, functions=functions)
         if messages:
             logger.info(f"Claim Assessor completed (tokens: {usage.get('total_tokens', 'N/A')})")
             return messages[0].get('content', 'No response from Claim Assessor')
@@ -100,7 +102,7 @@ def call_policy_checker(policy_and_claim_info: str) -> str:
     from app.workflow.azure_agent_client_v2 import run_agent_v2
     
     agent_id = get_azure_agent_id_v2("policy_checker")
-    toolset = get_azure_agent_toolset_v2("policy_checker")
+    functions = get_azure_agent_functions_v2("policy_checker")
     
     if not agent_id:
         return "Error: Policy Checker agent not available"
@@ -117,7 +119,7 @@ Provide verification including:
 5. Final verdict: COVERED, PARTIALLY COVERED, or NOT COVERED"""
 
     try:
-        messages, usage = run_agent_v2(agent_id, prompt, toolset=toolset)
+        messages, usage, _ = run_agent_v2(agent_id, prompt, functions=functions)
         if messages:
             logger.info(f"Policy Checker completed (tokens: {usage.get('total_tokens', 'N/A')})")
             return messages[0].get('content', 'No response from Policy Checker')
@@ -142,7 +144,7 @@ def call_risk_analyst(claimant_and_claim_info: str) -> str:
     from app.workflow.azure_agent_client_v2 import run_agent_v2
     
     agent_id = get_azure_agent_id_v2("risk_analyst")
-    toolset = get_azure_agent_toolset_v2("risk_analyst")
+    functions = get_azure_agent_functions_v2("risk_analyst")
     
     if not agent_id:
         return "Error: Risk Analyst agent not available"
@@ -159,7 +161,7 @@ Provide risk analysis including:
 5. Final verdict: LOW RISK, MODERATE RISK, or HIGH RISK"""
 
     try:
-        messages, usage = run_agent_v2(agent_id, prompt, toolset=toolset)
+        messages, usage, _ = run_agent_v2(agent_id, prompt, functions=functions)
         if messages:
             logger.info(f"Risk Analyst completed (tokens: {usage.get('total_tokens', 'N/A')})")
             return messages[0].get('content', 'No response from Risk Analyst')
@@ -184,7 +186,7 @@ def call_communication_agent(communication_request: str) -> str:
     from app.workflow.azure_agent_client_v2 import run_agent_v2
     
     agent_id = get_azure_agent_id_v2("communication_agent")
-    toolset = get_azure_agent_toolset_v2("communication_agent")
+    # Communication agent has no tools - it just drafts emails
     
     if not agent_id:
         return "Error: Communication Agent not available"
@@ -201,7 +203,8 @@ The email should:
 5. Have professional closing"""
 
     try:
-        messages, usage = run_agent_v2(agent_id, prompt, toolset=toolset)
+        # No functions needed for communication agent
+        messages, usage, _ = run_agent_v2(agent_id, prompt)
         if messages:
             logger.info(f"Communication Agent completed (tokens: {usage.get('total_tokens', 'N/A')})")
             return messages[0].get('content', 'No response from Communication Agent')
@@ -244,6 +247,10 @@ def create_supervisor_agent_v2(project_client: AIProjectClient = None):
         call_communication_agent,
     }
     
+    logger.info(f"Registering {len(supervisor_functions)} tool functions for supervisor:")
+    for func in supervisor_functions:
+        logger.info(f"  - {func.__name__}")
+    
     # Create function tool and toolset
     functions = FunctionTool(functions=supervisor_functions)
     toolset = ToolSet()
@@ -251,6 +258,7 @@ def create_supervisor_agent_v2(project_client: AIProjectClient = None):
     
     # Enable automatic function calling
     project_client.agents.enable_auto_function_calls(toolset)
+    logger.info("Enabled auto function calls for toolset")
     
     # Supervisor instructions - matching the original supervisor prompt
     instructions = """You are a senior claims manager supervising a team of insurance claim processing specialists. Your role is to coordinate your team's analysis and provide comprehensive advisory recommendations to support human decision-makers.
@@ -306,19 +314,21 @@ RECOMMENDED NEXT STEPS:
 
 This assessment empowers human decision-makers with comprehensive AI analysis while preserving human authority over final claim decisions."""
 
-    # Check if supervisor agent already exists by name
+    # Delete existing supervisor agent if it exists (to ensure fresh function references)
     try:
         agents = project_client.agents.list_agents()
         for agent in agents:
             if hasattr(agent, 'name') and agent.name == "insurance_supervisor_v2":
-                logger.info(f"Using existing Supervisor Agent: {agent.id}")
-                _SUPERVISOR_AGENT_ID = agent.id
-                _SUPERVISOR_TOOLSET = toolset
-                return agent, toolset
+                logger.info(f"Deleting existing Supervisor Agent: {agent.id} to recreate with fresh tools")
+                try:
+                    project_client.agents.delete_agent(agent.id)
+                    logger.info(f"Deleted existing supervisor agent")
+                except Exception as del_err:
+                    logger.warning(f"Could not delete existing agent: {del_err}")
     except Exception as e:
         logger.debug(f"Could not list existing agents: {e}")
     
-    # Create the supervisor agent
+    # Create the supervisor agent with fresh toolset
     try:
         agent = project_client.agents.create_agent(
             model=settings.azure_openai_deployment_name or "gpt-4o",
@@ -394,22 +404,18 @@ def process_claim_with_supervisor_v2(claim_data: Dict[str, Any]) -> List[Dict[st
     Returns:
         List of trace chunks showing the workflow progression
     """
-    from app.workflow.azure_agent_client_v2 import run_agent_v2
+    from app.workflow.azure_agent_client_v2 import run_agent_v2, get_project_client_v2
     
     logger.info("")
     logger.info("Starting supervisor-based claim processing (v2)...")
     logger.info(f"Processing Claim ID: {claim_data.get('claim_id', 'Unknown')}")
     logger.info("=" * 60)
 
-    # Ensure supervisor is initialized
+    # Always recreate supervisor to ensure fresh tool definitions
+    # This is important because the tools need to be properly registered with the agent
+    logger.info("Recreating supervisor agent with fresh tool definitions...")
+    initialize_v2_agents()
     supervisor_id = get_supervisor_agent_id()
-    supervisor_toolset = get_supervisor_toolset()
-    
-    if not supervisor_id:
-        logger.info("Supervisor not initialized, initializing now...")
-        initialize_v2_agents()
-        supervisor_id = get_supervisor_agent_id()
-        supervisor_toolset = get_supervisor_toolset()
     
     if not supervisor_id:
         logger.error("Failed to initialize supervisor agent")
@@ -418,46 +424,105 @@ def process_claim_with_supervisor_v2(claim_data: Dict[str, Any]) -> List[Dict[st
             "message": "Could not initialize the supervisor agent"
         }]
 
+    # IMPORTANT: Recreate the toolset fresh with functions for this run
+    # The enable_auto_function_calls needs the actual Python callables
+    supervisor_functions_set = {
+        call_claim_assessor,
+        call_policy_checker,
+        call_risk_analyst,
+        call_communication_agent,
+    }
+    
+    # Create a dict mapping function names to callables for manual tool execution
+    supervisor_functions_dict: Dict[str, Callable] = {
+        "call_claim_assessor": call_claim_assessor,
+        "call_policy_checker": call_policy_checker,
+        "call_risk_analyst": call_risk_analyst,
+        "call_communication_agent": call_communication_agent,
+    }
+    
+    logger.info(f"Prepared {len(supervisor_functions_dict)} functions for manual tool execution")
+
     # Create the user message with claim data
     user_message = f"""Please process this insurance claim through your team of specialists:
 
 {json.dumps(claim_data, indent=2)}
 
-Follow the workflow:
+Follow this workflow - you MUST call ALL FOUR specialist agents in order:
 1. First call the Claim Assessor to evaluate the damage and documentation
 2. Then call the Policy Checker to verify coverage
 3. Then call the Risk Analyst to assess fraud risk
-4. If any information is missing, call the Communication Agent to draft a request email
-5. Finally, provide your comprehensive assessment summary"""
+4. Finally, call the Communication Agent to draft a summary email to the claimant with the status and any next steps
+5. After all four agents respond, provide your comprehensive assessment summary
+
+IMPORTANT: You must call all four agents (claim_assessor, policy_checker, risk_analyst, communication_agent) in sequence."""
 
     chunks: List[Dict[str, Any]] = []
     
     try:
-        # Run the supervisor agent
-        messages, usage = run_agent_v2(supervisor_id, user_message, toolset=supervisor_toolset)
+        # Run the supervisor agent with manual tool execution
+        # Pass the functions dict so run_agent_v2 can execute them when needed
+        messages, usage, tool_results = run_agent_v2(
+            supervisor_id, 
+            user_message, 
+            functions=supervisor_functions_dict
+        )
         
         # Build trace-like output similar to LangGraph format
+        # First, add the supervisor's initial delegation
+        chunks.append({
+            "supervisor": {
+                "messages": [{
+                    "role": "assistant",
+                    "content": "Processing claim through specialist agents..."
+                }],
+                "source": "azure_agents_v2"
+            }
+        })
+        
+        # Map function names to agent names for trace output
+        function_to_agent = {
+            "call_claim_assessor": "claim_assessor",
+            "call_policy_checker": "policy_checker",
+            "call_risk_analyst": "risk_analyst",
+            "call_communication_agent": "communication_agent"
+        }
+        
+        # Add chunks for each tool call result (these are the specialist agent responses)
+        for tool_result in tool_results:
+            function_name = tool_result.get("function_name", "unknown")
+            agent_name = function_to_agent.get(function_name, function_name.replace("call_", ""))
+            output = tool_result.get("output", "")
+            
+            # Create a chunk that matches LangGraph format
+            chunks.append({
+                agent_name: {
+                    "messages": [{
+                        "role": "assistant",
+                        "content": output
+                    }],
+                    "source": "azure_agents_v2"
+                }
+            })
+            logger.info(f"Added trace chunk for {agent_name}")
+        
+        # Add final supervisor response with the comprehensive assessment
         if messages:
-            # The supervisor's response contains the full orchestration result
             supervisor_response = messages[0].get('content', '')
             
-            # Create chunks to match the expected format
             chunks.append({
                 "supervisor": {
                     "messages": [{
                         "role": "assistant",
                         "content": supervisor_response
-                    }]
+                    }],
+                    "final_assessment": True,
+                    "source": "azure_agents_v2"
                 }
             })
             
-            # Add usage information
-            chunks.append({
-                "usage": usage,
-                "total_tokens": usage.get('total_tokens', 0)
-            })
-            
             logger.info(f"Workflow completed successfully")
+            logger.info(f"Total agents involved: {len(tool_results)}")
             logger.info(f"Total tokens used: {usage.get('total_tokens', 'N/A')}")
         else:
             chunks.append({

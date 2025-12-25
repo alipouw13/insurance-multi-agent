@@ -261,7 +261,9 @@ class FoundryEvaluator:
             result.detailed_scores = detailed
             result.reasoning = f"Azure AI Foundry evaluation completed via SDK."
             
-            logger.info(f"✅ Overall evaluation score: {result.overall_score:.2f}")
+            # Log with scale context (1-5 scale, 5 is best)
+            score_quality = "poor" if result.overall_score < 2 else "fair" if result.overall_score < 3 else "good" if result.overall_score < 4 else "excellent"
+            logger.info(f"✅ Overall evaluation score: {result.overall_score:.2f}/5.0 ({score_quality})")
             
         except Exception as e:
             logger.error(f"Evaluation failed: {e}", exc_info=True)

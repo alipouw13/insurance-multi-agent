@@ -3,12 +3,14 @@
 Insurance Claim Processing Tools
 
 This module contains all the tools used by the multi-agent insurance claim processing system.
-These tools provide access to policy details, claimant history, and vehicle information.
+These tools provide access to policy details, claimant history, vehicle information,
+and document processing via Azure Content Understanding.
 """
 
 from typing import Dict, Any, List
 from langchain_core.tools import tool
 from .policy_search import get_policy_search  # changed to relative import
+from app.services.content_understanding_service import get_content_understanding_service
 import os
 import base64
 import logging
@@ -380,6 +382,93 @@ def analyze_image(image_path: str) -> Dict[str, Any]:
         return {"status": "error", "message": str(e)}
 
 
+@tool
+def process_claim_document(file_path: str) -> Dict[str, Any]:
+    """Process an insurance claim document using Azure Content Understanding.
+
+    This tool uses a trained Azure Content Understanding analyzer to extract
+    structured data from claim forms (PDF, PNG, JPG, TIFF). The analyzer
+    extracts fields specific to insurance claims including:
+
+    - claim_number, policy_number
+    - claimant_name, claimant_address, claimant_phone, claimant_email
+    - incident_date, incident_time, incident_location
+    - damage_description, damage_type, damaged_items
+    - claim_amount, deductible_amount
+    - witness_information, police_report_number
+
+    Args:
+        file_path: Path to a claim document file (PDF, PNG, JPG, TIFF).
+
+    Returns:
+        Dictionary with:
+        - status: "success" or "error"
+        - filename: Original filename
+        - extracted_fields: Dictionary of extracted field values
+        - confidence_scores: Dictionary of confidence scores per field
+        - field_count: Number of fields successfully extracted
+        - tables: Any tables extracted from the document
+        - content_preview: First 500 chars of extracted text
+    """
+    if not os.path.exists(file_path):
+        return {"status": "error", "message": f"File not found: {file_path}"}
+
+    try:
+        # Get the Content Understanding service singleton
+        cu_service = get_content_understanding_service()
+        
+        if not cu_service.is_available():
+            return {
+                "status": "error",
+                "message": "Content Understanding service not configured. Please set AZURE_CONTENT_UNDERSTANDING_ENDPOINT, AZURE_CONTENT_UNDERSTANDING_KEY, and AZURE_CONTENT_UNDERSTANDING_ANALYZER_ID environment variables."
+            }
+        
+        # Read file data
+        with open(file_path, "rb") as f:
+            file_data = f.read()
+        
+        filename = os.path.basename(file_path)
+        logger.info(f"Processing claim document with Content Understanding: {filename}")
+        
+        # Use the existing async method synchronously via asyncio
+        import asyncio
+        
+        # Check if there's already an event loop running
+        try:
+            loop = asyncio.get_running_loop()
+            # If we're in an async context, we need to run in a new thread
+            import concurrent.futures
+            with concurrent.futures.ThreadPoolExecutor() as executor:
+                future = executor.submit(
+                    asyncio.run,
+                    cu_service.analyze_claim_document(file_data, filename)
+                )
+                result = future.result(timeout=180)  # 3 minute timeout
+        except RuntimeError:
+            # No running event loop, we can use asyncio.run directly
+            result = asyncio.run(cu_service.analyze_claim_document(file_data, filename))
+        
+        logger.info(f"Content Understanding extracted {result.get('field_count', 0)} fields from {filename}")
+        
+        # Return the structured result
+        return {
+            "status": result.get("status", "success"),
+            "filename": filename,
+            "file_path": file_path,
+            "extracted_fields": result.get("extracted_fields", {}),
+            "confidence_scores": result.get("confidence_scores", {}),
+            "field_count": result.get("field_count", 0),
+            "tables": result.get("tables", []),
+            "table_count": result.get("table_count", 0),
+            "content_preview": result.get("content_preview", ""),
+            "analyzer_id": result.get("analyzer_id", "")
+        }
+        
+    except Exception as e:
+        logger.error("Error processing claim document %s: %s", file_path, str(e), exc_info=True)
+        return {"status": "error", "message": str(e), "file_path": file_path}
+
+
 # Convenience lists
 ALL_TOOLS: List = [
     get_policy_details,
@@ -387,5 +476,6 @@ ALL_TOOLS: List = [
     get_vehicle_details,
     search_policy_documents,
     analyze_image,
+    process_claim_document,
 ]
 TOOLS_BY_NAME = {t.name: t for t in ALL_TOOLS}
