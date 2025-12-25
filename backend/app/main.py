@@ -95,13 +95,13 @@ async def startup_event():
         logger.error("❌ Failed to initialize policy search index: %s", e)
         # Don't raise - let the app start but log the error
     
-    # Deploy Azure AI agents
-    logger.info("🚀 Deploying Azure AI Agent Service agents...")
+    # Deploy Azure AI agents (v2)
+    logger.info("🚀 Deploying Azure AI Agent Service agents (v2)...")
     try:
-        from app.workflow.azure_agent_manager import deploy_azure_agents
-        azure_agents = deploy_azure_agents()
+        from app.workflow.azure_agent_manager_v2 import deploy_azure_agents_v2
+        azure_agents = deploy_azure_agents_v2()
         if azure_agents:
-            logger.info(f"✅ Azure AI agents deployed: {list(azure_agents.keys())}")
+            logger.info(f"✅ Azure AI agents (v2) deployed: {list(azure_agents.keys())}")
         else:
             logger.info("ℹ️  Using LangGraph agents (Azure AI agents not available)")
     except Exception as e:

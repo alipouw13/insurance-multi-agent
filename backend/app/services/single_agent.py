@@ -50,13 +50,14 @@ async def run(agent_name: str, claim_data: Dict[str, Any]) -> tuple[List[Dict[st
         }
     ) as span:
         try:
-            # Check if Azure AI agent is available
-            from app.workflow.azure_agent_manager import is_azure_agent_available, get_azure_agent_id
+            # Check if Azure AI agent v2 is available
+            from app.workflow.azure_agent_manager_v2 import get_azure_agent_id_v2, get_azure_agent_functions_v2
             
-            if is_azure_agent_available(agent_name):
-                logger.debug(f"✨ Using Azure AI Agent Service for {agent_name}")
-                span.set_attribute("gen_ai.system", "azure_ai_agents")
-                result = _run_azure_agent(agent_name, claim_data)
+            agent_id = get_azure_agent_id_v2(agent_name)
+            if agent_id:
+                logger.debug(f"✨ Using Azure AI Agent Service (v2) for {agent_name}")
+                span.set_attribute("gen_ai.system", "azure_ai_agents_v2")
+                result = _run_azure_agent_v2(agent_name, claim_data)
             else:
                 logger.debug(f"📊 Using LangGraph agent for {agent_name}")
                 span.set_attribute("gen_ai.system", "langgraph")
@@ -71,8 +72,8 @@ async def run(agent_name: str, claim_data: Dict[str, Any]) -> tuple[List[Dict[st
             raise
 
 
-def _run_azure_agent(agent_name: str, claim_data: Dict[str, Any]) -> tuple[List[Dict[str, Any]], Dict[str, int]]:
-    """Run an Azure AI Agent Service agent.
+def _run_azure_agent_v2(agent_name: str, claim_data: Dict[str, Any]) -> tuple[List[Dict[str, Any]], Dict[str, int]]:
+    """Run an Azure AI Agent Service v2 agent.
     
     Args:
         agent_name: Name of the agent
@@ -82,19 +83,19 @@ def _run_azure_agent(agent_name: str, claim_data: Dict[str, Any]) -> tuple[List[
         Tuple of (messages, usage_info) where messages is LangGraph-compatible format
         and usage_info contains {prompt_tokens, completion_tokens, total_tokens}
     """
-    from app.workflow.azure_agent_manager import get_azure_agent_id
-    from app.workflow.azure_agent_client import run_agent
+    from app.workflow.azure_agent_manager_v2 import get_azure_agent_id_v2, get_azure_agent_functions_v2
+    from app.workflow.azure_agent_client_v2 import run_agent_v2
     
-    agent_id = get_azure_agent_id(agent_name)
+    agent_id = get_azure_agent_id_v2(agent_name)
     
     # Create user message
     user_message = f"Please process this insurance claim:\n\n{json.dumps(claim_data, indent=2)}"
     
-    # Get toolset for agent if it needs tools
-    toolset = _get_toolset_for_agent(agent_name)
+    # Get functions for agent if it needs tools (v2 uses function dicts, not toolsets)
+    functions = get_azure_agent_functions_v2(agent_name)
     
-    # Run Azure agent and get messages with usage info
-    azure_messages, usage_info = run_agent(agent_id, user_message, toolset=toolset)
+    # Run Azure agent v2 and get messages with usage info
+    azure_messages, usage_info, _ = run_agent_v2(agent_id, user_message, functions=functions)
     
     # Log token usage and attach to current span for telemetry tracking
     if usage_info and (usage_info.get('total_tokens', 0) > 0):
@@ -136,50 +137,8 @@ def _run_azure_agent(agent_name: str, claim_data: Dict[str, Any]) -> tuple[List[
                 "content": content
             })
     
-    logger.debug("✅ Azure AI agent run finished: %s messages", len(messages))
+    logger.debug("✅ Azure AI agent v2 run finished: %s messages", len(messages))
     return messages, usage_info
-
-
-def _get_toolset_for_agent(agent_name: str):
-    """Get the toolset for a specific agent.
-    
-    Args:
-        agent_name: Name of the agent
-        
-    Returns:
-        ToolSet with functions for the agent, or None if no tools needed
-    """
-    from azure.ai.agents.models import FunctionTool, ToolSet
-    
-    if agent_name == "claim_assessor":
-        # Import tools for claim assessor
-        from app.workflow.agents.azure_claim_assessor import get_vehicle_details, analyze_image
-        user_functions = {get_vehicle_details, analyze_image}
-        functions = FunctionTool(functions=user_functions)
-        toolset = ToolSet()
-        toolset.add(functions)
-        return toolset
-    
-    elif agent_name == "policy_checker":
-        # Import tools for policy checker
-        from app.workflow.agents.azure_policy_checker import get_policy_details, search_policy_documents
-        user_functions = {get_policy_details, search_policy_documents}
-        functions = FunctionTool(functions=user_functions)
-        toolset = ToolSet()
-        toolset.add(functions)
-        return toolset
-    
-    elif agent_name == "risk_analyst":
-        # Import tools for risk analyst
-        from app.workflow.agents.azure_risk_analyst import get_claimant_history
-        user_functions = {get_claimant_history}
-        functions = FunctionTool(functions=user_functions)
-        toolset = ToolSet()
-        toolset.add(functions)
-        return toolset
-    
-    # No tools needed for communication_agent
-    return None
 
 
 def _run_langgraph_agent(agent_name: str, claim_data: Dict[str, Any]) -> tuple[List[Dict[str, Any]], Dict[str, int]]:
