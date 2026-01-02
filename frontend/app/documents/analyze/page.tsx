@@ -124,7 +124,8 @@ export default function DocumentAnalyzePage() {
 
       try {
         // Try to get document from storage
-        const response = await fetch(`${getApiUrl()}/api/v1/documents/${selectedDoc.id}/download`)
+        const apiUrl = await getApiUrl()
+        const response = await fetch(`${apiUrl}/api/v1/documents/${selectedDoc.id}/download`)
         if (response.ok) {
           const blob = await response.blob()
           const url = URL.createObjectURL(blob)
