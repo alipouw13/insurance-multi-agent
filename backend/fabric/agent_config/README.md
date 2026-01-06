@@ -11,8 +11,7 @@ The easiest way to create the Data Agent is using the automated scripts:
 2. Update the configuration variables (Lakehouse name, etc.)
 3. Run all cells in sequence
 
-### Option 2: Python Script
-Run `../create_data_agent.py` in a Fabric notebook environment.
+
 
 ## Manual Setup Using Configuration Files
 

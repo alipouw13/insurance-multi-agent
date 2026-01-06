@@ -27,7 +27,6 @@ pip install deltalake
 
 ### Data Agent Setup
 - **`create_data_agent.ipynb`** - Fabric notebook to create and configure the Data Agent programmatically
-- **`create_data_agent.py`** - Python script version (run in Fabric notebook environment)
 - **`agent_config/`** - Configuration files for manual setup (instructions, example queries)
 
 ## Usage
