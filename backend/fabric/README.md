@@ -106,17 +106,64 @@ Use the configuration files in `agent_config/` folder to manually configure your
 See [`agent_config/README.md`](agent_config/README.md) for detailed manual setup instructions.
 
 ### Step 6: Connect from Azure AI Foundry
-1. In Azure AI Foundry portal, go to **Connections**
-2. Add a new **Microsoft Fabric** connection
-3. Provide your Fabric workspace URL and data agent details
-4. Name the connection (use this as `FABRIC_CONNECTION_NAME`)
+
+To use the Fabric Data Agent from your application, you need to create a connection in Azure AI Foundry.
+
+#### 6a. Get the Data Agent Artifact ID
+
+1. In your **Fabric workspace**, find your Data Agent
+2. Click on the Data Agent to open it
+3. Look at the **URL** in your browser - it will look like:
+   ```
+   https://app.fabric.microsoft.com/groups/{workspace-id}/dataagents/{artifact-id}
+   ```
+4. Copy the `{artifact-id}` from the URL (it's a GUID like `12345678-abcd-1234-abcd-123456789abc`)
+5. Alternatively, click the **Settings** (⚙️) icon and look for the "Artifact ID" or "Item ID"
+
+#### 6b. Create the Connection in Azure AI Foundry
+
+1. Go to [Azure AI Foundry](https://ai.azure.com)
+2. Select your **AI Project**
+3. Navigate to **Settings** → **Connected resources** (or **Connections** in some views)
+4. Click **+ New connection**
+5. Search for and select **Microsoft Fabric**
+6. Configure the connection:
+   - **Connection name**: Choose a descriptive name (e.g., `fabric-claims-data-agent`)
+   - **Fabric workspace URL**: Your workspace URL (e.g., `https://app.fabric.microsoft.com/groups/{workspace-id}`)
+   - **Authentication**: Select your authentication method (Entra ID recommended)
+7. Click **Create**
+
+#### 6c. Note the Connection Name
+
+After creating the connection, note the exact **connection name** you used. This will be used as `FABRIC_CONNECTION_NAME` in your application.
 
 ### Step 7: Enable in the Application
-Set these environment variables:
+
+Set these environment variables in your `.env` file:
+
 ```bash
+# Enable Fabric Data Agent integration
 USE_FABRIC_DATA_AGENT=true
-FABRIC_CONNECTION_NAME=your-connection-name
+
+# Connection name from Azure AI Foundry (Step 6c)
+FABRIC_CONNECTION_NAME=fabric-claims-data-agent
+
+# Data Agent artifact ID from Fabric (Step 6a)
+FABRIC_DATA_AGENT_ID=12345678-abcd-1234-abcd-123456789abc
 ```
+
+The application will use these values to:
+1. Connect to Azure AI Foundry using the connection name
+2. Route queries to your Fabric Data Agent using the artifact ID
+
+### Step 8: Verify the Integration
+
+Test the integration by asking the Claims Data Analyst agent a question like:
+- "What is the average claim amount for auto collision claims?"
+- "Show me high-risk claimants with risk scores above 70"
+- "What are the top fraud patterns detected?"
+
+If configured correctly, the agent will query your Fabric Lakehouse data and return results.
 
 ## Data Schema
 
@@ -162,7 +209,7 @@ FABRIC_CONNECTION_NAME=your-connection-name
 | total_claims_amount | decimal | Lifetime claims value |
 | average_claim_amount | decimal | Average claim value |
 | risk_score | decimal | Calculated risk score (0-100) |
-| claim_frequency | string | very_low, low, medium, high, very_high |
+| claim_frequency | string | very_low, low, moderate, high |
 | credit_score | string | excellent, good, fair, poor |
 | driving_record | string | clean, minor_violations, major_violations |
 | policy_count | integer | Number of active policies |
