@@ -9,7 +9,7 @@ This Lakehouse contains insurance claims data for the insurance multi-agent appl
 - **amount_paid**: Final approved/settled amount (null for pending/denied claims)
 - **risk_score**: 0-100 scale (0-25=low, 26-50=moderate, 51-75=elevated, 76-100=high risk)
 - **fraud_flag**: Boolean indicating potential fraud
-- **claim_frequency**: very_low, low, medium, high, very_high
+- **claim_frequency**: very_low, low, moderate, high
 - **claims_trend**: INCREASING, STABLE, DECREASING, INSUFFICIENT_DATA
 
 ## Table Descriptions
@@ -70,9 +70,9 @@ Fraud detection records linked to claims.
 | severity | string | LOW, MEDIUM, HIGH, CRITICAL |
 | detected_date | date | Detection date |
 | pattern_description | string | Pattern details |
-| investigation_status | string | OPEN, CLOSED, CONFIRMED, FALSE_POSITIVE |
+| investigation_status | string | OPEN, CLOSED, CONFIRMED |
 
-**indicator_type values**: Multiple Claims Short Period, Excessive Claim Amount, Inconsistent Information, Previous Fraud History, Suspicious Timing, Missing Documentation, Third Party Anomaly, Geographic Anomaly
+**indicator_type values**: Multiple Claims Short Period, Excessive Claim Amount, Inconsistent Documentation, Staged Accident Pattern, Previous Fraud History, Suspicious Timing, Witness Inconsistency, Medical Bill Padding, Phantom Damage, Policyholder Collusion
 
 ### regional_statistics
 Geographic claims benchmarks.

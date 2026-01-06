@@ -63,34 +63,45 @@ This uploads parquet files to: `Files/claims_data/`
 3. Right-click the folder → **Load to Tables**
 4. Select all parquet files and confirm
 
-**Option C - Python Script (may not work with schema-enabled Lakehouses):**
-```bash
-# Set environment variables (GUIDs required for REST API)
-export FABRIC_WORKSPACE_ID="your-workspace-guid"
-export FABRIC_LAKEHOUSE_ID="your-lakehouse-guid"
-python load_to_tables.py
-```
-
 ### Step 5: Create Fabric Data Agent
 
-**Option A - Automated (Recommended):**
+You can create the Data Agent using either the automated notebook or manually in the Fabric UI. Both methods use the same configuration from the `agent_config/` folder.
+
+**Option A - Automated via Notebook (Recommended):**
+
 Upload and run `create_data_agent.ipynb` in your Fabric workspace. This notebook:
-- Creates the Data Agent programmatically
-- Adds AI instructions and datasource configuration
-- Adds example queries (few-shot examples)
+- Creates the Data Agent programmatically using the Fabric SDK
+- Sets agent instructions (how the agent should behave)
+- Sets datasource description (what's in the data - used for question routing)
+- Sets datasource instructions (how to use the data - used for query generation)
+- Adds example queries (few-shot examples for better SQL generation)
 - Publishes the agent
 
 **Option B - Manual in Fabric UI:**
+
+Use the configuration files in `agent_config/` folder to manually configure your Data Agent:
+
 1. Go to your Fabric workspace
-2. Navigate to your Lakehouse
-3. Open the **SQL Analytics Endpoint**
-4. Create a new **Data Agent** and select the tables to expose
-5. Configure using files from `agent_config/` folder:
-   - Copy `agent_instructions.md` → Agent instructions field
-   - Copy `datasource_description.md` → Data source description field
-   - Copy `datasource_instructions.md` → Data source instructions field
-   - Import `example_queries.json` → Example queries
-6. Publish the Data Agent
+2. Click **+ New** → **Data Agent**
+3. Name your Data Agent (e.g., `InsuranceClaimsDataAgent`)
+4. Add your Lakehouse as a data source and select all 5 tables:
+   - `claims_history`
+   - `claimant_profiles`
+   - `fraud_indicators`
+   - `regional_statistics`
+   - `policy_claims_summary`
+
+5. Configure the agent using files from `agent_config/`:
+
+   | UI Field | Source File | Description |
+   |----------|-------------|-------------|
+   | Agent instructions | `agent_instructions.md` | How the agent should behave and respond |
+   | Data source description | `datasource_description.md` | What's in the data (max 800 chars, used for routing) |
+   | Data source instructions | `datasource_instructions.md` | How to use the data (table schemas, query patterns) |
+   | Example queries | `example_queries.json` | Sample question/SQL pairs for few-shot learning |
+
+6. Test the agent in the Fabric UI
+7. Click **Publish** to make the agent available
 
 See [`agent_config/README.md`](agent_config/README.md) for detailed manual setup instructions.
 

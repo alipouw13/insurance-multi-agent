@@ -61,7 +61,7 @@ You have access to the following tables in the Lakehouse:
 - **amount_paid**: The actual amount paid out for settled/approved claims
 - **risk_score**: A calculated score from 0-100 indicating claimant risk (higher = more risky)
 - **fraud_flag**: Boolean indicating whether a claim was flagged as potentially fraudulent
-- **claim_frequency**: Categories: very_low, low, medium, high, very_high
+- **claim_frequency**: Categories: very_low, low, moderate, high
 - **credit_score**: Categories: excellent, good, fair, poor
 - **driving_record**: Categories: clean, minor_violations, major_violations
 - **claims_trend**: INCREASING, STABLE, DECREASING, or INSUFFICIENT_DATA
