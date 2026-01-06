@@ -214,54 +214,58 @@ The email should:
         return f"Error from Communication Agent: {str(e)}"
 
 
+def call_claims_data_analyst(claim_query: str) -> str:
+    """Delegate enterprise data analysis to the Claims Data Analyst specialist.
+    
+    The Claims Data Analyst uses Microsoft Fabric to query historical claims data,
+    claimant profiles, fraud patterns, and regional statistics from the enterprise
+    data lakehouse.
+    
+    Args:
+        claim_query: JSON string with claim details and specific data questions to answer
+        
+    Returns:
+        The Claims Data Analyst's findings including historical patterns and statistics
+    """
+    from app.workflow.azure_agent_client_v2 import run_agent_v2
+    
+    agent_id = get_azure_agent_id_v2("claims_data_analyst")
+    # Claims Data Analyst uses Fabric tool - no Python functions needed
+    
+    if not agent_id:
+        return "Error: Claims Data Analyst not available (Fabric integration not enabled)"
+    
+    prompt = f"""Please analyze enterprise data for this claim:
+
+{claim_query}
+
+Query the Fabric data lakehouse to provide:
+1. Historical claims data for this claimant (if any)
+2. Similar claims from other claimants for benchmarking
+3. Regional statistics for the claim location
+4. Any matching fraud patterns
+5. Statistical context (averages, frequencies, outliers)
+
+Provide specific numbers and statistics from your data queries."""
+
+    try:
+        # Fabric tool is handled by Azure AI Agent Service
+        messages, usage, _ = run_agent_v2(agent_id, prompt)
+        if messages:
+            logger.info(f"Claims Data Analyst completed (tokens: {usage.get('total_tokens', 'N/A')})")
+            return messages[0].get('content', 'No response from Claims Data Analyst')
+        return "No response from Claims Data Analyst"
+    except Exception as e:
+        logger.error(f"Error calling Claims Data Analyst: {e}")
+        return f"Error from Claims Data Analyst: {str(e)}"
+
+
 # ---------------------------------------------------------------------------
 # Supervisor Agent Creation
 # ---------------------------------------------------------------------------
 
-
-def create_supervisor_agent_v2(project_client: AIProjectClient = None):
-    """Create and return a configured Supervisor agent using Azure AI Agent Service.
-
-    The Supervisor coordinates the claim processing workflow by delegating to
-    specialized agents and synthesizing their outputs into a final assessment.
-
-    Args:
-        project_client: Optional AIProjectClient instance. If not provided, creates one from settings.
-
-    Returns:
-        Tuple of (agent, toolset) - Azure AI Agent Service agent and its toolset
-    """
-    global _SUPERVISOR_AGENT_ID, _SUPERVISOR_TOOLSET
-    
-    settings = get_settings()
-    
-    # Create project client if not provided
-    if project_client is None:
-        project_client = get_project_client_v2()
-    
-    # Define the supervisor's tools - functions to call other agents
-    supervisor_functions = {
-        call_claim_assessor,
-        call_policy_checker,
-        call_risk_analyst,
-        call_communication_agent,
-    }
-    
-    logger.info(f"Registering {len(supervisor_functions)} tool functions for supervisor:")
-    for func in supervisor_functions:
-        logger.info(f"  - {func.__name__}")
-    
-    # Create function tool and toolset
-    functions = FunctionTool(functions=supervisor_functions)
-    toolset = ToolSet()
-    toolset.add(functions)
-    
-    # Enable automatic function calling
-    project_client.agents.enable_auto_function_calls(toolset)
-    logger.info("Enabled auto function calls for toolset")
-    
-    # Supervisor instructions - matching the original supervisor prompt
-    instructions = """You are a senior claims manager supervising a team of insurance claim processing specialists. Your role is to coordinate your team's analysis and provide comprehensive advisory recommendations to support human decision-makers.
+# Instructions for supervisor WITHOUT Fabric Data Agent
+SUPERVISOR_INSTRUCTIONS_STANDARD = """You are a senior claims manager supervising a team of insurance claim processing specialists. Your role is to coordinate your team's analysis and provide comprehensive advisory recommendations to support human decision-makers.
 
 Your team consists of specialized agents that you can call using your tools:
 1. call_claim_assessor - Evaluates damage validity and cost assessment
@@ -313,6 +317,126 @@ RECOMMENDED NEXT STEPS:
 - Suggested timeline for decision
 
 This assessment empowers human decision-makers with comprehensive AI analysis while preserving human authority over final claim decisions."""
+
+# Instructions for supervisor WITH Fabric Data Agent (enhanced with enterprise data)
+SUPERVISOR_INSTRUCTIONS_WITH_FABRIC = """You are a senior claims manager supervising a team of insurance claim processing specialists. Your role is to coordinate your team's analysis and provide comprehensive advisory recommendations to support human decision-makers.
+
+Your team consists of specialized agents that you can call using your tools:
+1. call_claim_assessor - Evaluates damage validity and cost assessment
+2. call_policy_checker - Verifies coverage and policy terms
+3. call_risk_analyst - Analyzes fraud risk and claimant history
+4. call_claims_data_analyst - Queries enterprise data from Fabric (historical claims, statistics, fraud patterns)
+5. call_communication_agent - Drafts customer emails for missing information
+
+Your responsibilities:
+- Coordinate the claim-processing workflow in the optimal order
+- Ensure each specialist completes their assessment before moving on
+- Leverage enterprise data insights from the Claims Data Analyst
+- Delegate to the Communication Agent whenever information is missing
+- Synthesize all team inputs into a structured advisory assessment
+- Provide clear reasoning and recommendations to empower human decision-making
+
+WORKFLOW PROCESS:
+1. FIRST: Call the Claim Assessor (call_claim_assessor) with the full claim data to evaluate damage and documentation
+2. THEN: Call the Policy Checker (call_policy_checker) with policy number and claim details to verify coverage
+3. THEN: Call the Claims Data Analyst (call_claims_data_analyst) to query historical data and statistics from Fabric
+4. THEN: Call the Risk Analyst (call_risk_analyst) with claimant ID and claim details to evaluate fraud potential
+5. IF any specialist reports missing information: Call the Communication Agent (call_communication_agent) to draft a customer email
+6. FINALLY: Compile a comprehensive assessment summary for human review
+
+IMPORTANT: You MUST call all four primary specialists (Claim Assessor, Policy Checker, Claims Data Analyst, Risk Analyst) before providing your final assessment. Pass the claim data as a JSON string to each tool.
+
+End with a structured assessment in this format:
+
+ASSESSMENT_COMPLETE
+
+PRIMARY RECOMMENDATION: [APPROVE/DENY/INVESTIGATE] (Confidence: HIGH/MEDIUM/LOW)
+- Brief rationale for the recommendation
+
+SUPPORTING FACTORS:
+- Key evidence that supports the recommendation
+- Positive indicators identified by the team
+- Policy compliance confirmations
+- Data-driven insights from enterprise analytics
+
+RISK FACTORS:
+- Concerns or red flags identified
+- Potential fraud indicators
+- Policy coverage limitations or exclusions
+- Anomalies detected in historical data
+
+ENTERPRISE DATA INSIGHTS:
+- Historical claim patterns for this claimant
+- Comparison to similar claims (benchmarking)
+- Regional statistics and trends
+- Fraud pattern matches
+
+INFORMATION GAPS:
+- Missing documentation or data
+- Areas requiring clarification
+- Additional verification needed
+
+RECOMMENDED NEXT STEPS:
+- Specific actions for the human reviewer
+- Priority areas for further investigation
+- Suggested timeline for decision
+
+This assessment empowers human decision-makers with comprehensive AI analysis while preserving human authority over final claim decisions."""
+
+
+def create_supervisor_agent_v2(project_client: AIProjectClient = None):
+    """Create and return a configured Supervisor agent using Azure AI Agent Service.
+
+    The Supervisor coordinates the claim processing workflow by delegating to
+    specialized agents and synthesizing their outputs into a final assessment.
+    
+    Conditionally includes the Claims Data Analyst (Fabric) if USE_FABRIC_DATA_AGENT=true.
+
+    Args:
+        project_client: Optional AIProjectClient instance. If not provided, creates one from settings.
+
+    Returns:
+        Tuple of (agent, toolset) - Azure AI Agent Service agent and its toolset
+    """
+    global _SUPERVISOR_AGENT_ID, _SUPERVISOR_TOOLSET
+    
+    settings = get_settings()
+    
+    # Create project client if not provided
+    if project_client is None:
+        project_client = get_project_client_v2()
+    
+    # Define the supervisor's tools - functions to call other agents
+    # Base set of functions (always included)
+    supervisor_functions = {
+        call_claim_assessor,
+        call_policy_checker,
+        call_risk_analyst,
+        call_communication_agent,
+    }
+    
+    # Conditionally add Claims Data Analyst if Fabric is enabled
+    use_fabric = settings.use_fabric_data_agent and settings.fabric_connection_name
+    if use_fabric:
+        supervisor_functions.add(call_claims_data_analyst)
+        instructions = SUPERVISOR_INSTRUCTIONS_WITH_FABRIC
+        logger.info("📊 Fabric Data Agent enabled - Claims Data Analyst added to supervisor tools")
+    else:
+        instructions = SUPERVISOR_INSTRUCTIONS_STANDARD
+        logger.info("Standard workflow (without Fabric Data Agent)")
+    
+    logger.info(f"Registering {len(supervisor_functions)} tool functions for supervisor:")
+    for func in supervisor_functions:
+        logger.info(f"  - {func.__name__}")
+    
+    # Create function tool and toolset
+    functions = FunctionTool(functions=supervisor_functions)
+    toolset = ToolSet()
+    toolset.add(functions)
+    
+    # Enable automatic function calling
+    project_client.agents.enable_auto_function_calls(toolset)
+    logger.info("Enabled auto function calls for toolset")
 
     # Delete existing supervisor agent if it exists (to ensure fresh function references)
     try:
@@ -426,6 +550,9 @@ def process_claim_with_supervisor_v2(claim_data: Dict[str, Any]) -> List[Dict[st
 
     # IMPORTANT: Recreate the toolset fresh with functions for this run
     # The enable_auto_function_calls needs the actual Python callables
+    settings = get_settings()
+    use_fabric = settings.use_fabric_data_agent and settings.fabric_connection_name
+    
     supervisor_functions_set = {
         call_claim_assessor,
         call_policy_checker,
@@ -441,10 +568,31 @@ def process_claim_with_supervisor_v2(claim_data: Dict[str, Any]) -> List[Dict[st
         "call_communication_agent": call_communication_agent,
     }
     
+    # Conditionally add Claims Data Analyst if Fabric is enabled
+    if use_fabric:
+        supervisor_functions_set.add(call_claims_data_analyst)
+        supervisor_functions_dict["call_claims_data_analyst"] = call_claims_data_analyst
+        logger.info("📊 Claims Data Analyst (Fabric) included in workflow")
+    
     logger.info(f"Prepared {len(supervisor_functions_dict)} functions for manual tool execution")
 
-    # Create the user message with claim data
-    user_message = f"""Please process this insurance claim through your team of specialists:
+    # Create the user message with claim data - dynamically adjust based on Fabric availability
+    if use_fabric:
+        user_message = f"""Please process this insurance claim through your team of specialists:
+
+{json.dumps(claim_data, indent=2)}
+
+Follow this workflow - you MUST call ALL FIVE specialist agents in order:
+1. First call the Claim Assessor to evaluate the damage and documentation
+2. Then call the Policy Checker to verify coverage
+3. Then call the Claims Data Analyst to query historical data and statistics from Fabric
+4. Then call the Risk Analyst to assess fraud risk
+5. Finally, call the Communication Agent to draft a summary email to the claimant with the status and any next steps
+6. After all five agents respond, provide your comprehensive assessment summary
+
+IMPORTANT: You must call all five agents (claim_assessor, policy_checker, claims_data_analyst, risk_analyst, communication_agent) in sequence."""
+    else:
+        user_message = f"""Please process this insurance claim through your team of specialists:
 
 {json.dumps(claim_data, indent=2)}
 
@@ -484,6 +632,7 @@ IMPORTANT: You must call all four agents (claim_assessor, policy_checker, risk_a
         function_to_agent = {
             "call_claim_assessor": "claim_assessor",
             "call_policy_checker": "policy_checker",
+            "call_claims_data_analyst": "claims_data_analyst",
             "call_risk_analyst": "risk_analyst",
             "call_communication_agent": "communication_agent"
         }

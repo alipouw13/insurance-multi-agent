@@ -80,10 +80,16 @@ def deploy_azure_agents_v2() -> Dict[str, str]:
     a warning and returns an empty dict, allowing the app to fall back to
     LangGraph agents.
     
+    Conditionally deploys the Claims Data Analyst agent if USE_FABRIC_DATA_AGENT=true
+    and FABRIC_CONNECTION_NAME is configured.
+    
     Returns:
         Dictionary mapping agent names to their Azure AI agent IDs
     """
     global _AZURE_AGENT_IDS_V2, _AZURE_AGENT_TOOLSETS_V2, _AZURE_AGENT_FUNCTIONS_V2
+    
+    from app.core.config import get_settings
+    settings = get_settings()
     
     logger.info("🚀 Deploying Azure AI Agent Service agents (v2)...")
     
@@ -91,13 +97,32 @@ def deploy_azure_agents_v2() -> Dict[str, str]:
         # Get project client
         project_client = get_project_client_v2()
         
-        # Deploy each agent
+        # Deploy core agents
         agent_creators = {
             "claim_assessor": _deploy_claim_assessor_v2,
             "policy_checker": _deploy_policy_checker_v2,
             "communication_agent": _deploy_communication_agent_v2,
             "risk_analyst": _deploy_risk_analyst_v2,
         }
+        
+        # Conditionally add Claims Data Analyst with Fabric integration
+        if settings.use_fabric_data_agent:
+            if settings.fabric_connection_name:
+                # Check if FabricTool is available in the SDK
+                try:
+                    from app.workflow.agents.azure_claims_data_analyst_v2 import is_fabric_tool_available
+                    if is_fabric_tool_available():
+                        logger.info("📊 Fabric Data Agent enabled - adding Claims Data Analyst")
+                        agent_creators["claims_data_analyst"] = _deploy_claims_data_analyst_v2
+                    else:
+                        logger.warning(
+                            "⚠️  FabricTool not available in current SDK version - skipping Claims Data Analyst. "
+                            "Check for azure-ai-agents SDK updates."
+                        )
+                except ImportError as e:
+                    logger.warning(f"⚠️  Could not import Fabric module: {e}")
+            else:
+                logger.warning("⚠️  USE_FABRIC_DATA_AGENT=true but FABRIC_CONNECTION_NAME not set - skipping Claims Data Analyst")
         
         deployed_count = 0
         for agent_name, creator_func in agent_creators.items():
@@ -185,4 +210,29 @@ def _deploy_risk_analyst_v2(project_client: AIProjectClient) -> tuple[str, Any, 
     
     agent, toolset = create_risk_analyst_agent_v2(project_client)
     functions = get_risk_analyst_functions()
+    return agent.id, toolset, functions
+
+
+def _deploy_claims_data_analyst_v2(project_client: AIProjectClient) -> tuple[str, Any, Dict[str, Any]]:
+    """Deploy or retrieve Claims Data Analyst agent with Fabric integration (v2).
+    
+    This agent uses Microsoft Fabric Data Agent to query enterprise claims data
+    from a Fabric Lakehouse. It requires:
+    - USE_FABRIC_DATA_AGENT=true
+    - FABRIC_CONNECTION_NAME set to the Azure AI Foundry connection name
+    - A published Fabric Data Agent in your Fabric workspace
+    
+    Args:
+        project_client: Azure AI Project client
+        
+    Returns:
+        Tuple of (agent_id, toolset, functions_dict)
+    """
+    from app.workflow.agents.azure_claims_data_analyst_v2 import (
+        create_claims_data_analyst_agent_v2,
+        get_claims_data_analyst_functions
+    )
+    
+    agent, toolset = create_claims_data_analyst_agent_v2(project_client)
+    functions = get_claims_data_analyst_functions()  # Empty dict - Fabric handles queries
     return agent.id, toolset, functions

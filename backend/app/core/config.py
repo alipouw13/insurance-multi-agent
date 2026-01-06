@@ -97,6 +97,17 @@ class Settings(BaseSettings):  # noqa: D101
     # Set to "true" to use Azure AI Agent Service (v2), "false" for LangGraph (v1)
     use_azure_agents: bool = Field(
         default=False, alias="USE_AZURE_AGENTS")
+    
+    # Microsoft Fabric Data Agent Toggle
+    # Set to "true" to enable the Claims Data Analyst agent with Fabric integration
+    # Requires a published Fabric Data Agent and connection in Azure AI Foundry
+    use_fabric_data_agent: bool = Field(
+        default=False, alias="USE_FABRIC_DATA_AGENT")
+    
+    # Microsoft Fabric connection name (as configured in Azure AI Foundry)
+    # This connection should point to your Fabric workspace with the published data agent
+    fabric_connection_name: str | None = Field(
+        default=None, alias="FABRIC_CONNECTION_NAME")
 
     # FastAPI
     app_name: str = "Insurance Multi-Agent Backend"

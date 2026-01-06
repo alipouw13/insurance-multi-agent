@@ -21,6 +21,7 @@ Unlike traditional single-model AI systems, Contoso Claims employs a **collabora
 - **Policy Checker Agent** - Verifies coverage terms, searches policy documents, and determines claim eligibility  
 - **Risk Analyst Agent** - Detects fraud patterns, analyzes claimant history, and assesses risk factors
 - **Communication Agent** - Generates personalized customer emails and requests missing documentation
+- **Claims Data Analyst Agent** (Optional) - Queries historical claims data via Microsoft Fabric Data Agent
 - **Supervisor Agent** - Orchestrates the workflow and synthesizes final recommendations
 
 ### Azure AI Agent Service Integration
@@ -57,6 +58,13 @@ This implementation leverages **Azure AI Foundry's Agent Service** for productio
 - **Missing Document Requests**: Generates specific requests for additional evidence
 - **Professional Tone**: Maintains appropriate insurance industry language
 - **Template Generation**: Creates reusable communication templates
+
+#### Claims Data Analyst (Optional - Fabric Integration)
+- **Natural Language Queries**: Converts questions into SQL queries against Lakehouse data
+- **Historical Analysis**: Analyzes past claims patterns and statistics
+- **Regional Benchmarking**: Compares claims against geographic averages
+- **Fraud Pattern Insights**: Identifies fraud trends from historical data
+- **Risk Profile Lookup**: Retrieves customer risk scores and claim history
 
 ## Architecture
 
@@ -148,6 +156,12 @@ This implementation leverages **Azure AI Foundry's Agent Service** for productio
 - **Native Function Calling**: Tools registered via FunctionTool with automatic execution
 - **Thread-Based Conversations**: Persistent conversation threads for complex interactions
 - **Graceful Fallback**: Automatic fallback to LangGraph when Azure agents unavailable
+
+### Microsoft Fabric Data Agent Integration (Optional)
+- **Claims Data Analyst**: Optional agent that queries historical claims data via Microsoft Fabric
+- **Natural Language to SQL**: Converts user questions into SQL queries against Lakehouse tables
+- **Toggle-Based Activation**: Enable/disable via `USE_FABRIC_DATA_AGENT` environment variable
+- **Graceful Degradation**: Application works without Fabric when disabled or unavailable
 
 ### Core Capabilities
 - **Real-time Agent Collaboration**: Watch agents work together in live workflows
@@ -407,6 +421,70 @@ az cosmosdb update \
 ```
 
 **Note**: No connection string or key is needed when using `DefaultAzureCredential` with RBAC permissions.
+
+### Microsoft Fabric Data Agent Setup (Optional)
+
+The application supports an optional **Claims Data Analyst** agent powered by Microsoft Fabric Data Agent. This agent enables natural language queries against historical claims data stored in a Fabric Lakehouse.
+
+#### Prerequisites
+
+- Microsoft Fabric workspace with appropriate permissions
+- Fabric Lakehouse for claims data storage
+- Azure AI Foundry connection to Fabric Data Agent
+
+#### Quick Setup
+
+1. **Generate Sample Data**:
+   ```bash
+   cd backend/fabric/sample_data
+   python generate_claims_data.py
+   ```
+   This creates 5 parquet files with sample insurance claims data.
+
+2. **Upload to Fabric Lakehouse**:
+   - Upload the generated parquet files to your Fabric Lakehouse
+   - Or use the automated script:
+     ```bash
+     python upload_to_onelake.py
+     ```
+
+3. **Create the Data Agent** (choose one method):
+
+   **Option A: Automated Setup (Recommended)**
+   - Upload `backend/fabric/create_data_agent.ipynb` to your Fabric workspace
+   - Update configuration variables (Lakehouse name, etc.)
+   - Run all cells to create and configure the Data Agent
+
+   **Option B: Manual Setup via Fabric UI**
+   - Create a new Data Agent in your Fabric workspace
+   - Use the configuration files in `backend/fabric/agent_config/`:
+     - `agent_instructions.md` → Agent instructions field
+     - `datasource_description.md` → Data source description field
+     - `datasource_instructions.md` → Data source instructions field
+     - `example_queries.json` → Import as example queries
+
+4. **Create Azure AI Foundry Connection**:
+   - Go to Azure AI Foundry portal → Connections
+   - Add new Microsoft Fabric connection
+   - Configure with your Fabric workspace and Data Agent details
+
+5. **Enable in Application**:
+   Add to your `.env` file:
+   ```bash
+   USE_FABRIC_DATA_AGENT=true
+   FABRIC_CONNECTION_NAME=your-fabric-connection-name
+   ```
+
+#### Data Schema
+
+The Fabric Lakehouse contains 5 tables:
+- `claims_history` - Individual claim records with amounts, dates, vehicle info
+- `claimant_profiles` - Customer demographics and risk profiles
+- `fraud_indicators` - Detected fraud patterns and investigation status
+- `regional_statistics` - Geographic benchmarks for claims and fraud rates
+- `policy_claims_summary` - Aggregated policy-level claims data
+
+For detailed setup instructions, see [`backend/fabric/README.md`](backend/fabric/README.md) and [`backend/fabric/agent_config/README.md`](backend/fabric/agent_config/README.md).
 
 ### Authentication for Azure AI Agent Service
 

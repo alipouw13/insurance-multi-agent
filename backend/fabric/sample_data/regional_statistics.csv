@@ -1,0 +1,71 @@
+region,state,city,avg_claim_amount,claim_frequency,fraud_rate,most_common_claim_type,seasonal_peak,total_claims,year
+Northwest,CA,Los Angeles,25612.02,10.01,8.33,Auto Theft,Summer,72,2026
+Northwest,CA,San Francisco,31606.4,16.02,9.18,Personal Injury,Spring,98,2026
+Northwest,CA,San Diego,34046.27,38.14,9.86,Personal Injury,Winter,71,2026
+Northwest,CA,Sacramento,29221.93,31.57,11.32,Property Damage,Winter,53,2026
+Northwest,CA,San Jose,30280.05,6.34,12.77,Hail Damage,Spring,47,2026
+Southeast,TX,Houston,31384.77,27.74,17.02,Liability,Winter,94,2026
+Southeast,TX,Dallas,24594.39,30.26,10.71,Auto Theft,Fall,56,2026
+Southeast,TX,Austin,30857.4,14.92,15.15,Fire Damage,Summer,66,2026
+Southeast,TX,San Antonio,25822.45,41.42,7.89,Comprehensive,Winter,38,2026
+Southeast,TX,Fort Worth,28412.33,39.15,6.45,Liability,Spring,62,2026
+Northwest,FL,Miami,36841.85,24.02,7.02,Hail Damage,Summer,57,2026
+Northwest,FL,Orlando,32459.83,12.0,10.87,Auto Collision,Summer,46,2026
+Northwest,FL,Tampa,22816.75,9.6,12.94,Hail Damage,Fall,85,2026
+Northwest,FL,Jacksonville,42204.97,9.35,7.89,Water Damage,Summer,76,2026
+Northwest,FL,Fort Lauderdale,22755.22,32.17,10.94,Hail Damage,Winter,64,2026
+Northwest,NY,New York,23276.54,25.67,8.89,Comprehensive,Winter,45,2026
+Northwest,NY,Buffalo,35136.78,48.79,18.42,Property Theft,Fall,38,2026
+Northwest,NY,Rochester,35997.71,8.55,8.16,Medical,Summer,49,2026
+Northwest,NY,Albany,25355.47,42.32,13.73,Auto Theft,Summer,51,2026
+Northwest,NY,Syracuse,31841.12,30.98,14.47,Auto Collision,Winter,76,2026
+Northeast,PA,Philadelphia,30188.33,34.76,17.65,Comprehensive,Summer,68,2026
+Northeast,PA,Pittsburgh,28505.72,49.33,13.83,Water Damage,Spring,94,2026
+Northeast,PA,Allentown,21196.57,43.99,15.38,Auto Accident,Fall,78,2026
+Northeast,PA,Erie,31093.55,17.51,15.0,Property Damage,Summer,80,2026
+Northeast,PA,Reading,31378.31,12.32,16.36,Ruitschade,Summer,55,2026
+Southeast,IL,Chicago,28824.73,35.16,6.06,Medical,Winter,66,2026
+Southeast,IL,Aurora,28962.87,32.41,15.22,Ruitschade,Spring,46,2026
+Southeast,IL,Naperville,29106.16,29.04,13.89,Auto Theft,Spring,72,2026
+Southeast,IL,Joliet,28237.85,12.35,10.1,Medical,Fall,99,2026
+Southeast,IL,Rockford,33620.11,17.15,15.56,Property Theft,Spring,45,2026
+Northwest,OH,Columbus,32160.83,19.59,7.5,Property Theft,Winter,80,2026
+Northwest,OH,Cleveland,29250.84,15.31,10.81,Water Damage,Winter,37,2026
+Northwest,OH,Cincinnati,26668.03,41.23,10.53,Comprehensive,Fall,95,2026
+Northwest,OH,Toledo,36038.23,17.05,15.15,Fire Damage,Spring,66,2026
+Northwest,OH,Akron,29564.66,46.09,5.26,Auto Collision,Summer,114,2026
+Southeast,GA,Atlanta,29999.79,34.49,8.97,Major Collision,Fall,78,2026
+Southeast,GA,Augusta,26156.55,44.81,19.57,Comprehensive,Fall,46,2026
+Southeast,GA,Savannah,38727.59,11.43,9.41,Fire Damage,Spring,85,2026
+Southeast,GA,Columbus,29360.83,16.1,12.12,Major Collision,Summer,66,2026
+Southeast,GA,Macon,35745.68,38.62,8.77,Hail Damage,Fall,57,2026
+West,NC,Charlotte,27107.29,22.97,8.91,Comprehensive,Spring,101,2026
+West,NC,Raleigh,32993.44,49.88,15.94,Auto Accident,Spring,69,2026
+West,NC,Greensboro,36050.93,27.93,16.33,Water Damage,Winter,49,2026
+West,NC,Durham,34491.7,39.01,7.69,Auto Theft,Winter,52,2026
+West,NC,Winston-Salem,32908.77,11.88,11.29,Comprehensive,Spring,62,2026
+Northwest,MI,Detroit,38247.88,24.0,8.22,Auto Accident,Winter,73,2026
+Northwest,MI,Grand Rapids,35174.75,22.31,14.29,Major Collision,Fall,56,2026
+Northwest,MI,Warren,47985.72,28.81,9.84,Fire Damage,Winter,61,2026
+Northwest,MI,Sterling Heights,27037.12,35.61,12.7,Ruitschade,Winter,63,2026
+Northwest,MI,Ann Arbor,37574.75,35.68,11.63,Personal Injury,Summer,43,2026
+Northwest,NJ,NJ Metro,7082.11,25.42,3.05,Auto Theft,Summer,266,2026
+Southeast,VA,VA Metro,9092.18,18.43,1.74,Vandalism,Spring,88,2026
+Midwest,WA,WA Metro,12150.13,46.51,4.78,Liability,Winter,316,2026
+Midwest,AZ,AZ Metro,8863.27,44.54,1.78,Property Theft,Summer,132,2026
+Northeast,MA,MA Metro,5890.46,8.85,4.97,Auto Accident,Fall,427,2026
+Northeast,TN,TN Metro,14735.81,10.78,4.73,Auto Theft,Fall,494,2026
+West,IN,IN Metro,4981.52,24.04,4.69,Hail Damage,Spring,485,2026
+West,MO,MO Metro,12063.18,19.03,5.83,Personal Injury,Summer,234,2026
+West,MD,MD Metro,8417.83,20.21,2.74,Auto Accident,Spring,311,2026
+Southeast,WI,WI Metro,3086.29,15.3,5.95,Auto Collision,Winter,450,2026
+Midwest,CO,CO Metro,3850.29,26.84,2.67,Vandalism,Spring,380,2026
+West,MN,MN Metro,9914.54,41.34,2.7,Water Damage,Spring,58,2026
+Northeast,SC,SC Metro,10907.79,26.02,3.48,Comprehensive,Winter,354,2026
+Northwest,AL,AL Metro,14809.98,37.77,1.69,Comprehensive,Winter,137,2026
+Southeast,LA,LA Metro,5282.51,13.26,4.14,Comprehensive,Fall,137,2026
+Northeast,KY,KY Metro,8317.57,9.41,7.03,Fire Damage,Winter,57,2026
+Southeast,OR,OR Metro,4995.73,43.91,4.4,Major Collision,Winter,94,2026
+Southwest,OK,OK Metro,3025.86,40.28,3.73,Ruitschade,Fall,156,2026
+Southwest,CT,CT Metro,11359.1,30.01,6.11,Liability,Fall,89,2026
+Southeast,UT,UT Metro,6560.49,38.11,7.78,Hail Damage,Winter,392,2026

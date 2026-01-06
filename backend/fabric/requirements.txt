@@ -1,0 +1,14 @@
+# Requirements for Fabric Lakehouse data scripts
+# Install with: pip install -r requirements.txt
+
+# Core data processing
+pandas>=2.0.0
+numpy>=1.24.0
+pyarrow>=14.0.0
+
+# Azure identity and storage
+azure-identity>=1.15.0
+azure-storage-file-datalake>=12.14.0
+
+# Optional: Delta Lake support (recommended for production)
+# deltalake>=0.14.0

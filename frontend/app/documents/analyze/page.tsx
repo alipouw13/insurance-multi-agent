@@ -134,6 +134,11 @@ export default function DocumentAnalyzePage() {
             URL.revokeObjectURL(documentUrl)
           }
           setDocumentUrl(url)
+          
+          // If document doesn't have analysis results, analyze it now
+          if (!selectedDoc.result && !isAnalyzing) {
+            analyzeExistingDocument(selectedDoc.id, blob, selectedDoc.filename)
+          }
         } else {
           console.warn('Document preview not available from storage:', selectedDoc.filename)
         }
@@ -151,6 +156,77 @@ export default function DocumentAnalyzePage() {
     setSelectedDoc(null)
     setDocumentUrl(null)
     toast.success('Document cache cleared')
+  }
+
+  // Analyze an existing document from storage that doesn't have results yet
+  const analyzeExistingDocument = async (docId: string, blob: Blob, filename: string) => {
+    setIsAnalyzing(true)
+    toast.info(`Analyzing ${filename}...`)
+    
+    try {
+      const apiUrl = await getApiUrl()
+      
+      // Create a File from the blob for the analyze endpoint
+      const file = new File([blob], filename, { type: blob.type })
+      const formData = new FormData()
+      formData.append('file', file)
+      
+      console.log('Analyzing existing document:', filename)
+      const response = await fetch(`${apiUrl}/api/v1/documents/analyze`, {
+        method: 'POST',
+        body: formData
+      })
+      
+      if (!response.ok) {
+        const errorText = await response.text()
+        console.error('Analysis error:', errorText)
+        toast.error(`Analysis failed: ${response.statusText}`)
+        return
+      }
+      
+      const result: AnalysisResult = await response.json()
+      console.log('Analysis result for existing doc:', result)
+      
+      // Calculate schema score
+      const confidenceValues = Object.values(result.confidence_scores)
+      const schemaScore = confidenceValues.length > 0
+        ? Math.round((confidenceValues.filter(c => c >= 0.9).length / confidenceValues.length) * 100)
+        : 0
+      
+      // Update the document with analysis results
+      setDocuments(prev => prev.map(d => 
+        d.id === docId 
+          ? {
+              ...d,
+              field_count: result.field_count,
+              table_count: result.table_count,
+              schema_score: schemaScore,
+              result
+            }
+          : d
+      ))
+      
+      // Update selectedDoc if it's the one being analyzed
+      setSelectedDoc(prev => 
+        prev?.id === docId 
+          ? {
+              ...prev,
+              field_count: result.field_count,
+              table_count: result.table_count,
+              schema_score: schemaScore,
+              result
+            }
+          : prev
+      )
+      
+      toast.success(`Extracted ${result.field_count} fields from ${filename}`)
+      
+    } catch (err) {
+      console.error('Error analyzing existing document:', err)
+      toast.error('Failed to analyze document')
+    } finally {
+      setIsAnalyzing(false)
+    }
   }
 
   const handleFileUpload = async (files: File[]) => {
@@ -644,13 +720,23 @@ export default function DocumentAnalyzePage() {
             ) : (
               <div className="flex-1 flex items-center justify-center text-muted-foreground p-8">
                 <div className="text-center">
-                  <FileCheck className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                  <p className="text-sm">
-                    {selectedDoc?.status === 'processing' 
-                      ? 'Analyzing document...'
-                      : 'No results available'
-                    }
-                  </p>
+                  {isAnalyzing ? (
+                    <>
+                      <Clock className="h-12 w-12 mx-auto mb-4 opacity-50 animate-spin" />
+                      <p className="text-sm font-medium">Analyzing document...</p>
+                      <p className="text-xs mt-2">Extracting fields and tables with Content Understanding</p>
+                    </>
+                  ) : (
+                    <>
+                      <FileCheck className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                      <p className="text-sm">
+                        {selectedDoc?.status === 'processing' 
+                          ? 'Processing document...'
+                          : 'Select a document to view analysis results'
+                        }
+                      </p>
+                    </>
+                  )}
                 </div>
               </div>
             )}
