@@ -3,7 +3,7 @@
 Upload Sample Data to Microsoft Fabric Lakehouse.
 
 This script uploads the generated CSV data to a Microsoft Fabric Lakehouse
-as Delta tables. The data will be accessible through the Fabric Data Agent.
+as Parquet files. The data will be accessible through the Fabric Data Agent.
 
 Prerequisites:
 - Azure CLI authenticated (az login)
@@ -11,12 +11,12 @@ Prerequisites:
 - Fabric workspace with a Lakehouse created
 
 Environment Variables:
-- FABRIC_WORKSPACE_ID: Your Fabric workspace GUID
-- FABRIC_LAKEHOUSE_ID: Your Lakehouse GUID
+- FABRIC_WORKSPACE_NAME: Your Fabric workspace name (e.g., "MyWorkspace")
+- FABRIC_LAKEHOUSE_NAME: Your Lakehouse name (e.g., "LH_AIClaimsDemo")
 
 OneLake Endpoint:
   The script uses the fixed OneLake endpoint: https://onelake.dfs.fabric.microsoft.com
-  Files are uploaded to: {workspace_id}/{lakehouse_id}.Lakehouse/Files/claims_data/{file_name}.parquet
+  Files are uploaded to: {workspace_name}/{lakehouse_name}.Lakehouse/Files/claims_data/
 
 Usage:
     python upload_to_fabric.py [--data-dir ./data]
@@ -146,7 +146,10 @@ def get_datalake_client() -> DataLakeServiceClient:
     # OneLake uses the fixed onelake.dfs.fabric.microsoft.com endpoint
     account_url = "https://onelake.dfs.fabric.microsoft.com"
     
-    credential = DefaultAzureCredential()
+    # Use DefaultAzureCredential with the Storage scope for OneLake
+    credential = DefaultAzureCredential(
+        exclude_shared_token_cache_credential=True
+    )
     
     return DataLakeServiceClient(
         account_url=account_url,
@@ -161,8 +164,8 @@ CLAIMS_DATA_FOLDER = "claims_data"
 def upload_to_onelake(
     df: pd.DataFrame,
     table_name: str,
-    workspace_id: str,
-    lakehouse_id: str,
+    workspace_name: str,
+    lakehouse_name: str,
     datalake_client: DataLakeServiceClient,
     folder_name: str = CLAIMS_DATA_FOLDER
 ) -> str:
@@ -171,22 +174,23 @@ def upload_to_onelake(
     Args:
         df: DataFrame to upload
         table_name: Name of the file (without extension)
-        workspace_id: Fabric workspace GUID
-        lakehouse_id: Lakehouse GUID
+        workspace_name: Fabric workspace name
+        lakehouse_name: Lakehouse name
         datalake_client: DataLake service client
         folder_name: Folder name under Files section (default: claims_data)
         
     Returns:
         Path to uploaded file
     """
-    # OneLake path structure: workspace_id/lakehouse_id.Lakehouse/Files/folder_name
-    container_name = workspace_id
+    # OneLake path structure: workspace_name/lakehouse_name.Lakehouse/Files/folder_name
+    # The workspace name is used as the file system (container)
+    file_system_name = workspace_name
     
     # Get filesystem client for the workspace
-    filesystem_client = datalake_client.get_file_system_client(container_name)
+    filesystem_client = datalake_client.get_file_system_client(file_system_name)
     
     # Create the Files directory path with a dedicated folder
-    files_path = f"{lakehouse_id}.Lakehouse/Files/{folder_name}"
+    files_path = f"{lakehouse_name}.Lakehouse/Files/{folder_name}"
     
     # Create directory if it doesn't exist
     try:
@@ -216,8 +220,8 @@ def upload_to_onelake(
 def upload_as_delta(
     df: pd.DataFrame,
     table_name: str,
-    workspace_id: str,
-    lakehouse_id: str,
+    workspace_name: str,
+    lakehouse_name: str,
     folder_name: str = CLAIMS_DATA_FOLDER
 ) -> str:
     """Upload a DataFrame as a Delta table using deltalake library.
@@ -225,8 +229,8 @@ def upload_as_delta(
     Args:
         df: DataFrame to upload
         table_name: Name of the table
-        workspace_id: Fabric workspace GUID
-        lakehouse_id: Lakehouse GUID
+        workspace_name: Fabric workspace name
+        lakehouse_name: Lakehouse name
         folder_name: Folder name under Files section (default: claims_data)
         
     Returns:
@@ -241,7 +245,7 @@ def upload_as_delta(
         "use_fabric_endpoint": "true"
     }
     
-    delta_path = f"abfss://{workspace_id}@onelake.dfs.fabric.microsoft.com/{lakehouse_id}.Lakehouse/Files/{folder_name}/{table_name}"
+    delta_path = f"abfss://{workspace_name}@onelake.dfs.fabric.microsoft.com/{lakehouse_name}.Lakehouse/Files/{folder_name}/{table_name}"
     
     write_deltalake(
         delta_path,
@@ -297,7 +301,7 @@ def main():
     parser.add_argument(
         "--data-dir",
         type=str,
-        default="./data",
+        default="./sample_data",
         help="Directory containing CSV files to upload"
     )
     parser.add_argument(
@@ -313,25 +317,23 @@ def main():
     
     args = parser.parse_args()
     
-    # Get environment variables
-    workspace_id = os.environ.get("FABRIC_WORKSPACE_ID")
-    lakehouse_id = os.environ.get("FABRIC_LAKEHOUSE_ID")
+    # Get environment variables - use names, not GUIDs
+    workspace_name = os.environ.get("FABRIC_WORKSPACE_NAME")
+    lakehouse_name = os.environ.get("FABRIC_LAKEHOUSE_NAME")
     
-    if not workspace_id or not lakehouse_id:
+    if not workspace_name or not lakehouse_name:
         print("❌ Error: Required environment variables not set.")
         print()
         print("Please set the following environment variables:")
-        print("  FABRIC_WORKSPACE_ID  - Your Fabric workspace GUID")
-        print("  FABRIC_LAKEHOUSE_ID  - Your Lakehouse GUID")
+        print("  FABRIC_WORKSPACE_NAME  - Your Fabric workspace name")
+        print("  FABRIC_LAKEHOUSE_NAME  - Your Lakehouse name")
         print()
-        print("You can find these in your Fabric workspace URL:")
-        print("  https://app.fabric.microsoft.com/groups/{workspace_id}/...")
-        print()
-        print("And in your Lakehouse URL:")
-        print("  .../lakehouses/{lakehouse_id}")
+        print("Example:")
+        print('  $env:FABRIC_WORKSPACE_NAME="MyWorkspace"')
+        print('  $env:FABRIC_LAKEHOUSE_NAME="LH_AIClaimsDemo"')
         print()
         print("Files will be uploaded to:")
-        print(f"  https://onelake.dfs.fabric.microsoft.com/{{workspace_id}}/{{lakehouse_id}}.Lakehouse/Files/{CLAIMS_DATA_FOLDER}/")
+        print(f"  https://onelake.dfs.fabric.microsoft.com/{{workspace_name}}/{{lakehouse_name}}.Lakehouse/Files/{CLAIMS_DATA_FOLDER}/")
         sys.exit(1)
     
     data_dir = Path(args.data_dir)
@@ -347,8 +349,8 @@ def main():
         sys.exit(1)
     
     print(f"🚀 Uploading data to Microsoft Fabric Lakehouse")
-    print(f"   Workspace ID: {workspace_id}")
-    print(f"   Lakehouse ID: {lakehouse_id}")
+    print(f"   Workspace: {workspace_name}")
+    print(f"   Lakehouse: {lakehouse_name}")
     print(f"   Target folder: Files/{CLAIMS_DATA_FOLDER}/")
     print(f"   Data directory: {data_dir.absolute()}")
     print(f"   Upload method: {'Delta' if args.use_delta and DELTA_AVAILABLE else 'Parquet'}")
@@ -390,10 +392,10 @@ def main():
             
             # Upload
             if args.use_delta and DELTA_AVAILABLE:
-                path = upload_as_delta(df, table_name, workspace_id, lakehouse_id)
+                path = upload_as_delta(df, table_name, workspace_name, lakehouse_name)
             else:
                 path = upload_to_onelake(
-                    df, table_name, workspace_id, lakehouse_id, datalake_client
+                    df, table_name, workspace_name, lakehouse_name, datalake_client
                 )
             
             print(f"   ✅ Uploaded to: {path}")

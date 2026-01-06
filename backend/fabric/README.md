@@ -13,17 +13,16 @@ This folder contains Python scripts to populate a Microsoft Fabric Lakehouse wit
 
 ```bash
 pip install azure-identity azure-storage-file-datalake pandas pyarrow
-# Optional for Delta format:
-pip install deltalake
 ```
 
 ## Scripts
 
 ### Data Generation & Upload
 - **`generate_sample_data.py`** - Generates synthetic insurance claims data (10,000+ records)
-- **`upload_to_fabric.py`** - Uploads data to Fabric Lakehouse Files section
-- **`load_to_tables.py`** - Loads parquet files as Delta tables
-- **`validate_data.py`** - Validates data and prints sample queries
+- **`upload_to_fabric.py`** - Uploads data to Fabric Lakehouse Files section as Parquet files
+
+### Table Loading (Fabric Notebooks)
+- **`load_tables.ipynb`** - Fabric notebook to load parquet files as Delta tables
 
 ### Data Agent Setup
 - **`create_data_agent.ipynb`** - Fabric notebook to create and configure the Data Agent programmatically
@@ -33,20 +32,17 @@ pip install deltalake
 
 ### Step 1: Generate Sample Data
 ```bash
-python generate_sample_data.py --output-dir ./sample_data
+cd backend/fabric/sample_data
+python generate_claims_data.py
 ```
 This creates CSV files in the `./sample_data/` folder.
 
 ### Step 2: Set Environment Variables
 ```bash
-# Required for upload
-export FABRIC_WORKSPACE_ID="your-workspace-guid"
-export FABRIC_LAKEHOUSE_ID="your-lakehouse-guid"
+# Required for upload (use workspace/lakehouse NAMES, not GUIDs)
+export FABRIC_WORKSPACE_NAME="Claims Demo"
+export FABRIC_LAKEHOUSE_NAME="LH_AIClaimsDemo"
 ```
-
-You can find these in your Fabric URLs:
-- Workspace ID: `https://app.fabric.microsoft.com/groups/{workspace_id}/...`
-- Lakehouse ID: `.../lakehouses/{lakehouse_id}`
 
 ### Step 3: Upload to Fabric
 ```bash
@@ -55,21 +51,25 @@ python upload_to_fabric.py --data-dir ./sample_data
 This uploads parquet files to: `Files/claims_data/`
 
 ### Step 4: Load as Delta Tables
-Option A - Using the script (recommended):
+
+**Option A - Fabric Notebook (Recommended for schema-enabled Lakehouses):**
+1. Upload `load_tables.ipynb` to your Fabric workspace
+2. Attach the notebook to your Lakehouse
+3. Run all cells to load parquet files as Delta tables
+
+**Option B - Manual in Fabric UI:**
+1. Open your Lakehouse
+2. Navigate to **Files** → **claims_data**
+3. Right-click the folder → **Load to Tables**
+4. Select all parquet files and confirm
+
+**Option C - Python Script (may not work with schema-enabled Lakehouses):**
 ```bash
+# Set environment variables (GUIDs required for REST API)
+export FABRIC_WORKSPACE_ID="your-workspace-guid"
+export FABRIC_LAKEHOUSE_ID="your-lakehouse-guid"
 python load_to_tables.py
 ```
-
-Option B - Generate a PySpark notebook:
-```bash
-python load_to_tables.py --generate-notebook
-```
-Copy the output and run it in a Fabric notebook attached to your Lakehouse.
-
-Option C - Manual in Fabric UI:
-1. Open your Lakehouse
-2. Navigate to Files > claims_data
-3. Right-click the folder > "Load to Tables"
 
 ### Step 5: Create Fabric Data Agent
 
