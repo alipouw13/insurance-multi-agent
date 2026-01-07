@@ -11,7 +11,8 @@ import {
   IconMessage,
   IconArrowRight,
   IconUsers,
-  IconTarget
+  IconTarget,
+  IconDatabase
 } from '@tabler/icons-react'
 import Link from 'next/link'
 
@@ -54,6 +55,14 @@ const AGENT_STEPS: AgentStep[] = [
     icon: <IconTrendingUp className="h-4 w-4" />,
     color: 'bg-orange-500',
     href: '/agents/risk-analyst'
+  },
+  {
+    id: 'claims-data-analyst',
+    name: 'Claims Data Analyst',
+    description: 'Queries enterprise data from Fabric',
+    icon: <IconDatabase className="h-4 w-4" />,
+    color: 'bg-cyan-500',
+    href: '/agents/claims-data-analyst'
   },
   {
     id: 'communication-agent',

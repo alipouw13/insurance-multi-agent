@@ -12,6 +12,7 @@ class AgentType(str, Enum):
     CLAIM_ASSESSOR = "claim_assessor"
     POLICY_CHECKER = "policy_checker"
     RISK_ANALYST = "risk_analyst"
+    CLAIMS_DATA_ANALYST = "claims_data_analyst"
     COMMUNICATION_AGENT = "communication_agent"
 
 

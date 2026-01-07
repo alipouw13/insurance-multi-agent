@@ -34,7 +34,8 @@ import {
   IconTrendingUp,
   IconMessage,
   IconPlayerPlay,
-  IconEye
+  IconEye,
+  IconDatabase
 } from '@tabler/icons-react'
 
 interface ClaimSummary {
@@ -104,6 +105,15 @@ const AGENT_CONFIG = {
     displayName: 'Communication Agent',
     description: 'Customer communication specialist',
     capabilities: ['Email Drafting', 'Customer Updates', 'Documentation']
+  },
+  'claims_data_analyst': {
+    icon: IconDatabase,
+    color: 'text-cyan-600 dark:text-cyan-400',
+    bgColor: 'bg-cyan-100 dark:bg-cyan-900/30',
+    borderColor: 'border-cyan-200 dark:border-cyan-800',
+    displayName: 'Claims Data Analyst',
+    description: 'Enterprise data specialist',
+    capabilities: ['Historical Analysis', 'Fraud Patterns', 'Regional Statistics']
   },
   'supervisor': {
     icon: IconRobot,
@@ -338,7 +348,7 @@ export function WorkflowDemo() {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4 mb-6">
             {Object.entries(AGENT_CONFIG).filter(([key]) => key !== 'supervisor').map(([key, config]) => (
               <div key={key} className={`rounded-lg p-3 border ${config.bgColor} ${config.borderColor}`}>
                 <div className="flex items-center gap-2 mb-2">

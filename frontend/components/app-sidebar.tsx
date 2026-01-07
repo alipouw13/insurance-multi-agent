@@ -79,7 +79,11 @@ const data = {
           url: "/agents/risk-analyst",
         },
         {
-          title: "Communication Agent",
+          title: "Claims Data Analyst",
+          url: "/agents/claims-data-analyst",
+        },
+        {
+          title: "Communication Ag...",
           url: "/agents/communication-agent",
         },
       ],
