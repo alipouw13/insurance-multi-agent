@@ -49,38 +49,6 @@ Required configuration in `.env.local` (optional for local dev):
 NEXT_PUBLIC_API_URL=http://localhost:8000  # Backend API URL
 ```
 
-## Application Structure
-
-```
-frontend/
-├── app/
-│   ├── agents/             # Agent detail pages
-│   │   ├── claim-assessor/
-│   │   ├── policy-checker/
-│   │   ├── risk-analyst/
-│   │   └── communication-agent/
-│   ├── demo/               # Interactive workflow demo
-│   ├── documents/          # Document management
-│   │   ├── manage/         # Claims document upload
-│   │   └── index-management/ # AI Search index management
-│   ├── page.tsx            # Dashboard homepage
-│   └── layout.tsx          # Root layout
-├── components/
-│   ├── app-sidebar.tsx     # Navigation sidebar
-│   ├── agent-workflow-visualization.tsx # Workflow chart
-│   ├── content-understanding-test.tsx # Document analysis UI
-│   ├── workflow-demo.tsx   # Demo scenarios
-│   ├── feedback/           # Agent feedback components
-│   │   ├── ImmediateAgentFeedbackFormWithAPI.tsx
-│   │   └── WorkflowCompletionFeedbackForm.tsx
-│   └── ui/                 # shadcn/ui components
-├── lib/
-│   ├── api.ts              # Backend API client
-│   ├── dashboard-api.ts    # Dashboard data fetching
-│   └── config.ts           # Configuration
-└── hooks/                  # React hooks
-```
-
 ## Key Features
 
 ### Document Management
