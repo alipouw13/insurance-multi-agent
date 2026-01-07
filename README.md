@@ -24,6 +24,8 @@ Unlike traditional single-model AI systems, Contoso Claims employs a **collabora
 - **Claims Data Analyst Agent** (Optional) - Queries historical claims data via Microsoft Fabric Data Agent
 - **Supervisor Agent** - Orchestrates the workflow and synthesizes final recommendations
 
+![Agents](./frontend/public/agents.png)
+
 ### Azure AI Agent Service Integration
 This implementation leverages **Azure AI Foundry's Agent Service** for production-grade agent orchestration:
 
