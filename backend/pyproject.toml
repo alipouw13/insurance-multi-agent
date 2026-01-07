@@ -19,6 +19,7 @@ dependencies = [
     "pymupdf>=1.26.1",
     "azure-ai-projects>=1.0.0",
     "azure-ai-agents>=1.2.0b6",  # Required for FabricTool support
+    "azure-ai-evaluation>=1.0.0",  # Required for AI Foundry evaluation metrics
     "azure-identity>=1.19.0",
     "azure-storage-blob>=12.19.0",
     "azure-search-documents>=11.4.0",
