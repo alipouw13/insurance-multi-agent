@@ -21,6 +21,55 @@ class UnknownAgentError(ValueError):
     """Raised when a requested agent name does not exist in the registry."""
 
 
+def _generate_fabric_query(claim_data: Dict[str, Any]) -> str:
+    """Generate a claim-specific Fabric query based on claim type and context.
+    
+    Creates simple, natural language queries optimized for Fabric Data Agent.
+    
+    Args:
+        claim_data: The claim data dictionary
+        
+    Returns:
+        A focused natural language query string
+    """
+    claimant_id = claim_data.get('claimant_id', 'unknown')
+    claim_type = claim_data.get('claim_type', 'unknown')
+    state = claim_data.get('state', 'unknown')
+    claimant_name = claim_data.get('claimant_name', 'unknown')
+    estimated_damage = claim_data.get('estimated_damage', 0)
+    
+    # Generate query based on claim type
+    claim_type_lower = claim_type.lower()
+    
+    if 'collision' in claim_type_lower or 'major collision' in claim_type_lower:
+        # Major collision - focus on claimant history and high-value collision fraud
+        return f"Show claims history for claimant {claimant_id} ({claimant_name}) and fraud rate for collision claims over $20000 in {state}"
+    
+    elif 'property' in claim_type_lower or 'property damage' in claim_type_lower:
+        # Property damage - focus on property claims and regional patterns
+        return f"Show claims history for claimant {claimant_id} and average property damage claims in {state}"
+    
+    elif 'auto accident' in claim_type_lower or 'accident' in claim_type_lower:
+        # Auto accident - focus on claimant history and accident patterns
+        return f"Show claims history for claimant {claimant_id} and fraud rate for auto accident claims in {state}"
+    
+    elif 'fire' in claim_type_lower or 'fire damage' in claim_type_lower:
+        # Fire damage - focus on fire claims and fraud indicators
+        return f"Show claims history for claimant {claimant_id} and fire damage fraud indicators in {state}"
+    
+    elif 'theft' in claim_type_lower or 'auto theft' in claim_type_lower:
+        # Theft - focus on theft claims and fraud patterns
+        return f"Show claims history for claimant {claimant_id} and auto theft fraud rate in {state}"
+    
+    elif 'liability' in claim_type_lower:
+        # Liability - focus on liability history and patterns
+        return f"Show claims history for claimant {claimant_id} and liability claim patterns in {state}"
+    
+    else:
+        # Default query for other claim types
+        return f"Show claims history for claimant {claimant_id} and fraud rate for {claim_type} claims in {state}"
+
+
 async def run(agent_name: str, claim_data: Dict[str, Any]) -> tuple[List[Dict[str, Any]], Dict[str, int]]:  # noqa: D401
     """Run *one* agent on the claim data and return its message list with token usage.
 
@@ -99,29 +148,74 @@ def _run_azure_agent_v2(agent_name: str, claim_data: Dict[str, Any]) -> tuple[Li
     
     # Special handling for Claims Data Analyst - force Fabric tool
     tool_choice = None
+    fabric_query = None  # Track the query for UI display
+    
     if agent_name == "claims_data_analyst":
         tool_choice = "fabric_dataagent"
+        
+        # Extract key identifiers for simple query
+        claimant_id = claim_data.get('claimant_id', 'unknown')
+        claim_type = claim_data.get('claim_type', 'unknown')
+        state = claim_data.get('state', 'unknown')
+        claimant_name = claim_data.get('claimant_name', 'unknown')
+        
+        # Generate claim-specific query based on claim type
+        fabric_query = _generate_fabric_query(claim_data)
+        
+        logger.info(f"[CLAIMS_DATA_ANALYST] === Starting Claims Data Analyst Run ===")
         logger.info(f"[CLAIMS_DATA_ANALYST] Forcing tool_choice={tool_choice} for Fabric queries")
-        logger.info(f"[CLAIMS_DATA_ANALYST] Claimant ID: {claim_data.get('claimant_id', 'N/A')}")
-        user_message = f"""Please analyze enterprise data for this claim using the Fabric data tool:
-
-{json.dumps(claim_data, indent=2)}
-
-IMPORTANT: You MUST use the Microsoft Fabric tool to query the lakehouse data.
-
-Query the Fabric data lakehouse to provide:
-1. Historical claims data for this claimant (if any) - look up by claimant_id
-2. Similar claims from other claimants for benchmarking - search by claim_type
-3. Regional statistics for the claim location - search by state
-4. Any matching fraud patterns - check fraud_indicators table
-5. Statistical context (averages, frequencies, outliers)
-
-Provide specific numbers and statistics from your Fabric data queries."""
+        logger.info(f"[CLAIMS_DATA_ANALYST] Claimant: {claimant_name} ({claimant_id})")
+        logger.info(f"[CLAIMS_DATA_ANALYST] Claim Type: {claim_type}")
+        logger.info(f"[CLAIMS_DATA_ANALYST] State: {state}")
+        logger.info(f"[CLAIMS_DATA_ANALYST] Fabric Query: {fabric_query}")
+        
+        # Simple, focused query for Fabric Data Agent
+        user_message = fabric_query
     
     # Run Azure agent v2 and get messages with usage info
     logger.info(f"[AGENT] Calling run_agent_v2 for {agent_name} (tool_choice={tool_choice})")
     azure_messages, usage_info, _ = run_agent_v2(agent_id, user_message, functions=functions, tool_choice=tool_choice)
     logger.info(f"[AGENT] Agent {agent_name} returned {len(azure_messages)} messages")
+    
+    # Log response content for Claims Data Analyst debugging
+    if agent_name == "claims_data_analyst" and azure_messages:
+        last_msg = azure_messages[-1] if azure_messages else {}
+        content = last_msg.get("content", "")
+        if isinstance(content, list):
+            content = " ".join([c.get("text", {}).get("value", "") if isinstance(c, dict) else str(c) for c in content])
+        preview = content[:500] if len(content) > 500 else content
+        logger.info(f"[CLAIMS_DATA_ANALYST] Response preview: {preview}")
+        
+        # Add query header to the response for UI display
+        if fabric_query and azure_messages:
+            # Find the last assistant message and prepend the query info
+            for msg in reversed(azure_messages):
+                if msg.get("role") == "assistant":
+                    original_content = msg.get("content", "")
+                    if isinstance(original_content, list):
+                        # Handle Azure AI message format
+                        for item in original_content:
+                            if isinstance(item, dict) and item.get("type") == "text":
+                                text_obj = item.get("text", {})
+                                if isinstance(text_obj, dict):
+                                    original_text = text_obj.get("value", "")
+                                    text_obj["value"] = f"**📊 Fabric Query:** `{fabric_query}`\n\n---\n\n{original_text}"
+                                    break
+                    else:
+                        msg["content"] = f"**📊 Fabric Query:** `{fabric_query}`\n\n---\n\n{original_content}"
+                    break
+        
+        # Check for connectivity issues - match the same phrases used in azure_agent_client_v2.py
+        connectivity_phrases = [
+            "technical difficulties", "connectivity issue", "unable to retrieve", 
+            "data service issue", "encountered an issue", "failure connecting",
+            "issue retrieving", "cannot query", "unable to query",
+            "will retry", "please advise", "alternate access"
+        ]
+        if any(phrase in content.lower() for phrase in connectivity_phrases):
+            logger.warning(f"[CLAIMS_DATA_ANALYST] Fabric connectivity issue detected in response!")
+        else:
+            logger.info(f"[CLAIMS_DATA_ANALYST] Fabric data retrieved successfully")
     
     # Log token usage and attach to current span for telemetry tracking
     if usage_info and (usage_info.get('total_tokens', 0) > 0):

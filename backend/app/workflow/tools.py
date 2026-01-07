@@ -112,6 +112,125 @@ def get_policy_details(policy_number: str) -> Dict[str, Any]:
 def get_claimant_history(claimant_id: str) -> Dict[str, Any]:
     """Retrieve historical claim information for a given claimant."""
     claimant_database = {
+        # Sample claim claimant - Linda Ramirez (CLM-1310)
+        "CLM-1310": {
+            "claimant_id": "CLM-1310",
+            "name": "Linda Ramirez",
+            "customer_since": "2023-06-15",
+            "total_claims": 1,
+            "claim_history": [
+                {
+                    "claim_id": "CLM-2025-001",
+                    "date": "2025-03-10",
+                    "type": "Minor Collision",
+                    "amount_claimed": 4500,
+                    "amount_paid": 4200,
+                    "status": "closed",
+                    "description": "Side mirror damage from parking incident",
+                },
+            ],
+            "risk_factors": {
+                "claim_frequency": "low",
+                "average_claim_amount": 4500,
+                "fraud_indicators": [],
+                "credit_score": "good",
+                "driving_record": "clean",
+            },
+            "contact_info": {
+                "phone": "555-0198",
+                "email": "linda.ramirez@email.com",
+                "address": "456 Oak Ave, Los Angeles, CA 90001",
+            },
+        },
+        # High-value claim claimant - William Gonzalez (CLM-1099)
+        "CLM-1099": {
+            "claimant_id": "CLM-1099",
+            "name": "William Gonzalez",
+            "customer_since": "2021-02-20",
+            "total_claims": 2,
+            "claim_history": [
+                {
+                    "claim_id": "CLM-2024-789",
+                    "date": "2024-11-05",
+                    "type": "Comprehensive",
+                    "amount_claimed": 8500,
+                    "amount_paid": 8200,
+                    "status": "closed",
+                    "description": "Windshield and roof damage from hailstorm",
+                },
+                {
+                    "claim_id": "CLM-2023-456",
+                    "date": "2023-05-18",
+                    "type": "Collision",
+                    "amount_claimed": 12000,
+                    "amount_paid": 11500,
+                    "status": "closed",
+                    "description": "Rear-end collision on highway",
+                },
+            ],
+            "risk_factors": {
+                "claim_frequency": "moderate",
+                "average_claim_amount": 10250,
+                "fraud_indicators": [],
+                "credit_score": "good",
+                "driving_record": "minor_violations",
+            },
+            "contact_info": {
+                "phone": "555-0234",
+                "email": "william.gonzalez@email.com",
+                "address": "789 Pine St, LA City, LA 70001",
+            },
+        },
+        # Auto accident claim claimant - Mary White (CLM-470)
+        "CLM-470": {
+            "claimant_id": "CLM-470",
+            "name": "Mary White",
+            "customer_since": "2020-08-10",
+            "total_claims": 0,
+            "claim_history": [],
+            "risk_factors": {
+                "claim_frequency": "none",
+                "average_claim_amount": 0,
+                "fraud_indicators": [],
+                "credit_score": "excellent",
+                "driving_record": "clean",
+            },
+            "contact_info": {
+                "phone": "555-0345",
+                "email": "mary.white@email.com",
+                "address": "321 Elm Rd, Tampa, FL 33601",
+            },
+        },
+        # Fire damage claim claimant - Betty Thompson (CLM-1569)
+        "CLM-1569": {
+            "claimant_id": "CLM-1569",
+            "name": "Betty Thompson",
+            "customer_since": "2022-04-01",
+            "total_claims": 1,
+            "claim_history": [
+                {
+                    "claim_id": "CLM-2024-102",
+                    "date": "2024-08-22",
+                    "type": "Property Damage",
+                    "amount_claimed": 15000,
+                    "amount_paid": 14500,
+                    "status": "closed",
+                    "description": "Water damage from pipe burst",
+                },
+            ],
+            "risk_factors": {
+                "claim_frequency": "low",
+                "average_claim_amount": 15000,
+                "fraud_indicators": [],
+                "credit_score": "good",
+                "driving_record": "clean",
+            },
+            "contact_info": {
+                "phone": "555-0456",
+                "email": "betty.thompson@email.com",
+                "address": "567 Maple Dr, Cincinnati, OH 45201",
+            },
+        },
         "CLM-001": {
             "claimant_id": "CLM-001",
             "name": "John Smith",

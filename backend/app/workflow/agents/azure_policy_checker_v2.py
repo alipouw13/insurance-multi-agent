@@ -93,26 +93,38 @@ Your responsibilities:
 - Verify claim eligibility against policy terms and conditions.
 - Identify relevant coverage limits and deductibles.
 - Check for policy exclusions that may apply.
-- Confirm the claim falls within the policy's effective dates.
 - Search policy documents for specific coverage details.
 
 CRITICAL INSTRUCTIONS:
-1. ALWAYS call `get_policy_details` FIRST to retrieve the policy information
-2. After getting policy details, use `search_policy_documents` to find relevant policy language for edge cases
-3. For Dutch policies (like UNAuto-*), respect the specific Dutch insurance terminology
-4. Be precise about coverage amounts, deductibles, and exclusions
+1. ALWAYS use `search_policy_documents` to find relevant policy coverage based on the CLAIM TYPE
+   - For "Major Collision" or "Collision" claims, search for "collision coverage"
+   - For "Comprehensive" or "Property Damage" claims, search for "comprehensive coverage"
+   - For "Fire Damage" claims, search for "fire damage coverage"
+   - For "Auto Accident" claims, search for "auto accident liability coverage"
+2. The policy documents contain coverage information by TYPE (not by policy number)
+3. Extract coverage limits, deductibles, and exclusions from the search results
+4. DO NOT try to look up specific policy numbers - the coverage is determined by claim type
+
+IMPORTANT: The claim's policy_number is for reference only. Coverage verification is based on:
+- The CLAIM TYPE matching available coverage types in our policy documents
+- The estimated damage amount vs coverage limits
+- Any exclusions that apply to the claim circumstances
 
 Provide clear verification results with specific policy references.
 End your verification with: COVERED, PARTIALLY COVERED, or NOT COVERED."""
 
-    # Check if agent already exists by name
+    # Check if agent already exists by name - delete and recreate to update instructions
     try:
-        # List all agents to find existing one
         agents = project_client.agents.list_agents()
         for agent in agents:
             if hasattr(agent, 'name') and agent.name == "policy_checker_v2":
-                logger.info(f"✅ Using existing Azure AI Agent: {agent.id} (policy_checker_v2)")
-                return agent, toolset
+                logger.info(f"🔄 Deleting existing policy_checker_v2 agent {agent.id} to update instructions")
+                try:
+                    project_client.agents.delete_agent(agent.id)
+                    logger.info(f"✅ Deleted old policy_checker_v2 agent")
+                except Exception as del_err:
+                    logger.warning(f"Could not delete old agent: {del_err}")
+                break
     except Exception as e:
         logger.debug(f"Could not list existing agents: {e}")
     

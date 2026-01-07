@@ -99,6 +99,7 @@ def call_policy_checker(policy_and_claim_info: str) -> str:
     Returns:
         The Policy Checker's verification including coverage determination
     """
+    import json
     from app.workflow.azure_agent_client_v2 import run_agent_v2
     
     agent_id = get_azure_agent_id_v2("policy_checker")
@@ -107,15 +108,28 @@ def call_policy_checker(policy_and_claim_info: str) -> str:
     if not agent_id:
         return "Error: Policy Checker agent not available"
     
-    prompt = f"""Please verify coverage for this claim:
+    # Parse claim info to extract key fields for better policy matching
+    try:
+        claim_data = json.loads(policy_and_claim_info) if isinstance(policy_and_claim_info, str) else policy_and_claim_info
+    except json.JSONDecodeError:
+        claim_data = {"raw_info": policy_and_claim_info}
+    
+    claim_type = claim_data.get('claim_type', 'unknown')
+    estimated_damage = claim_data.get('estimated_damage', 0)
+    
+    prompt = f"""Please verify coverage for this insurance claim:
 
+Claim Details:
 {policy_and_claim_info}
 
+IMPORTANT: Use the search_policy_documents tool to find relevant policy coverage based on the CLAIM TYPE: "{claim_type}"
+Search for policies that cover this type of claim (e.g., "collision coverage", "comprehensive coverage", "property damage", "fire damage", etc.)
+
 Provide verification including:
-1. Policy eligibility confirmation
-2. Relevant coverage limits and deductibles
-3. Any applicable exclusions
-4. Policy effective dates verification
+1. Policy coverage type that applies to this claim type: {claim_type}
+2. Relevant coverage limits and deductibles for claims of this type
+3. Any applicable exclusions that might affect this claim
+4. Whether the estimated damage (${estimated_damage:,.2f}) is within typical coverage limits
 5. Final verdict: COVERED, PARTIALLY COVERED, or NOT COVERED"""
 
     try:
@@ -227,6 +241,7 @@ def call_claims_data_analyst(claim_query: str) -> str:
     Returns:
         The Claims Data Analyst's findings including historical patterns and statistics
     """
+    import json
     from app.workflow.azure_agent_client_v2 import run_agent_v2
     
     agent_id = get_azure_agent_id_v2("claims_data_analyst")
@@ -235,31 +250,63 @@ def call_claims_data_analyst(claim_query: str) -> str:
     if not agent_id:
         return "Error: Claims Data Analyst not available (Fabric integration not enabled)"
     
-    prompt = f"""Please analyze enterprise data for this claim using the Fabric data tool:
-
-{claim_query}
-
-IMPORTANT: You MUST use the Microsoft Fabric tool to query the lakehouse data.
-
-Query the Fabric data lakehouse to provide:
-1. Historical claims data for this claimant (if any) - look up by claimant_id
-2. Similar claims from other claimants for benchmarking - search by claim_type
-3. Regional statistics for the claim location - search by state
-4. Any matching fraud patterns - check fraud_indicators table
-5. Statistical context (averages, frequencies, outliers)
-
-Provide specific numbers and statistics from your Fabric data queries."""
+    # Parse the claim query to extract key fields for a simple, focused query
+    try:
+        claim_data = json.loads(claim_query) if isinstance(claim_query, str) else claim_query
+    except json.JSONDecodeError:
+        claim_data = {"raw_query": claim_query}
+    
+    # Extract key identifiers
+    claimant_id = claim_data.get('claimant_id', 'unknown')
+    claim_type = claim_data.get('claim_type', 'unknown')
+    state = claim_data.get('state', 'unknown')
+    claimant_name = claim_data.get('claimant_name', 'unknown')
+    
+    # Generate claim-specific simple query (Fabric works best with natural language)
+    fabric_query = _generate_fabric_query_for_supervisor(claim_data)
+    
+    logger.info(f"[CLAIMS_DATA_ANALYST] Fabric Query: {fabric_query}")
 
     try:
         # Force the Fabric Data Agent tool to be invoked
-        messages, usage, _ = run_agent_v2(agent_id, prompt, tool_choice="fabric_dataagent")
+        messages, usage, _ = run_agent_v2(agent_id, fabric_query, tool_choice="fabric_dataagent")
         if messages:
             logger.info(f"Claims Data Analyst completed (tokens: {usage.get('total_tokens', 'N/A')})")
-            return messages[0].get('content', 'No response from Claims Data Analyst')
+            response_content = messages[0].get('content', 'No response from Claims Data Analyst')
+            # Prepend the query to the response for UI display
+            return f"**📊 Fabric Query:** `{fabric_query}`\n\n---\n\n{response_content}"
         return "No response from Claims Data Analyst"
     except Exception as e:
         logger.error(f"Error calling Claims Data Analyst: {e}")
         return f"Error from Claims Data Analyst: {str(e)}"
+
+
+def _generate_fabric_query_for_supervisor(claim_data: dict) -> str:
+    """Generate a claim-specific Fabric query for the supervisor workflow.
+    
+    Creates simple, natural language queries optimized for Fabric Data Agent.
+    """
+    claimant_id = claim_data.get('claimant_id', 'unknown')
+    claim_type = claim_data.get('claim_type', 'unknown')
+    state = claim_data.get('state', 'unknown')
+    claimant_name = claim_data.get('claimant_name', 'unknown')
+    
+    claim_type_lower = claim_type.lower()
+    
+    if 'collision' in claim_type_lower or 'major collision' in claim_type_lower:
+        return f"Show claims history for claimant {claimant_id} ({claimant_name}) and fraud rate for collision claims over $20000 in {state}"
+    elif 'property' in claim_type_lower or 'property damage' in claim_type_lower:
+        return f"Show claims history for claimant {claimant_id} and average property damage claims in {state}"
+    elif 'auto accident' in claim_type_lower or 'accident' in claim_type_lower:
+        return f"Show claims history for claimant {claimant_id} and fraud rate for auto accident claims in {state}"
+    elif 'fire' in claim_type_lower or 'fire damage' in claim_type_lower:
+        return f"Show claims history for claimant {claimant_id} and fire damage fraud indicators in {state}"
+    elif 'theft' in claim_type_lower or 'auto theft' in claim_type_lower:
+        return f"Show claims history for claimant {claimant_id} and auto theft fraud rate in {state}"
+    elif 'liability' in claim_type_lower:
+        return f"Show claims history for claimant {claimant_id} and liability claim patterns in {state}"
+    else:
+        return f"Show claims history for claimant {claimant_id} and fraud rate for {claim_type} claims in {state}"
 
 
 # ---------------------------------------------------------------------------
@@ -325,28 +372,32 @@ SUPERVISOR_INSTRUCTIONS_WITH_FABRIC = """You are a senior claims manager supervi
 
 Your team consists of specialized agents that you can call using your tools:
 1. call_claim_assessor - Evaluates damage validity and cost assessment
-2. call_policy_checker - Verifies coverage and policy terms
+2. call_policy_checker - Verifies coverage and policy terms  
 3. call_risk_analyst - Analyzes fraud risk and claimant history
 4. call_claims_data_analyst - Queries enterprise data from Fabric (historical claims, statistics, fraud patterns)
 5. call_communication_agent - Drafts customer emails for missing information
 
-Your responsibilities:
-- Coordinate the claim-processing workflow in the optimal order
-- Ensure each specialist completes their assessment before moving on
-- Leverage enterprise data insights from the Claims Data Analyst
-- Delegate to the Communication Agent whenever information is missing
-- Synthesize all team inputs into a structured advisory assessment
-- Provide clear reasoning and recommendations to empower human decision-making
+CRITICAL DATA FORMAT INSTRUCTIONS:
+When calling each agent, you MUST pass the COMPLETE claim data as a JSON string. Extract ALL fields from the original claim and pass them to each agent.
+
+Required fields for each agent call:
+- call_claim_assessor: Full claim JSON including claim_id, claim_type, description, estimated_damage, location, police_report, photos_provided
+- call_policy_checker: Full claim JSON including policy_number, claim_type, estimated_damage, incident_date, state (The policy checker will match by claim_type to find relevant coverage)
+- call_claims_data_analyst: Full claim JSON including claimant_id, claimant_name, claim_type, state, estimated_damage
+- call_risk_analyst: Full claim JSON including claimant_id, claimant_name, claim_type, estimated_damage, state
 
 WORKFLOW PROCESS:
 1. FIRST: Call the Claim Assessor (call_claim_assessor) with the full claim data to evaluate damage and documentation
-2. THEN: Call the Policy Checker (call_policy_checker) with policy number and claim details to verify coverage
-3. THEN: Call the Claims Data Analyst (call_claims_data_analyst) to query historical data and statistics from Fabric
-4. THEN: Call the Risk Analyst (call_risk_analyst) with claimant ID and claim details to evaluate fraud potential
+2. THEN: Call the Policy Checker (call_policy_checker) with the full claim data to verify coverage by claim_type
+3. THEN: Call the Claims Data Analyst (call_claims_data_analyst) with the full claim data to query historical data
+4. THEN: Call the Risk Analyst (call_risk_analyst) with the full claim data to evaluate fraud potential
 5. IF any specialist reports missing information: Call the Communication Agent (call_communication_agent) to draft a customer email
 6. FINALLY: Compile a comprehensive assessment summary for human review
 
-IMPORTANT: You MUST call all four primary specialists (Claim Assessor, Policy Checker, Claims Data Analyst, Risk Analyst) before providing your final assessment. Pass the claim data as a JSON string to each tool.
+IMPORTANT: Always pass the COMPLETE original claim JSON to each tool. Do not extract just one or two fields - pass the entire claim object as a JSON string.
+
+Example format for tool calls:
+call_claims_data_analyst('{"claim_id": "CLM-2026-000001", "claimant_id": "CLM-1310", "claimant_name": "Linda Ramirez", "claim_type": "Major Collision", "state": "CA", "estimated_damage": 28392.64, ...}')
 
 End with a structured assessment in this format:
 

@@ -3,24 +3,30 @@
 Sample Insurance Claim Data
 
 This module contains sample claim data for testing the multi-agent insurance claim processing system.
+The claim IDs, policy numbers, and claimant IDs are aligned with the Fabric Lakehouse data:
+- claims_history: claim_id format CLM-2026-NNNNNN, claimant_id format CLM-NNNN
+- claimant_profiles: claimant_id format CLM-NNN
+- policy_claims_summary: policy_number format POL-YYYY-NNN
 """
 
-# Sample insurance claim data with tool-compatible IDs
+# Sample insurance claim data with Lakehouse-compatible IDs
+# Using real claimant from claimant_profiles (CLM-001 = Christopher Brown, CA)
 sample_claim = {
-    "claim_id": "CLM-2024-001",
-    "policy_number": "POL-2024-001",  # Matches our policy database
-    "claimant_id": "CLM-001",  # Added for claimant history lookup
-    "claimant_name": "John Smith",
-    "incident_date": "2024-01-15",
-    "claim_type": "Auto Accident",
+    "claim_id": "CLM-2026-000001",  # Matches claims_history format
+    "policy_number": "POL-2025-914",  # Matches policy_claims_summary
+    "claimant_id": "CLM-1310",  # Matches claims_history claimant_id format
+    "claimant_name": "Linda Ramirez",  # From claims_history row 1
+    "incident_date": "2025-05-22",
+    "claim_type": "Major Collision",  # Matches claims_history claim_type
     "description": "Rear-end collision at intersection. Vehicle sustained damage to rear bumper, trunk, and tail lights. No injuries reported.",
-    "estimated_damage": 4500.00,
-    "location": "Main St & Oak Ave, Springfield",
+    "estimated_damage": 28392.64,  # From claims_history
+    "location": "Los Angeles, CA",
     "police_report": True,
     "photos_provided": True,
-    "witness_statements": "2",
+    "witness_statements": "0",
+    "state": "CA",
     "vehicle_info": {
-        "vin": "1HGBH41JXMN109186",  # Added for vehicle lookup
+        "vin": "1HGBH41JXMN109186",
         "make": "Honda",
         "model": "Civic",
         "year": 2021,
@@ -32,20 +38,21 @@ sample_claim = {
     ]
 }
 
-# High-value claim
+# High-value claim - using claimant CLM-1099 (William Gonzalez) from claims_history
 high_value_claim = {
-    "claim_id": "CLM-2024-002",
-    "policy_number": "POL-2024-001",
-    "claimant_id": "CLM-001",
-    "claimant_name": "John Smith",
-    "incident_date": "2024-02-15",
-    "claim_type": "Major Collision",
+    "claim_id": "CLM-2026-000002",
+    "policy_number": "POL-2021-722",  # Matches policy_claims_summary
+    "claimant_id": "CLM-1099",
+    "claimant_name": "William Gonzalez",
+    "incident_date": "2025-05-09",
+    "claim_type": "Property Damage",
     "description": "Multi-vehicle accident on highway during rush hour. Extensive front-end damage, airbag deployment.",
-    "estimated_damage": 45000.00,
-    "location": "Highway 101, Mile Marker 45",
+    "estimated_damage": 41982.02,
+    "location": "LA City, LA",
     "police_report": True,
     "photos_provided": True,
-    "witness_statements": "3",
+    "witness_statements": "2",
+    "state": "LA",
     "vehicle_info": {
         "vin": "1HGBH41JXMN109186",
         "make": "Honda",
@@ -55,20 +62,21 @@ high_value_claim = {
     }
 }
 
-# Dutch auto insurance claim for policy checker demo
-dutch_auto_claim = {
-    "claim_id": "CLM-2024-004",
-    "policy_number": "UNAuto-02-2024-567890",
-    "claimant_id": "CLM-004",
-    "claimant_name": "Jan de Vries",
-    "incident_date": "2024-01-14",
-    "claim_type": "Auto Collision",
-    "description": "Aanrijding met een andere auto tijdens het uitparkeren. Ik reed achteruit uit een parkeerplaats toen een andere bestuurder plotseling van rechts kwam en tegen mijn rechterzijkant botste. De andere bestuurder beweerde dat ik niet goed had gekeken, maar ik had wel degelijk gecheckt.",
-    "estimated_damage": 3500.00,
-    "location": "Damrak 45, Amsterdam",
+# Auto accident claim - using claimant CLM-470 (Mary White) from claims_history
+auto_accident_claim = {
+    "claim_id": "CLM-2026-000003",
+    "policy_number": "POL-2021-672",
+    "claimant_id": "CLM-470",
+    "claimant_name": "Mary White",
+    "incident_date": "2025-11-13",
+    "claim_type": "Auto Accident",
+    "description": "Aanrijding met een andere auto tijdens het uitparkeren. Vehicle collision in parking lot with moderate damage.",
+    "estimated_damage": 7907.52,
+    "location": "Tampa, FL",
     "police_report": True,
     "photos_provided": True,
-    "witness_statements": "1",
+    "witness_statements": "3",
+    "state": "FL",
     "vehicle_info": {
         "vin": "WVWZZZ1JZXW123456",
         "make": "Volkswagen",
@@ -78,5 +86,23 @@ dutch_auto_claim = {
     }
 }
 
+# Fire damage claim - using claimant CLM-1569 (Betty Thompson) from claims_history
+fire_damage_claim = {
+    "claim_id": "CLM-2026-000005",
+    "policy_number": "POL-2023-988",
+    "claimant_id": "CLM-1569",
+    "claimant_name": "Betty Thompson",
+    "incident_date": "2025-04-25",
+    "claim_type": "Fire Damage",
+    "description": "Kitchen fire caused significant damage. Fire started from electrical fault in kitchen appliances.",
+    "estimated_damage": 41374.12,
+    "location": "Cincinnati, OH",
+    "police_report": False,
+    "photos_provided": True,
+    "witness_statements": "1",
+    "state": "OH",
+    "vehicle_info": None
+}
+
 # List of all sample claims for easy access
-ALL_SAMPLE_CLAIMS = [sample_claim, high_value_claim, dutch_auto_claim]
+ALL_SAMPLE_CLAIMS = [sample_claim, high_value_claim, auto_accident_claim, fire_damage_claim]

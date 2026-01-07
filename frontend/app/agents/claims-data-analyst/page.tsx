@@ -9,6 +9,8 @@ import { ScrollArea } from '@/components/ui/scroll-area'
 import { Separator } from '@/components/ui/separator'
 import { Textarea } from '@/components/ui/textarea'
 import { Label } from '@/components/ui/label'
+import ReactMarkdown from 'react-markdown'
+import remarkGfm from 'remark-gfm'
 import { 
   IconDatabase,
   IconRefresh,
@@ -232,8 +234,24 @@ export default function ClaimsDataAnalystDemo() {
               isAssistant ? 'bg-cyan-50 dark:bg-cyan-950/30 border border-cyan-200 dark:border-cyan-800' :
               'bg-orange-50 dark:bg-orange-950/30 border border-orange-200 dark:border-orange-800'
             }`}>
-              <div className="text-sm whitespace-pre-wrap leading-relaxed">
-                {step.content}
+              <div className="text-sm leading-relaxed prose prose-sm max-w-none dark:prose-invert prose-headings:text-foreground prose-p:text-foreground prose-strong:text-foreground prose-code:text-foreground">
+                <ReactMarkdown 
+                  remarkPlugins={[remarkGfm]}
+                  components={{
+                    h1: ({children}) => <h1 className="text-lg font-semibold mb-2 text-foreground">{children}</h1>,
+                    h2: ({children}) => <h2 className="text-base font-semibold mb-2 text-foreground">{children}</h2>,
+                    h3: ({children}) => <h3 className="text-sm font-semibold mb-1 text-foreground">{children}</h3>,
+                    p: ({children}) => <p className="mb-2 text-foreground">{children}</p>,
+                    ul: ({children}) => <ul className="list-disc list-inside mb-2 space-y-1">{children}</ul>,
+                    ol: ({children}) => <ol className="list-decimal list-inside mb-2 space-y-1">{children}</ol>,
+                    li: ({children}) => <li className="text-foreground">{children}</li>,
+                    strong: ({children}) => <strong className="font-semibold text-foreground">{children}</strong>,
+                    code: ({children}) => <code className="bg-muted px-1 py-0.5 rounded text-xs font-mono text-foreground">{children}</code>,
+                    hr: () => <hr className="my-3 border-border" />,
+                  }}
+                >
+                  {step.content}
+                </ReactMarkdown>
               </div>
             </div>
           </div>

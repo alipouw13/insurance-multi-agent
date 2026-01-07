@@ -27,4 +27,5 @@ dependencies = [
     "opentelemetry-api>=1.21.0",
     "opentelemetry-sdk>=1.21.0",
     "opentelemetry-instrumentation-openai>=0.21.0",
+    "pytest>=8.0.0",
 ]
