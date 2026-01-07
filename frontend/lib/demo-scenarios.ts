@@ -19,123 +19,126 @@ export interface DemoScenario {
   }
 }
 
+// Demo scenarios with IDs matching the Fabric Lakehouse data
+// claims_history: claim_id CLM-2026-NNNNNN, claimant_id CLM-NNNN
+// policy_claims_summary: policy_number POL-YYYY-NNN
 export const demoScenarios: DemoScenario[] = [
   {
     id: 'auto-fender-bender',
     title: 'Minor Auto Accident',
-    description: 'Simple fender bender with clear liability',
+    description: 'Simple fender bender with clear liability - Mary White (CLM-470)',
     category: 'auto',
     complexity: 'simple',
     data: {
       claim_description: 'Rear-ended at traffic light. Minor damage to bumper and taillight. Other driver admitted fault.',
-      policy_number: 'AUTO-2024-001234',
-      incident_date: '2024-06-01',
-      claim_type: 'auto',
-      estimated_amount: 2500,
-      additional_info: 'Police report filed. Photos available.',
+      policy_number: 'POL-2021-672',
+      incident_date: '2025-11-13',
+      claim_type: 'Auto Accident',
+      estimated_amount: 7907.52,
+      additional_info: 'Police report filed. Photos available. Claimant ID: CLM-470',
       customer_info: {
-        name: 'John Smith',
-        email: 'john.smith@email.com',
+        name: 'Mary White',
+        email: 'mary.white@email.com',
         phone: '+1-555-0123'
       }
     }
   },
   {
     id: 'auto-total-loss',
-    title: 'Total Loss Vehicle',
-    description: 'High-value claim requiring detailed investigation',
+    title: 'Major Collision - Total Loss',
+    description: 'High-value claim requiring detailed investigation - Linda Ramirez (CLM-1310)',
     category: 'auto',
     complexity: 'complex',
     data: {
       claim_description: 'Vehicle totaled in highway collision. Airbags deployed. Significant damage to front end and engine compartment.',
-      policy_number: 'AUTO-2024-005678',
-      incident_date: '2024-05-28',
-      claim_type: 'auto',
-      estimated_amount: 35000,
-      additional_info: 'Emergency services responded. Vehicle towed to certified facility.',
+      policy_number: 'POL-2025-914',
+      incident_date: '2025-05-22',
+      claim_type: 'Major Collision',
+      estimated_amount: 28392.64,
+      additional_info: 'Emergency services responded. Vehicle towed to certified facility. Claimant ID: CLM-1310',
       customer_info: {
-        name: 'Sarah Johnson',
-        email: 'sarah.j@email.com',
+        name: 'Linda Ramirez',
+        email: 'linda.ramirez@email.com',
         phone: '+1-555-0456'
       }
     }
   },
   {
     id: 'home-water-damage',
-    title: 'Water Damage Claim',
-    description: 'Burst pipe causing water damage to multiple rooms',
+    title: 'Property Damage Claim',
+    description: 'Property damage requiring assessment - William Gonzalez (CLM-1099)',
     category: 'home',
     complexity: 'moderate',
     data: {
-      claim_description: 'Burst pipe in master bathroom caused flooding in bedroom and living room. Hardwood floors damaged, drywall needs replacement.',
-      policy_number: 'HOME-2024-009876',
-      incident_date: '2024-06-03',
-      claim_type: 'home',
-      estimated_amount: 15000,
-      additional_info: 'Water mitigation company contacted immediately. Photos and moisture readings documented.',
+      claim_description: 'Significant property damage from storm. Multiple areas affected requiring professional restoration.',
+      policy_number: 'POL-2021-722',
+      incident_date: '2025-05-09',
+      claim_type: 'Property Damage',
+      estimated_amount: 41982.02,
+      additional_info: 'Photos and damage assessment documented. Claimant ID: CLM-1099',
       customer_info: {
-        name: 'Michael Chen',
-        email: 'mchen@email.com',
+        name: 'William Gonzalez',
+        email: 'william.gonzalez@email.com',
         phone: '+1-555-0789'
       }
     }
   },
   {
-    id: 'home-theft',
-    title: 'Burglary and Theft',
-    description: 'Break-in with stolen electronics and jewelry',
+    id: 'home-fire',
+    title: 'Fire Damage Claim',
+    description: 'Kitchen fire with significant damage - Betty Thompson (CLM-1569)',
     category: 'home',
     complexity: 'complex',
     data: {
-      claim_description: 'Home burglarized while on vacation. Electronics, jewelry, and cash stolen. Front door lock damaged.',
-      policy_number: 'HOME-2024-011223',
-      incident_date: '2024-05-25',
-      claim_type: 'home',
-      estimated_amount: 25000,
-      additional_info: 'Police report filed. Security system footage available. Itemized list of stolen items provided.',
+      claim_description: 'Kitchen fire caused significant damage. Fire started from electrical fault in kitchen appliances. Fire department responded.',
+      policy_number: 'POL-2023-988',
+      incident_date: '2025-04-25',
+      claim_type: 'Fire Damage',
+      estimated_amount: 41374.12,
+      additional_info: 'Fire report filed. Electrical inspection report available. Claimant ID: CLM-1569',
       customer_info: {
-        name: 'Emily Rodriguez',
-        email: 'emily.r@email.com',
+        name: 'Betty Thompson',
+        email: 'betty.thompson@email.com',
         phone: '+1-555-0321'
       }
     }
   },
   {
-    id: 'health-emergency',
-    title: 'Emergency Room Visit',
-    description: 'Unexpected medical emergency requiring immediate care',
-    category: 'health',
+    id: 'auto-liability',
+    title: 'Liability Claim',
+    description: 'Liability incident requiring investigation - Michael Lewis (CLM-1477)',
+    category: 'auto',
     complexity: 'moderate',
     data: {
-      claim_description: 'Emergency room visit for severe chest pain. EKG, blood work, and CT scan performed. Diagnosed with anxiety attack.',
-      policy_number: 'HEALTH-2024-445566',
-      incident_date: '2024-06-05',
-      claim_type: 'health',
-      estimated_amount: 8500,
-      additional_info: 'All medical records and bills provided. Pre-authorization not required for emergency care.',
+      claim_description: 'Multi-party accident with disputed liability. Multiple witness statements collected.',
+      policy_number: 'POL-2020-977',
+      incident_date: '2025-05-26',
+      claim_type: 'Liability',
+      estimated_amount: 65891.37,
+      additional_info: 'Police report and witness statements provided. Claimant ID: CLM-1477',
       customer_info: {
-        name: 'David Wilson',
-        email: 'dwilson@email.com',
+        name: 'Michael Lewis',
+        email: 'michael.lewis@email.com',
         phone: '+1-555-0654'
       }
     }
   },
   {
-    id: 'health-surgery',
-    title: 'Planned Surgery',
-    description: 'Pre-authorized surgical procedure with complications',
-    category: 'health',
+    id: 'auto-theft',
+    title: 'Auto Theft Claim',
+    description: 'Vehicle theft requiring fraud investigation - Jessica Thomas (CLM-819)',
+    category: 'auto',
     complexity: 'complex',
     data: {
-      claim_description: 'Knee replacement surgery with post-operative complications requiring extended hospital stay and additional procedures.',
-      policy_number: 'HEALTH-2024-778899',
-      incident_date: '2024-05-15',
-      claim_type: 'health',
-      estimated_amount: 45000,
-      additional_info: 'Pre-authorization obtained. Complications documented by surgeon. Extended physical therapy required.',
+      claim_description: 'Vehicle stolen from parking garage. Security footage being reviewed by authorities.',
+      policy_number: 'POL-2023-354',
+      incident_date: '2024-02-27',
+      claim_type: 'Auto Theft',
+      estimated_amount: 25195.69,
+      additional_info: 'Police report filed. Security footage available. Claimant ID: CLM-819',
       customer_info: {
-        name: 'Linda Thompson',
-        email: 'linda.t@email.com',
+        name: 'Jessica Thomas',
+        email: 'jessica.thomas@email.com',
         phone: '+1-555-0987'
       }
     }
@@ -150,9 +153,9 @@ export const communicationScenarios = [
     type: 'email',
     languages: ['en', 'es', 'fr'],
     context: {
-      claim_id: 'CLM-2024-001',
-      customer_name: 'John Smith',
-      policy_number: 'AUTO-2024-001234'
+      claim_id: 'CLM-2026-000001',
+      customer_name: 'Linda Ramirez',
+      policy_number: 'POL-2025-914'
     }
   },
   {
@@ -162,8 +165,8 @@ export const communicationScenarios = [
     type: 'email',
     languages: ['en', 'es'],
     context: {
-      claim_id: 'CLM-2024-002',
-      customer_name: 'Sarah Johnson',
+      claim_id: 'CLM-2026-000002',
+      customer_name: 'William Gonzalez',
       required_docs: ['Police report', 'Repair estimates', 'Photos']
     }
   },
@@ -174,9 +177,9 @@ export const communicationScenarios = [
     type: 'email',
     languages: ['en', 'fr'],
     context: {
-      claim_id: 'CLM-2024-003',
-      customer_name: 'Michael Chen',
-      settlement_amount: 15000
+      claim_id: 'CLM-2026-000003',
+      customer_name: 'Mary White',
+      settlement_amount: 7907.52
     }
   },
   {
@@ -186,8 +189,8 @@ export const communicationScenarios = [
     type: 'sms',
     languages: ['en', 'es'],
     context: {
-      claim_id: 'CLM-2024-004',
-      customer_name: 'Emily Rodriguez',
+      claim_id: 'CLM-2026-000005',
+      customer_name: 'Betty Thompson',
       current_status: 'Under review'
     }
   }

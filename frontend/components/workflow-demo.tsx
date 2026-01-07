@@ -97,15 +97,6 @@ const AGENT_CONFIG = {
     description: 'Fraud detection specialist',
     capabilities: ['Fraud Detection', 'Risk Assessment', 'Pattern Analysis']
   },
-  'communication_agent': {
-    icon: IconMessage,
-    color: 'text-purple-600 dark:text-purple-400',
-    bgColor: 'bg-purple-100 dark:bg-purple-900/30',
-    borderColor: 'border-purple-200 dark:border-purple-800',
-    displayName: 'Communication Agent',
-    description: 'Customer communication specialist',
-    capabilities: ['Email Drafting', 'Customer Updates', 'Documentation']
-  },
   'claims_data_analyst': {
     icon: IconDatabase,
     color: 'text-cyan-600 dark:text-cyan-400',
@@ -114,6 +105,15 @@ const AGENT_CONFIG = {
     displayName: 'Claims Data Analyst',
     description: 'Enterprise data specialist',
     capabilities: ['Historical Analysis', 'Fraud Patterns', 'Regional Statistics']
+  },
+  'communication_agent': {
+    icon: IconMessage,
+    color: 'text-purple-600 dark:text-purple-400',
+    bgColor: 'bg-purple-100 dark:bg-purple-900/30',
+    borderColor: 'border-purple-200 dark:border-purple-800',
+    displayName: 'Communication Agent',
+    description: 'Customer communication specialist',
+    capabilities: ['Email Drafting', 'Customer Updates', 'Documentation']
   },
   'supervisor': {
     icon: IconRobot,
