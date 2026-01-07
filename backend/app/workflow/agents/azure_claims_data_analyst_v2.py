@@ -31,11 +31,11 @@ logger = logging.getLogger(__name__)
 try:
     from azure.ai.agents.models import FabricTool
     FABRIC_TOOL_AVAILABLE = True
-    logger.info("✅ FabricTool is available in the SDK")
+    logger.info("[OK] FabricTool is available in the SDK")
 except ImportError:
     FABRIC_TOOL_AVAILABLE = False
     logger.warning(
-        "⚠️  FabricTool not available in current azure-ai-agents SDK version. "
+        "[WARN] FabricTool not available in current azure-ai-agents SDK version. "
         "Fabric Data Agent integration will not be available. "
         "Check for SDK updates or use Azure AI Foundry portal to test Fabric integration."
     )
@@ -46,6 +46,8 @@ except ImportError:
 # ---------------------------------------------------------------------------
 
 CLAIMS_DATA_ANALYST_INSTRUCTIONS = """You are a Claims Data Analyst with access to enterprise claims data through Microsoft Fabric.
+
+CRITICAL: You MUST use the Microsoft Fabric tool to query data. For any claims-related data questions, ALWAYS invoke the Fabric tool to query the lakehouse.
 
 Your role is to provide data-driven insights by querying the insurance company's claims data lakehouse. You can answer questions about:
 
@@ -176,7 +178,7 @@ def create_claims_data_analyst_agent_v2(project_client: AIProjectClient = None):
     try:
         connection = project_client.connections.get(settings.fabric_connection_name)
         fabric_connection_id = connection.id
-        logger.info(f"✅ Found Fabric connection: {settings.fabric_connection_name} -> {fabric_connection_id}")
+        logger.info(f"[OK] Found Fabric connection: {settings.fabric_connection_name} -> {fabric_connection_id}")
     except Exception as e:
         raise ValueError(
             f"Could not find Fabric connection '{settings.fabric_connection_name}' in Azure AI Foundry. "
@@ -197,8 +199,27 @@ def create_claims_data_analyst_agent_v2(project_client: AIProjectClient = None):
         agents = project_client.agents.list_agents()
         for agent in agents:
             if hasattr(agent, 'name') and agent.name == "claims_data_analyst_v2":
-                logger.info(f"✅ Using existing Azure AI Agent: {agent.id} (claims_data_analyst_v2)")
-                return agent, toolset
+                # Check if agent has Fabric tool
+                has_fabric_tool = False
+                if hasattr(agent, 'tools') and agent.tools:
+                    for tool in agent.tools:
+                        tool_type = tool.get('type') if isinstance(tool, dict) else getattr(tool, 'type', None)
+                        if tool_type == 'fabric_dataagent':
+                            has_fabric_tool = True
+                            break
+                
+                if has_fabric_tool:
+                    logger.info(f"[OK] Using existing Azure AI Agent with Fabric tool: {agent.id}")
+                    return agent, toolset
+                else:
+                    # Agent exists but without Fabric tool - delete and recreate
+                    logger.info(f"[WARN] Existing agent {agent.id} doesn't have Fabric tool, deleting...")
+                    try:
+                        project_client.agents.delete_agent(agent.id)
+                        logger.info(f"Deleted old agent {agent.id}")
+                    except Exception as delete_err:
+                        logger.warning(f"Could not delete agent: {delete_err}")
+                    break
     except Exception as e:
         logger.debug(f"Could not list existing agents: {e}")
     
@@ -210,7 +231,8 @@ def create_claims_data_analyst_agent_v2(project_client: AIProjectClient = None):
             instructions=CLAIMS_DATA_ANALYST_INSTRUCTIONS,
             tools=fabric_tool.definitions,  # Fabric tool definitions
         )
-        logger.info(f"✅ Created Azure AI Agent (v2): {agent.id} (claims_data_analyst_v2)")
+        logger.info(f"[OK] Created Azure AI Agent (v2): {agent.id} (claims_data_analyst_v2)")
+        logger.info(f"   Agent tools: {[t.type if hasattr(t, 'type') else str(t) for t in agent.tools] if hasattr(agent, 'tools') and agent.tools else 'None'}")
         return agent, toolset
     except Exception as e:
         logger.error(f"Failed to create claims data analyst agent v2: {e}", exc_info=True)

@@ -91,7 +91,7 @@ def deploy_azure_agents_v2() -> Dict[str, str]:
     from app.core.config import get_settings
     settings = get_settings()
     
-    logger.info("🚀 Deploying Azure AI Agent Service agents (v2)...")
+    logger.info("[START] Deploying Azure AI Agent Service agents (v2)...")
     
     try:
         # Get project client
@@ -112,17 +112,17 @@ def deploy_azure_agents_v2() -> Dict[str, str]:
                 try:
                     from app.workflow.agents.azure_claims_data_analyst_v2 import is_fabric_tool_available
                     if is_fabric_tool_available():
-                        logger.info("📊 Fabric Data Agent enabled - adding Claims Data Analyst")
+                        logger.info("[DATA] Fabric Data Agent enabled - adding Claims Data Analyst")
                         agent_creators["claims_data_analyst"] = _deploy_claims_data_analyst_v2
                     else:
                         logger.warning(
-                            "⚠️  FabricTool not available in current SDK version - skipping Claims Data Analyst. "
+                            "[WARN] FabricTool not available in current SDK version - skipping Claims Data Analyst. "
                             "Check for azure-ai-agents SDK updates."
                         )
                 except ImportError as e:
-                    logger.warning(f"⚠️  Could not import Fabric module: {e}")
+                    logger.warning(f"[WARN] Could not import Fabric module: {e}")
             else:
-                logger.warning("⚠️  USE_FABRIC_DATA_AGENT=true but FABRIC_CONNECTION_NAME not set - skipping Claims Data Analyst")
+                logger.warning("[WARN] USE_FABRIC_DATA_AGENT=true but FABRIC_CONNECTION_NAME not set - skipping Claims Data Analyst")
         
         deployed_count = 0
         for agent_name, creator_func in agent_creators.items():
@@ -131,21 +131,21 @@ def deploy_azure_agents_v2() -> Dict[str, str]:
                 _AZURE_AGENT_IDS_V2[agent_name] = agent_id
                 _AZURE_AGENT_TOOLSETS_V2[agent_name] = toolset
                 _AZURE_AGENT_FUNCTIONS_V2[agent_name] = functions
-                logger.info(f"✅ Deployed {agent_name} (v2): {agent_id} (tools: {'Yes' if toolset else 'No'}, functions: {len(functions) if functions else 0})")
+                logger.info(f"[OK] Deployed {agent_name} (v2): {agent_id} (tools: {'Yes' if toolset else 'No'}, functions: {len(functions) if functions else 0})")
                 deployed_count += 1
             except Exception as e:
-                logger.warning(f"⚠️  Failed to deploy {agent_name} (v2): {e}")
+                logger.warning(f"[WARN] Failed to deploy {agent_name} (v2): {e}")
         
         if deployed_count > 0:
-            logger.info(f"✅ Successfully deployed {deployed_count}/{len(agent_creators)} Azure AI agents (v2)")
+            logger.info(f"[OK] Successfully deployed {deployed_count}/{len(agent_creators)} Azure AI agents (v2)")
         else:
-            logger.warning("⚠️  No Azure AI agents (v2) deployed - will use LangGraph fallback")
+            logger.warning("[WARN] No Azure AI agents (v2) deployed - will use LangGraph fallback")
         
         return _AZURE_AGENT_IDS_V2.copy()
         
     except Exception as e:
-        logger.warning(f"⚠️  Azure AI Agent Service (v2) not available: {e}")
-        logger.warning("⚠️  Application will use LangGraph agents as fallback")
+        logger.warning(f"[WARN] Azure AI Agent Service (v2) not available: {e}")
+        logger.warning("[WARN] Application will use LangGraph agents as fallback")
         return {}
 
 

@@ -86,7 +86,10 @@ def _run_azure_agent_v2(agent_name: str, claim_data: Dict[str, Any]) -> tuple[Li
     from app.workflow.azure_agent_manager_v2 import get_azure_agent_id_v2, get_azure_agent_functions_v2
     from app.workflow.azure_agent_client_v2 import run_agent_v2
     
+    logger.info(f"[AGENT] Running Azure AI agent: {agent_name}")
+    
     agent_id = get_azure_agent_id_v2(agent_name)
+    logger.info(f"[AGENT] Agent ID for {agent_name}: {agent_id}")
     
     # Create user message
     user_message = f"Please process this insurance claim:\n\n{json.dumps(claim_data, indent=2)}"
@@ -94,12 +97,35 @@ def _run_azure_agent_v2(agent_name: str, claim_data: Dict[str, Any]) -> tuple[Li
     # Get functions for agent if it needs tools (v2 uses function dicts, not toolsets)
     functions = get_azure_agent_functions_v2(agent_name)
     
+    # Special handling for Claims Data Analyst - force Fabric tool
+    tool_choice = None
+    if agent_name == "claims_data_analyst":
+        tool_choice = "fabric_dataagent"
+        logger.info(f"[CLAIMS_DATA_ANALYST] Forcing tool_choice={tool_choice} for Fabric queries")
+        logger.info(f"[CLAIMS_DATA_ANALYST] Claimant ID: {claim_data.get('claimant_id', 'N/A')}")
+        user_message = f"""Please analyze enterprise data for this claim using the Fabric data tool:
+
+{json.dumps(claim_data, indent=2)}
+
+IMPORTANT: You MUST use the Microsoft Fabric tool to query the lakehouse data.
+
+Query the Fabric data lakehouse to provide:
+1. Historical claims data for this claimant (if any) - look up by claimant_id
+2. Similar claims from other claimants for benchmarking - search by claim_type
+3. Regional statistics for the claim location - search by state
+4. Any matching fraud patterns - check fraud_indicators table
+5. Statistical context (averages, frequencies, outliers)
+
+Provide specific numbers and statistics from your Fabric data queries."""
+    
     # Run Azure agent v2 and get messages with usage info
-    azure_messages, usage_info, _ = run_agent_v2(agent_id, user_message, functions=functions)
+    logger.info(f"[AGENT] Calling run_agent_v2 for {agent_name} (tool_choice={tool_choice})")
+    azure_messages, usage_info, _ = run_agent_v2(agent_id, user_message, functions=functions, tool_choice=tool_choice)
+    logger.info(f"[AGENT] Agent {agent_name} returned {len(azure_messages)} messages")
     
     # Log token usage and attach to current span for telemetry tracking
     if usage_info and (usage_info.get('total_tokens', 0) > 0):
-        logger.debug(f"💰 Azure AI agent token usage for {agent_name}: {usage_info['prompt_tokens']} prompt + {usage_info['completion_tokens']} completion = {usage_info['total_tokens']} total tokens")
+        logger.info(f"[AGENT] Token usage for {agent_name}: {usage_info.get('prompt_tokens', 0)} prompt + {usage_info.get('completion_tokens', 0)} completion = {usage_info.get('total_tokens', 0)} total")
         
         # Attach usage info to current OpenTelemetry span so it can be captured by span processor
         from opentelemetry import trace

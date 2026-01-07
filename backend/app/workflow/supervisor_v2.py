@@ -235,22 +235,24 @@ def call_claims_data_analyst(claim_query: str) -> str:
     if not agent_id:
         return "Error: Claims Data Analyst not available (Fabric integration not enabled)"
     
-    prompt = f"""Please analyze enterprise data for this claim:
+    prompt = f"""Please analyze enterprise data for this claim using the Fabric data tool:
 
 {claim_query}
 
+IMPORTANT: You MUST use the Microsoft Fabric tool to query the lakehouse data.
+
 Query the Fabric data lakehouse to provide:
-1. Historical claims data for this claimant (if any)
-2. Similar claims from other claimants for benchmarking
-3. Regional statistics for the claim location
-4. Any matching fraud patterns
+1. Historical claims data for this claimant (if any) - look up by claimant_id
+2. Similar claims from other claimants for benchmarking - search by claim_type
+3. Regional statistics for the claim location - search by state
+4. Any matching fraud patterns - check fraud_indicators table
 5. Statistical context (averages, frequencies, outliers)
 
-Provide specific numbers and statistics from your data queries."""
+Provide specific numbers and statistics from your Fabric data queries."""
 
     try:
-        # Fabric tool is handled by Azure AI Agent Service
-        messages, usage, _ = run_agent_v2(agent_id, prompt)
+        # Force the Fabric Data Agent tool to be invoked
+        messages, usage, _ = run_agent_v2(agent_id, prompt, tool_choice="fabric_dataagent")
         if messages:
             logger.info(f"Claims Data Analyst completed (tokens: {usage.get('total_tokens', 'N/A')})")
             return messages[0].get('content', 'No response from Claims Data Analyst')
@@ -438,17 +440,31 @@ def create_supervisor_agent_v2(project_client: AIProjectClient = None):
     project_client.agents.enable_auto_function_calls(toolset)
     logger.info("Enabled auto function calls for toolset")
 
-    # Delete existing supervisor agent if it exists (to ensure fresh function references)
+    # Check if supervisor agent already exists
+    expected_tool_count = len(supervisor_functions)
     try:
         agents = project_client.agents.list_agents()
         for agent in agents:
             if hasattr(agent, 'name') and agent.name == "insurance_supervisor_v2":
-                logger.info(f"Deleting existing Supervisor Agent: {agent.id} to recreate with fresh tools")
-                try:
-                    project_client.agents.delete_agent(agent.id)
-                    logger.info(f"Deleted existing supervisor agent")
-                except Exception as del_err:
-                    logger.warning(f"Could not delete existing agent: {del_err}")
+                # Check if agent has the right number of tools (function tools)
+                agent_tools = agent.tools or []
+                has_function_tool = any(
+                    (t.get('type') if isinstance(t, dict) else getattr(t, 'type', None)) == 'function'
+                    for t in agent_tools
+                )
+                if has_function_tool:
+                    logger.info(f"[OK] Using existing Supervisor Agent: {agent.id}")
+                    _SUPERVISOR_AGENT_ID = agent.id
+                    _SUPERVISOR_TOOLSET = toolset
+                    return agent, toolset
+                else:
+                    # Agent exists but without proper tools - delete and recreate
+                    logger.info(f"[WARN] Existing supervisor {agent.id} missing tools, recreating...")
+                    try:
+                        project_client.agents.delete_agent(agent.id)
+                    except Exception as del_err:
+                        logger.warning(f"Could not delete existing agent: {del_err}")
+                    break
     except Exception as e:
         logger.debug(f"Could not list existing agents: {e}")
     
@@ -460,7 +476,7 @@ def create_supervisor_agent_v2(project_client: AIProjectClient = None):
             instructions=instructions,
             toolset=toolset,
         )
-        logger.info(f"Created Supervisor Agent (v2): {agent.id}")
+        logger.info(f"[OK] Created Supervisor Agent (v2): {agent.id}")
         _SUPERVISOR_AGENT_ID = agent.id
         _SUPERVISOR_TOOLSET = toolset
         return agent, toolset
@@ -535,11 +551,12 @@ def process_claim_with_supervisor_v2(claim_data: Dict[str, Any]) -> List[Dict[st
     logger.info(f"Processing Claim ID: {claim_data.get('claim_id', 'Unknown')}")
     logger.info("=" * 60)
 
-    # Always recreate supervisor to ensure fresh tool definitions
-    # This is important because the tools need to be properly registered with the agent
-    logger.info("Recreating supervisor agent with fresh tool definitions...")
-    initialize_v2_agents()
+    # Initialize agents if not already done (reuses existing agents)
     supervisor_id = get_supervisor_agent_id()
+    if not supervisor_id:
+        logger.info("Initializing supervisor and specialized agents...")
+        initialize_v2_agents()
+        supervisor_id = get_supervisor_agent_id()
     
     if not supervisor_id:
         logger.error("Failed to initialize supervisor agent")

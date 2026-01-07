@@ -35,7 +35,7 @@ def get_project_client_v2() -> AIProjectClient:
             endpoint=settings.project_endpoint,
             credential=DefaultAzureCredential()
         )
-        logger.info("✅ Azure AI Project Client (v2) initialized")
+        logger.info("[OK] Azure AI Project Client (v2) initialized")
     
     return _project_client
 
@@ -44,7 +44,8 @@ def run_agent_v2(
     agent_id: str, 
     user_message: str, 
     toolset=None, 
-    functions: Optional[Dict[str, Callable]] = None
+    functions: Optional[Dict[str, Callable]] = None,
+    tool_choice: str = None
 ) -> tuple[List[Dict[str, Any]], Dict[str, Any], List[Dict[str, Any]]]:
     """Run an Azure AI Agent Service agent with a user message using new SDK.
     
@@ -57,6 +58,7 @@ def run_agent_v2(
         user_message: The user's input message
         toolset: Optional ToolSet with tool definitions (not used in manual mode)
         functions: Dict mapping function names to callable functions for manual execution
+        tool_choice: Optional tool type to force (e.g., "fabric_dataagent" for FabricTool)
         
     Returns:
         Tuple of (messages, usage_info, tool_results) where:
@@ -64,12 +66,21 @@ def run_agent_v2(
         - usage_info: Dict with token counts  
         - tool_results: List of dicts with tool execution details (function_name, args, output)
     """
+    logger.info(f"[RUN_AGENT_V2] Called with agent_id={agent_id}, tool_choice={tool_choice}, has_functions={bool(functions)}")
+    
+    if not agent_id:
+        logger.error("[RUN_AGENT_V2] agent_id is None or empty!")
+        return ([{
+            "role": "assistant",
+            "content": "Error: Agent ID is not configured. Please check agent deployment."
+        }], {}, [])
+    
     project_client = get_project_client_v2()
     
     try:
         # Create a thread for this conversation
         thread = project_client.agents.threads.create()
-        logger.debug(f"Created thread: {thread.id}")
+        logger.info(f"[RUN_AGENT_V2] Created thread: {thread.id}")
         
         # Add the user message to the thread
         project_client.agents.messages.create(
@@ -77,20 +88,22 @@ def run_agent_v2(
             role="user",
             content=user_message
         )
-        logger.debug(f"Added user message to thread")
+        logger.info(f"[RUN_AGENT_V2] Added user message to thread (length: {len(user_message)} chars)")
         
         # If we have functions, use manual tool execution for reliability
         if functions:
+            logger.info(f"[RUN_AGENT_V2] Using manual tool execution with {len(functions)} functions")
             return _run_agent_with_manual_tools(
                 project_client, agent_id, thread.id, functions
             )
         else:
-            # No functions, just run normally
-            messages, usage = _run_agent_simple(project_client, agent_id, thread.id)
+            # No functions, just run normally (but may use Azure-managed tools like FabricTool)
+            logger.info(f"[RUN_AGENT_V2] Using simple mode (Azure-managed tools) with tool_choice={tool_choice}")
+            messages, usage = _run_agent_simple(project_client, agent_id, thread.id, tool_choice)
             return (messages, usage, [])  # No tool results in simple mode
         
     except Exception as e:
-        logger.error(f"Error running agent: {e}", exc_info=True)
+        logger.error(f"[RUN_AGENT_V2] Error running agent: {e}", exc_info=True)
         return ([{
             "role": "assistant",
             "content": f"Error executing agent: {str(e)}"
@@ -100,15 +113,59 @@ def run_agent_v2(
 def _run_agent_simple(
     project_client: AIProjectClient, 
     agent_id: str, 
-    thread_id: str
+    thread_id: str,
+    tool_choice: str = None
 ) -> tuple[List[Dict[str, Any]], Dict[str, Any]]:
-    """Run agent without tool handling (simple mode)."""
-    run = project_client.agents.runs.create_and_process(
-        thread_id=thread_id,
-        agent_id=agent_id
-    )
+    """Run agent without tool handling (simple mode).
     
-    logger.debug(f"Agent run completed with status: {run.status}")
+    Used for agents with Azure-managed tools (like FabricTool) that don't need
+    local function execution. Azure AI Agent Service handles tool invocations
+    automatically via create_and_process.
+    
+    Args:
+        project_client: AIProjectClient instance
+        agent_id: ID of the agent to run
+        thread_id: ID of the thread to run in
+        tool_choice: Optional tool type to force (e.g., "fabric_dataagent" for FabricTool)
+    """
+    logger.info(f"[SIMPLE_RUN] Running agent {agent_id} in simple mode (Azure-managed tools)")
+    
+    # Build run parameters
+    run_kwargs = {
+        "thread_id": thread_id,
+        "agent_id": agent_id
+    }
+    
+    # Add tool_choice if specified (forces the tool to be invoked)
+    if tool_choice:
+        run_kwargs["tool_choice"] = {"type": tool_choice}
+        logger.info(f"[SIMPLE_RUN] Forcing tool_choice: {tool_choice}")
+    
+    logger.info(f"[SIMPLE_RUN] Creating run with kwargs: thread_id={thread_id}, agent_id={agent_id}, tool_choice={tool_choice}")
+    run = project_client.agents.runs.create_and_process(**run_kwargs)
+    
+    logger.info(f"[SIMPLE_RUN] Agent run completed - Status: {run.status}")
+    if run.status == "failed":
+        logger.error(f"[SIMPLE_RUN] Run failed with error: {getattr(run, 'last_error', 'Unknown')}")
+    
+    # Log additional run details for debugging Fabric integration
+    if hasattr(run, 'tools') and run.tools:
+        logger.info(f"[SIMPLE_RUN] Agent tools configured: {[t.type if hasattr(t, 'type') else str(t) for t in run.tools]}")
+    
+    # Check for tool calls that were made during the run
+    run_steps = _get_run_steps(project_client, thread_id, run.id)
+    if run_steps:
+        logger.info(f"[SIMPLE_RUN] Run had {len(run_steps)} steps")
+        for step in run_steps:
+            step_type = getattr(step, 'type', 'unknown')
+            logger.info(f"  Run step: {step_type}")
+            if step_type == 'tool_calls' and hasattr(step, 'step_details'):
+                tool_calls = getattr(step.step_details, 'tool_calls', [])
+                for tc in tool_calls:
+                    tc_type = getattr(tc, 'type', 'unknown')
+                    logger.info(f"    Tool call type: {tc_type}")
+                    if hasattr(tc, 'fabric'):
+                        logger.info(f"    Fabric query executed: {getattr(tc.fabric, 'query', 'N/A')}")
     
     usage_info = _extract_usage(run)
     
@@ -208,7 +265,7 @@ def _run_agent_with_manual_tools(
                         logger.debug(f"  Executing {function_name} with args: {list(args.keys())}")
                         result = functions[function_name](**args)
                         
-                        logger.info(f"  ✅ {function_name} executed successfully")
+                        logger.info(f"  [OK] {function_name} executed successfully")
                         
                         # Capture tool result for trace output
                         tool_results.append({
@@ -223,7 +280,7 @@ def _run_agent_with_manual_tools(
                             "output": str(result)
                         })
                     except Exception as e:
-                        logger.error(f"  ❌ Error executing {function_name}: {e}")
+                        logger.error(f"  [ERROR] Error executing {function_name}: {e}")
                         error_output = f"Error executing {function_name}: {str(e)}"
                         
                         # Capture error for trace output
@@ -240,7 +297,7 @@ def _run_agent_with_manual_tools(
                             "output": error_output
                         })
                 else:
-                    logger.warning(f"  ⚠️ Function '{function_name}' not found in provided functions")
+                    logger.warning(f"  [WARN] Function '{function_name}' not found in provided functions")
                     error_output = f"Error: Function '{function_name}' is not available"
                     
                     # Capture error for trace output
@@ -299,6 +356,23 @@ def _poll_run_status(
             return run
         
         time.sleep(0.5)
+
+
+def _get_run_steps(
+    project_client: AIProjectClient,
+    thread_id: str,
+    run_id: str
+) -> list:
+    """Get the steps executed during a run (for debugging tool calls)."""
+    try:
+        steps = project_client.agents.runs.steps.list(
+            thread_id=thread_id,
+            run_id=run_id
+        )
+        return list(steps)
+    except Exception as e:
+        logger.debug(f"Could not retrieve run steps: {e}")
+        return []
 
 
 def _get_required_tool_calls(run) -> List[Dict[str, Any]]:

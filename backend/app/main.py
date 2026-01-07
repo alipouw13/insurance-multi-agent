@@ -82,31 +82,31 @@ async def startup_event():
         if cosmos_service._initialized:
             logger.info("✅ Cosmos DB initialized for agent tracking")
         else:
-            logger.info("ℹ️  Cosmos DB not configured, agent persistence disabled")
+            logger.info("[INFO] Cosmos DB not configured, agent persistence disabled")
     except Exception as e:
-        logger.warning(f"⚠️  Failed to initialize Cosmos DB: {e}")
+        logger.warning(f"[WARN] Failed to initialize Cosmos DB: {e}")
     
     # Initialize policy search index
-    logger.info("🚀 Initializing policy search index...")
+    logger.info("[START] Initializing policy search index...")
     try:
         policy_search = get_policy_search()
-        logger.info("✅ Policy search index initialized successfully")
+        logger.info("[OK] Policy search index initialized successfully")
     except Exception as e:
-        logger.error("❌ Failed to initialize policy search index: %s", e)
+        logger.error("[ERROR] Failed to initialize policy search index: %s", e)
         # Don't raise - let the app start but log the error
     
     # Deploy Azure AI agents (v2)
-    logger.info("🚀 Deploying Azure AI Agent Service agents (v2)...")
+    logger.info("[START] Deploying Azure AI Agent Service agents (v2)...")
     try:
         from app.workflow.azure_agent_manager_v2 import deploy_azure_agents_v2
         azure_agents = deploy_azure_agents_v2()
         if azure_agents:
-            logger.info(f"✅ Azure AI agents (v2) deployed: {list(azure_agents.keys())}")
+            logger.info(f"[OK] Azure AI agents (v2) deployed: {list(azure_agents.keys())}")
         else:
-            logger.info("ℹ️  Using LangGraph agents (Azure AI agents not available)")
+            logger.info("[INFO] Using LangGraph agents (Azure AI agents not available)")
     except Exception as e:
-        logger.warning(f"⚠️  Failed to deploy Azure AI agents: {e}")
-        logger.info("ℹ️  Using LangGraph agents as fallback")
+        logger.warning(f"[WARN] Failed to deploy Azure AI agents: {e}")
+        logger.info("[INFO] Using LangGraph agents as fallback")
 
 # Root
 
