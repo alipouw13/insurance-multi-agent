@@ -168,14 +168,44 @@ The backend integrates with these Azure services:
 
 ## Multi-Agent Architecture
 
-The system uses a supervisor pattern with specialized agents:
+The system uses a supervisor pattern with specialized agents deployed to Azure AI Foundry.
 
-1. **Claim Assessor**: Analyzes claim details and identifies key information
-2. **Policy Checker**: Searches and validates policy coverage
-3. **Risk Analyst**: Evaluates risk factors and fraud indicators
-4. **Communication Agent**: Generates customer-facing communications
+### Deployed Agents
 
-The supervisor coordinates agent execution, manages state, and aggregates results.
+When the application starts with `USE_AZURE_AGENTS=true`, the following agents are automatically created in Azure AI Foundry:
+
+| Agent Name | ID in Foundry | Description | Tools |
+|------------|---------------|-------------|-------|
+| **Insurance Supervisor** | `insurance_supervisor_v2` | Orchestrates the multi-agent workflow, coordinates specialists, and aggregates results | Function tools to call specialist agents |
+| **Claim Assessor** | `claim_assessor_v2` | Analyzes claim details, validates damage estimates, processes supporting images | `analyze_image` for damage photo analysis |
+| **Policy Checker** | `policy_checker_v2` | Searches policy documents, validates coverage, checks exclusions | `search_policy_documents` for RAG search |
+| **Risk Analyst** | `risk_analyst_v2` | Evaluates fraud indicators, assesses risk scores, identifies patterns | None (analysis-based) |
+| **Communication Agent** | `communication_agent_v2` | Generates customer-facing emails and communications | None (generation-based) |
+| **Claims Data Analyst** | `claims_data_analyst_v2` | Queries enterprise claims data using natural language (Fabric integration) | `FabricTool` connected to Fabric Data Agent |
+
+### Optional Agents
+
+The **Claims Data Analyst** agent is only created when Fabric integration is enabled:
+
+```bash
+# Enable in .env
+USE_AZURE_AGENTS=true
+USE_FABRIC_DATA_AGENT=true
+FABRIC_CONNECTION_NAME=your-fabric-connection-name
+```
+
+This agent uses the `FabricTool` to connect to a Microsoft Fabric Data Agent, enabling natural language queries against enterprise data in Fabric Lakehouse. See the [`fabric/README.md`](fabric/README.md) for setup instructions.
+
+### Workflow Coordination
+
+The supervisor coordinates agent execution, manages state, and aggregates results. The workflow follows this pattern:
+
+1. **Claim Assessment**: Claim Assessor analyzes the claim details and damage
+2. **Policy Validation**: Policy Checker searches for relevant coverage
+3. **Risk Analysis**: Risk Analyst evaluates fraud indicators
+4. **Data Analysis** (optional): Claims Data Analyst queries historical data
+5. **Communication**: Communication Agent drafts customer response
+6. **Final Decision**: Supervisor aggregates all inputs and makes recommendation
 
 ## Evaluation
 

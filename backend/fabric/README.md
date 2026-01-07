@@ -2,6 +2,21 @@
 
 This folder contains Python scripts to populate a Microsoft Fabric Lakehouse with sample insurance claims data. The data is used by the **Claims Data Analyst** agent which leverages the Fabric Data Agent tool to query enterprise data.
 
+## Agent Overview
+
+The **Claims Data Analyst** (`claims_data_analyst_v2`) is one of six specialized agents in the Insurance Multi-Agent system:
+
+| Agent | Purpose | Integration |
+|-------|---------|-------------|
+| Insurance Supervisor | Orchestrates workflow | Coordinates all agents |
+| Claim Assessor | Damage evaluation | Image analysis |
+| Policy Checker | Coverage validation | Azure AI Search (RAG) |
+| Risk Analyst | Fraud detection | Analysis-based |
+| Communication Agent | Customer outreach | Generation-based |
+| **Claims Data Analyst** | Enterprise data queries | **Fabric Data Agent** |
+
+The Claims Data Analyst enables natural language queries against enterprise claims data stored in Microsoft Fabric Lakehouse, providing historical context for claim processing decisions.
+
 ## Prerequisites
 
 1. **Microsoft Fabric Workspace** with a Lakehouse
@@ -142,28 +157,70 @@ After creating the connection, note the exact **connection name** you used. This
 Set these environment variables in your `.env` file:
 
 ```bash
+# Enable Azure AI Agent Service (required for Fabric integration)
+USE_AZURE_AGENTS=true
+
 # Enable Fabric Data Agent integration
 USE_FABRIC_DATA_AGENT=true
 
 # Connection name from Azure AI Foundry (Step 6c)
 FABRIC_CONNECTION_NAME=fabric-claims-data-agent
-
-# Data Agent artifact ID from Fabric (Step 6a)
-FABRIC_DATA_AGENT_ID=12345678-abcd-1234-abcd-123456789abc
 ```
 
-The application will use these values to:
-1. Connect to Azure AI Foundry using the connection name
-2. Route queries to your Fabric Data Agent using the artifact ID
+**Note**: The `FABRIC_DATA_AGENT_ID` is not needed in the `.env` file - the connection in Azure AI Foundry already contains the workspace ID and artifact ID as custom keys.
 
-### Step 8: Verify the Integration
+### Step 8: How the Application Uses the Fabric Data Agent
 
-Test the integration by asking the Claims Data Analyst agent a question like:
-- "What is the average claim amount for auto collision claims?"
-- "Show me high-risk claimants with risk scores above 70"
-- "What are the top fraud patterns detected?"
+When the application starts, it automatically:
 
-If configured correctly, the agent will query your Fabric Lakehouse data and return results.
+1. **Checks configuration**: Verifies `USE_FABRIC_DATA_AGENT=true` and `FABRIC_CONNECTION_NAME` is set
+2. **Validates SDK**: Confirms `FabricTool` is available in the `azure-ai-agents` SDK
+3. **Retrieves connection**: Gets the Fabric connection ID from Azure AI Foundry using the connection name
+4. **Creates/retrieves agent**: Creates a new "Claims Data Analyst" agent with Fabric tool, or reuses an existing one
+5. **Registers agent**: Adds the agent to the multi-agent workflow
+
+The agent is created with:
+- **Name**: `claims_data_analyst_v2`
+- **Tool**: `FabricTool` connected to your Fabric Data Agent
+- **Instructions**: Specialized for insurance claims data analysis
+
+### Step 9: Verify the Integration
+
+Test the integration by:
+
+1. **Start the backend**: `cd backend && uvicorn app.main:app --reload`
+2. **Check startup logs**: Look for:
+   ```
+   ✅ Found Fabric connection: fabric-claims-data-agent -> /subscriptions/.../connections/fabric-claims-data-agent
+   ✅ Created Azure AI Agent (v2): asst_xxx (claims_data_analyst_v2)
+   📊 Fabric Data Agent enabled - adding Claims Data Analyst
+   ```
+3. **Test queries**: Ask the Claims Data Analyst agent questions like:
+   - "What is the average claim amount for auto collision claims?"
+   - "Show me high-risk claimants with risk scores above 70"
+   - "What are the top fraud patterns detected?"
+
+### Troubleshooting
+
+**Agent not created at startup:**
+- Check that `USE_AZURE_AGENTS=true` (required for all Azure AI agents)
+- Check that `USE_FABRIC_DATA_AGENT=true`
+- Check that `FABRIC_CONNECTION_NAME` matches your Azure AI Foundry connection name exactly
+- Ensure you have the `AI Developer` RBAC role on the Azure AI Foundry project
+
+**FabricTool not available:**
+- Update the SDK: `pip install -U azure-ai-agents`
+- The Fabric tool requires a recent preview version of the SDK
+
+**Connection not found:**
+- Verify the connection exists in Azure AI Foundry under **Connected resources**
+- Check that the connection name matches exactly (case-sensitive)
+- Ensure the Fabric Data Agent is published
+
+**Query errors:**
+- Verify the Fabric Data Agent is published and accessible
+- Check that the user has READ access to the Fabric Data Agent
+- Ensure the Fabric and Azure AI Foundry resources are in the same tenant
 
 ## Data Schema
 
