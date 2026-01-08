@@ -549,27 +549,6 @@ The deployment creates:
 - **Log Analytics Workspace** for monitoring
 - **HTTPS endpoints** with automatic SSL certificates
 
-## Demo Scenarios
-
-### Individual Agent Testing
-- `/agents/claim-assessor` - Test damage photo analysis with vehicle detail extraction
-- `/agents/policy-checker` - Verify coverage scenarios with multilingual support (Dutch/English)
-- `/agents/risk-analyst` - Fraud detection demos with claimant history analysis
-- `/agents/communication-agent` - Professional email generation
-
-### Complete Workflow
-- Go to `/demo` for end-to-end claim processing
-- Upload damage photos and watch multimodal analysis
-- See agents collaborate in real-time via Azure AI Foundry
-- Review final assessment with full reasoning chains
-
-### Sample Claims
-The system includes realistic test scenarios:
-- Standard auto collision claim (CLM-001)
-- High-value vehicle damage
-- Dutch language insurance claim
-- High-risk fraud scenario (CLM-002)
-
 ## License
 
 MIT License - see LICENSE file for details.
