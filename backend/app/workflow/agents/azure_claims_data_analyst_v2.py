@@ -11,6 +11,10 @@ Requirements:
 - Azure AI User RBAC role on the Foundry hub/project
 - READ access to the Fabric data agent
 
+IMPORTANT: Fabric Data Agent requires USER identity authentication (not Service Principal).
+The agent uses AzureCliCredential or InteractiveBrowserCredential for authentication.
+Run 'az login' before starting the backend to authenticate with your user account.
+
 The Fabric Lakehouse should contain tables such as:
 - claims_history: Historical claim records with amounts, status, dates
 - claimant_profiles: Customer demographics and account information  
@@ -22,7 +26,7 @@ import logging
 from typing import Dict, Any, Optional
 from azure.ai.projects import AIProjectClient
 from azure.ai.agents.models import ToolSet
-from azure.identity import DefaultAzureCredential
+from azure.identity import ChainedTokenCredential, AzureCliCredential, InteractiveBrowserCredential
 from app.core.config import get_settings
 
 logger = logging.getLogger(__name__)
@@ -162,6 +166,8 @@ def create_claims_data_analyst_agent_v2(project_client: AIProjectClient = None):
         )
     
     # Create project client if not provided
+    # IMPORTANT: Fabric Data Agent requires USER identity (not Service Principal)
+    # We use ChainedTokenCredential with AzureCliCredential first to ensure user identity
     if project_client is None:
         if not settings.project_endpoint:
             raise ValueError(
@@ -169,9 +175,19 @@ def create_claims_data_analyst_agent_v2(project_client: AIProjectClient = None):
                 "Find it in your Azure AI Foundry portal under Project settings."
             )
         
+        # Use user-identity credentials for Fabric Data Agent
+        # AzureCliCredential uses the logged-in user from 'az login'
+        # InteractiveBrowserCredential prompts for login if CLI not available
+        user_credential = ChainedTokenCredential(
+            AzureCliCredential(),
+            InteractiveBrowserCredential()
+        )
+        logger.info("[FABRIC] Using user identity authentication (AzureCliCredential/InteractiveBrowserCredential)")
+        logger.info("[FABRIC] Ensure you have run 'az login' with a user account that has Fabric access")
+        
         project_client = AIProjectClient(
             endpoint=settings.project_endpoint,
-            credential=DefaultAzureCredential()
+            credential=user_credential
         )
     
     # Get the Fabric connection ID from the connection name

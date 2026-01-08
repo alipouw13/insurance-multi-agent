@@ -430,7 +430,7 @@ export default function DocumentAnalyzePage() {
             className="border-r bg-muted/10 flex flex-col overflow-hidden"
             style={{ 
               width: `${leftWidth}%`,
-              minWidth: '380px',
+              minWidth: '300px',
               maxWidth: '600px'
             }}
           >
@@ -486,6 +486,7 @@ export default function DocumentAnalyzePage() {
                       className={`cursor-pointer transition-colors hover:bg-accent ${
                         selectedDoc?.id === doc.id ? 'border-primary bg-accent' : ''
                       }`}
+                      style={{ minWidth: '340px' }}
                       onClick={() => setSelectedDoc(doc)}
                     >
                       <CardContent className="p-3">
