@@ -27,6 +27,15 @@ class ClaimIn(BaseModel):
     witness_statements: Optional[str] = None
     vehicle_info: Optional[Dict[str, Any]] = None
     supporting_images: Optional[list] = None
+    state: Optional[str] = None
+    
+    # Azure AD user token for Fabric Data Agent authentication
+    # This token is passed from the frontend after user signs in with Azure AD
+    user_token: Optional[str] = Field(
+        None, 
+        description="Azure AD access token for Fabric Data Agent authentication. "
+                    "Required for Claims Data Analyst when using Fabric integration."
+    )
 
     # Allow additional fields for flexibility
     class Config:

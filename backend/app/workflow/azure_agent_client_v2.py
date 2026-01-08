@@ -5,11 +5,36 @@ import time
 from typing import Dict, Any, List, Callable, Set, Optional
 from azure.ai.projects import AIProjectClient
 from azure.identity import DefaultAzureCredential
+from azure.core.credentials import AccessToken, TokenCredential
 from app.core.config import get_settings
 
 logger = logging.getLogger(__name__)
 
 _project_client = None
+
+
+class UserTokenCredential(TokenCredential):
+    """Custom credential that uses a pre-obtained Azure AD user token.
+    
+    This credential is used for Fabric Data Agent which requires user identity
+    passthrough (On-Behalf-Of). The token must be obtained from the frontend
+    after user signs in with Azure AD.
+    """
+    
+    def __init__(self, access_token: str, expires_on: int = None):
+        """Initialize with an access token.
+        
+        Args:
+            access_token: The Azure AD access token
+            expires_on: Token expiration timestamp (defaults to 1 hour from now)
+        """
+        self._token = access_token
+        # Default to 1 hour expiration if not specified
+        self._expires_on = expires_on or (int(time.time()) + 3600)
+    
+    def get_token(self, *scopes, **kwargs) -> AccessToken:
+        """Return the user's access token."""
+        return AccessToken(self._token, self._expires_on)
 
 
 def get_project_client_v2() -> AIProjectClient:
@@ -40,12 +65,46 @@ def get_project_client_v2() -> AIProjectClient:
     return _project_client
 
 
+def get_project_client_with_user_token(user_token: str) -> AIProjectClient:
+    """Create an AIProjectClient using a user's Azure AD token.
+    
+    This is required for Fabric Data Agent which uses identity passthrough (OBO).
+    The user must sign in via Azure AD on the frontend and pass their token.
+    
+    Args:
+        user_token: Azure AD access token from the user's frontend session
+        
+    Returns:
+        AIProjectClient configured with user identity
+    """
+    settings = get_settings()
+    
+    if not settings.project_endpoint:
+        raise ValueError(
+            "PROJECT_ENDPOINT environment variable must be set. "
+            "Find it in your Azure AI Foundry portal: "
+            "Project Overview > Libraries > Foundry"
+        )
+    
+    logger.info(f"[USER_TOKEN] Creating AIProjectClient with user token for Fabric OBO")
+    user_credential = UserTokenCredential(user_token)
+    
+    client = AIProjectClient(
+        endpoint=settings.project_endpoint,
+        credential=user_credential
+    )
+    logger.info("[USER_TOKEN] AIProjectClient created with user identity")
+    
+    return client
+
+
 def run_agent_v2(
     agent_id: str, 
     user_message: str, 
     toolset=None, 
     functions: Optional[Dict[str, Callable]] = None,
-    tool_choice: str = None
+    tool_choice: str = None,
+    user_token: str = None
 ) -> tuple[List[Dict[str, Any]], Dict[str, Any], List[Dict[str, Any]]]:
     """Run an Azure AI Agent Service agent with a user message using new SDK.
     
@@ -59,6 +118,8 @@ def run_agent_v2(
         toolset: Optional ToolSet with tool definitions (not used in manual mode)
         functions: Dict mapping function names to callable functions for manual execution
         tool_choice: Optional tool type to force (e.g., "fabric_dataagent" for FabricTool)
+        user_token: Optional Azure AD user token for Fabric Data Agent authentication.
+                    Required for Fabric Data Agent which uses identity passthrough (OBO).
         
     Returns:
         Tuple of (messages, usage_info, tool_results) where:
@@ -66,7 +127,7 @@ def run_agent_v2(
         - usage_info: Dict with token counts  
         - tool_results: List of dicts with tool execution details (function_name, args, output)
     """
-    logger.info(f"[RUN_AGENT_V2] Called with agent_id={agent_id}, tool_choice={tool_choice}, has_functions={bool(functions)}")
+    logger.info(f"[RUN_AGENT_V2] Called with agent_id={agent_id}, tool_choice={tool_choice}, has_functions={bool(functions)}, has_user_token={bool(user_token)}")
     
     if not agent_id:
         logger.error("[RUN_AGENT_V2] agent_id is None or empty!")
@@ -75,7 +136,13 @@ def run_agent_v2(
             "content": "Error: Agent ID is not configured. Please check agent deployment."
         }], {}, [])
     
-    project_client = get_project_client_v2()
+    # Use user token for Fabric Data Agent to enable identity passthrough (OBO)
+    # This is required because Fabric Data Agent only supports user identity, not SPN
+    if user_token and tool_choice == "fabric_dataagent":
+        logger.info("[RUN_AGENT_V2] Using user token credential for Fabric Data Agent (OBO)")
+        project_client = get_project_client_with_user_token(user_token)
+    else:
+        project_client = get_project_client_v2()
     
     try:
         # Create a thread for this conversation
@@ -361,6 +428,18 @@ def _run_agent_simple(
                 "temporary issue",
                 "try again later",
                 "service is currently",
+                # Key phrase for recent errors
+                "having trouble",
+                "having trouble accessing",
+                "trouble accessing",
+                "i am having trouble",
+                # Technical issue phrases
+                "technical issue",
+                "encountered a technical",
+                "was unable to",
+                "let me retry",
+                "ensure connection",
+                "once accessible",
                 "not available at this time",
                 "do not have direct access",
                 "cannot directly access",

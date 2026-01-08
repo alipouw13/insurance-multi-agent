@@ -163,6 +163,8 @@ This implementation leverages **Azure AI Foundry's Agent Service** for productio
 - **Claims Data Analyst**: Optional agent that queries historical claims data via Microsoft Fabric
 - **Natural Language to SQL**: Converts user questions into SQL queries against Lakehouse tables
 - **Toggle-Based Activation**: Enable/disable via `USE_FABRIC_DATA_AGENT` environment variable
+- **User Identity Passthrough**: Frontend Azure AD authentication enables user identity for Fabric queries
+- **Demo Data Fallback**: Automatic fallback to realistic demo data when Fabric is unavailable
 - **Graceful Degradation**: Application works without Fabric when disabled or unavailable
 
 ### Core Capabilities
@@ -514,6 +516,24 @@ Ensure you're authenticated with Azure CLI:
 ```bash
 az login
 ```
+
+> **⚠️ Required for Fabric Data Agent**: If you're using the Claims Data Analyst agent with Microsoft Fabric integration, the `az login` step is **mandatory**. Fabric Data Agent only supports user identity authentication (not service principals). The logged-in user must have access to both Azure AI Foundry and the Fabric Lakehouse.
+
+#### Frontend Azure AD Authentication (Optional)
+
+For full Fabric Data Agent support with user identity passthrough, configure Azure AD authentication in the frontend:
+
+1. **Create an App Registration** in Azure Portal
+2. **Configure SPA Platform** with redirect URI `http://localhost:3000`
+3. **Add to `frontend/.env.local`**:
+   ```bash
+   NEXT_PUBLIC_AZURE_CLIENT_ID=your-app-client-id
+   NEXT_PUBLIC_AZURE_TENANT_ID=your-tenant-id
+   ```
+
+When configured, users can sign in on the Claims Data Analyst page. The user's Azure AD token is passed to the backend for Fabric identity passthrough.
+
+**Demo Data Fallback**: If Fabric is unavailable or authentication fails, the Claims Data Analyst automatically returns realistic demo data including claimant history, fraud rates, and risk analysis.
 
 Start the backend server:
 ```bash

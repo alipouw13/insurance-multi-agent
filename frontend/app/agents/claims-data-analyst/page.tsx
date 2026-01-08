@@ -22,7 +22,9 @@ import {
   IconTool,
   IconBook,
   IconChartBar,
-  IconSearch
+  IconSearch,
+  IconLogin,
+  IconLogout
 } from '@tabler/icons-react'
 import { StarIcon } from 'lucide-react'
 import { toast } from 'sonner'
@@ -30,6 +32,7 @@ import { getApiUrl } from '@/lib/config'
 import { AgentWorkflowVisualization } from '@/components/agent-workflow-visualization'
 import { EvaluationDialog } from '@/components/evaluation-dialog'
 import { evaluateExecution, EvaluationResult } from '@/lib/api'
+import { useAuth, isMsalConfigured } from '@/lib/auth'
 
 // Sample claims from API
 interface SampleClaim {
@@ -61,6 +64,9 @@ export default function ClaimsDataAnalystDemo() {
   const [evaluationDialogOpen, setEvaluationDialogOpen] = useState(false)
   const [evaluation, setEvaluation] = useState<EvaluationResult | null>(null)
   const [evaluatingExecution, setEvaluatingExecution] = useState(false)
+  
+  // Auth context for Fabric token passthrough
+  const { isConfigured, isAuthenticated, userName, login, logout, getFabricToken, isLoading: authLoading } = useAuth()
 
   // Fetch sample claims on component mount
   useEffect(() => {
@@ -99,15 +105,34 @@ export default function ClaimsDataAnalystDemo() {
         requestBody.custom_query = customQuery.trim()
       }
 
+      // Get Fabric token if user is authenticated (for identity passthrough)
+      let fabricToken: string | null = null
+      if (isAuthenticated) {
+        try {
+          fabricToken = await getFabricToken()
+          if (fabricToken) {
+            console.log('[ClaimsDataAnalyst] Got Fabric token for identity passthrough')
+          }
+        } catch (tokenErr) {
+          console.warn('[ClaimsDataAnalyst] Could not get Fabric token, will use fallback:', tokenErr)
+        }
+      }
+
       // Add timeout for long-running Fabric queries
       const controller = new AbortController()
       const timeoutId = setTimeout(() => controller.abort(), 120000) // 2 minute timeout
 
+      // Build headers - include user token if available
+      const headers: Record<string, string> = {
+        'Content-Type': 'application/json',
+      }
+      if (fabricToken) {
+        headers['X-User-Token'] = fabricToken
+      }
+
       const response = await fetch(`${apiUrl}/api/v1/agent/claims_data_analyst/run`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers,
         body: JSON.stringify(requestBody),
         signal: controller.signal,
       })
@@ -354,6 +379,54 @@ export default function ClaimsDataAnalystDemo() {
                   If Fabric is not configured, the agent will return limited results.
                 </p>
               </div>
+
+              {/* Azure AD Authentication Status */}
+              {isConfigured && (
+                <div className={`mt-4 p-3 rounded-lg border ${
+                  isAuthenticated 
+                    ? 'bg-green-50 dark:bg-green-950/30 border-green-200 dark:border-green-800'
+                    : 'bg-slate-50 dark:bg-slate-950/30 border-slate-200 dark:border-slate-800'
+                }`}>
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      {isAuthenticated ? (
+                        <>
+                          <IconCircleCheck className="h-4 w-4 text-green-600 dark:text-green-400" />
+                          <span className="text-xs text-green-700 dark:text-green-400">
+                            <strong>Fabric Identity:</strong> Signed in as {userName}
+                          </span>
+                        </>
+                      ) : (
+                        <>
+                          <IconAlertCircle className="h-4 w-4 text-slate-500" />
+                          <span className="text-xs text-slate-600 dark:text-slate-400">
+                            Sign in to enable Fabric identity passthrough
+                          </span>
+                        </>
+                      )}
+                    </div>
+                    <Button 
+                      variant={isAuthenticated ? "ghost" : "secondary"} 
+                      size="sm" 
+                      className="h-7 text-xs"
+                      onClick={isAuthenticated ? logout : login}
+                      disabled={authLoading}
+                    >
+                      {isAuthenticated ? (
+                        <>
+                          <IconLogout className="h-3 w-3 mr-1" />
+                          Sign Out
+                        </>
+                      ) : (
+                        <>
+                          <IconLogin className="h-3 w-3 mr-1" />
+                          Sign In
+                        </>
+                      )}
+                    </Button>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         </CardContent>

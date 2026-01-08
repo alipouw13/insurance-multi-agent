@@ -23,6 +23,13 @@ The Claims Data Analyst enables natural language queries against enterprise clai
 2. **Fabric Data Agent** published in your workspace
 3. **Connection** configured in Azure AI Foundry pointing to your Fabric resource
 4. **Python environment** with required packages
+5. **Azure CLI** installed and logged in with `az login`
+
+> ⚠️ **IMPORTANT: User Identity Required**  
+> Fabric Data Agent only supports user identity authentication (not service principals).  
+> Before starting the backend, run `az login` with a user account that has:  
+> - Access to Azure AI Foundry project  
+> - Access to the Fabric Lakehouse and Data Agent
 
 ## Installation
 
@@ -169,7 +176,20 @@ FABRIC_CONNECTION_NAME=fabric-claims-data-agent
 
 **Note**: The `FABRIC_DATA_AGENT_ID` is not needed in the `.env` file - the connection in Azure AI Foundry already contains the workspace ID and artifact ID as custom keys.
 
-### Step 8: How the Application Uses the Fabric Data Agent
+### Step 8: Authenticate with Azure CLI
+
+**Before starting the backend**, authenticate with your user account:
+
+```bash
+az login
+```
+
+> ⚠️ **Why is this required?**  
+> Fabric Data Agent uses **Identity Passthrough (On-Behalf-Of)** authorization, which only supports user identities.  
+> Service principal authentication is NOT supported by Fabric Data Agent.  
+> The logged-in user must have access to both Azure AI Foundry and the Fabric Lakehouse.
+
+### Step 9: How the Application Uses the Fabric Data Agent
 
 When the application starts, it automatically:
 
@@ -184,7 +204,7 @@ The agent is created with:
 - **Tool**: `FabricTool` connected to your Fabric Data Agent
 - **Instructions**: Specialized for insurance claims data analysis
 
-### Step 9: Verify the Integration
+### Step 10: Verify the Integration
 
 Test the integration by:
 
@@ -221,6 +241,29 @@ Test the integration by:
 - Verify the Fabric Data Agent is published and accessible
 - Check that the user has READ access to the Fabric Data Agent
 - Ensure the Fabric and Azure AI Foundry resources are in the same tenant
+
+### Demo Data Fallback
+
+When the Fabric Data Agent is unavailable or returns errors, the Claims Data Analyst automatically falls back to **realistic demo data**. This ensures the application remains functional for demonstrations without requiring a fully configured Fabric environment.
+
+The fallback includes:
+- **Claimant History**: Simulated claims history based on the claim type and region
+- **Fraud Statistics**: Regional fraud rates and risk indicators
+- **Risk Analysis**: Account risk scores and claim pattern analysis
+
+To use the demo data fallback without Fabric:
+1. Leave `USE_FABRIC_DATA_AGENT=false` or unset
+2. The Claims Data Analyst will show "Demo Data Mode" in responses
+3. All analytics features work with realistic sample data
+
+### Frontend Authentication (Optional)
+
+For full Fabric Data Agent support with user identity passthrough:
+
+1. Configure Azure AD App Registration in the frontend (see `frontend/README.md`)
+2. Users can sign in on the Claims Data Analyst page
+3. The user's token is passed to the backend for Fabric authentication
+4. If authentication fails, the system falls back to demo data
 
 ## Data Schema
 

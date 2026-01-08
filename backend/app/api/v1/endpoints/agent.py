@@ -35,11 +35,19 @@ DECISION_PATTERN = re.compile(
 
 @router.post("/agent/{agent_name}/run", response_model=AgentRunOut)
 async def agent_run(agent_name: str, claim: ClaimIn):  # noqa: D401
-    """Run a single specialist agent and return its conversation trace."""
+    """Run a single specialist agent and return its conversation trace.
+    
+    For the Claims Data Analyst agent with Fabric integration, pass a user_token
+    obtained from Azure AD sign-in on the frontend. This is required for Fabric
+    Data Agent's identity passthrough (On-Behalf-Of) authentication.
+    """
 
     # Generate unique execution ID
     execution_id = str(uuid.uuid4())
     started_at = datetime.utcnow()
+    
+    # Extract user_token for Fabric Data Agent authentication
+    user_token = claim.user_token
 
     try:
         # ------------------------------------------------------------------
@@ -61,7 +69,7 @@ async def agent_run(agent_name: str, claim: ClaimIn):  # noqa: D401
         # ------------------------------------------------------------------
         # 2. Run the agent graph (token tracking handled internally)
         # ------------------------------------------------------------------
-        raw_msgs, usage_info = await run_single_agent(agent_name, claim_data)
+        raw_msgs, usage_info = await run_single_agent(agent_name, claim_data, user_token=user_token)
 
         # ------------------------------------------------------------------
         # 3. Serialize messages for JSON response

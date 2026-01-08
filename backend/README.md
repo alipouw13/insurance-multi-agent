@@ -57,6 +57,15 @@ cp .env.sample .env
 
 ### Running the Application
 
+**If using Fabric Data Agent integration**, first authenticate with your user account:
+
+```bash
+# Required for Fabric Data Agent - uses user identity passthrough
+az login
+```
+
+> **Note**: Fabric Data Agent only supports user identity authentication, not service principals. The `az login` step ensures your user identity is used when querying Fabric data.
+
 Start the development server:
 
 ```bash

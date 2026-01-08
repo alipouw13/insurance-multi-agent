@@ -74,12 +74,109 @@ def _generate_fabric_query(claim_data: Dict[str, Any]) -> str:
         return f"Show claims history for claimant {claimant_id} and fraud rate for {claim_type} claims in {state}"
 
 
-async def run(agent_name: str, claim_data: Dict[str, Any]) -> tuple[List[Dict[str, Any]], Dict[str, int]]:  # noqa: D401
+def _format_lakehouse_response(
+    claimant_history: list, 
+    fraud_stats: dict, 
+    claimant_id: str, 
+    claimant_name: str, 
+    state: str, 
+    claim_type: str
+) -> str:
+    """Format Lakehouse query results into a readable response.
+    
+    Args:
+        claimant_history: List of claim records from Lakehouse
+        fraud_stats: Fraud statistics from Lakehouse
+        claimant_id: Claimant ID
+        claimant_name: Claimant name
+        state: State abbreviation
+        claim_type: Type of claim
+        
+    Returns:
+        Formatted markdown string
+    """
+    # Calculate history stats
+    total_claims = len(claimant_history)
+    approved_claims = sum(1 for c in claimant_history if c.get('status', '').upper() == 'APPROVED')
+    denied_claims = sum(1 for c in claimant_history if c.get('status', '').upper() == 'DENIED')
+    total_amount = sum(c.get('claim_amount', 0) for c in claimant_history)
+    avg_amount = total_amount / total_claims if total_claims > 0 else 0
+    fraud_flags = sum(1 for c in claimant_history if c.get('fraud_flag'))
+    
+    # Extract fraud stats
+    fraud_rate = fraud_stats.get('fraud_rate', 0)
+    regional_avg = fraud_stats.get('avg_claim_amount', 0)
+    regional_total = fraud_stats.get('total_claims', 0)
+    
+    response = f"""## Claims Data Analysis for {claimant_name} ({claimant_id})
+
+### 📊 Live Data from Fabric Lakehouse
+
+---
+
+### Claimant History Summary
+
+| Metric | Value |
+|--------|-------|
+| Total Claims Filed | {total_claims} |
+| Approved Claims | {approved_claims} |
+| Denied Claims | {denied_claims} |
+| Total Amount Claimed | ${total_amount:,.2f} |
+| Average Claim Amount | ${avg_amount:,.2f} |
+| Fraud Flags | {fraud_flags} |
+
+### Regional Statistics ({state})
+
+| Metric | Value |
+|--------|-------|
+| {claim_type} Fraud Rate | {fraud_rate:.1f}% |
+| Average Claim Amount | ${regional_avg:,.2f} |
+| Total Claims in Region | {regional_total:,} |
+
+### Recent Claim History
+
+"""
+    
+    # Add recent claims table
+    if claimant_history:
+        response += "| Date | Type | Amount | Status |\n|------|------|--------|--------|\n"
+        for claim in claimant_history[:5]:  # Show last 5 claims
+            date = claim.get('claim_date', 'N/A')
+            ctype = claim.get('claim_type', 'N/A')
+            amount = claim.get('claim_amount', 0)
+            status = claim.get('status', 'N/A')
+            response += f"| {date} | {ctype} | ${amount:,.2f} | {status} |\n"
+    else:
+        response += "*No prior claims found for this claimant.*\n"
+    
+    # Add risk assessment
+    response += "\n### Risk Assessment\n\n"
+    
+    if total_claims > 3:
+        response += "- ⚠️ **High claim frequency** - Multiple prior claims detected\n"
+    else:
+        response += "- ✅ **Normal claim frequency** - Limited claim history\n"
+    
+    if fraud_flags > 0:
+        response += f"- ⚠️ **Prior fraud flags** - {fraud_flags} previous claims flagged\n"
+    else:
+        response += "- ✅ **No prior fraud flags**\n"
+    
+    if fraud_rate > 5:
+        response += f"- ⚠️ **Elevated regional fraud rate** - {fraud_rate:.1f}% for this claim type\n"
+    else:
+        response += f"- ✅ **Normal regional fraud rate** - {fraud_rate:.1f}%\n"
+    
+    return response
+
+
+async def run(agent_name: str, claim_data: Dict[str, Any], user_token: str = None) -> tuple[List[Dict[str, Any]], Dict[str, int]]:  # noqa: D401
     """Run *one* agent on the claim data and return its message list with token usage.
 
     Args:
         agent_name: Key in ``app.workflow.registry.AGENTS``.
         claim_data: Claim dict already merged/cleaned by the endpoint.
+        user_token: Optional Azure AD user token for Fabric Data Agent authentication.
 
     Returns:
         Tuple of (messages, usage_info) where usage_info contains token counts
@@ -110,7 +207,7 @@ async def run(agent_name: str, claim_data: Dict[str, Any]) -> tuple[List[Dict[st
             if agent_id:
                 logger.debug(f"✨ Using Azure AI Agent Service (v2) for {agent_name}")
                 span.set_attribute("gen_ai.system", "azure_ai_agents_v2")
-                result = _run_azure_agent_v2(agent_name, claim_data)
+                result = _run_azure_agent_v2(agent_name, claim_data, user_token=user_token)
             else:
                 logger.debug(f"📊 Using LangGraph agent for {agent_name}")
                 span.set_attribute("gen_ai.system", "langgraph")
@@ -125,12 +222,13 @@ async def run(agent_name: str, claim_data: Dict[str, Any]) -> tuple[List[Dict[st
             raise
 
 
-def _run_azure_agent_v2(agent_name: str, claim_data: Dict[str, Any]) -> tuple[List[Dict[str, Any]], Dict[str, int]]:
+def _run_azure_agent_v2(agent_name: str, claim_data: Dict[str, Any], user_token: str = None) -> tuple[List[Dict[str, Any]], Dict[str, int]]:
     """Run an Azure AI Agent Service v2 agent.
     
     Args:
         agent_name: Name of the agent
         claim_data: Claim dict already merged/cleaned by the endpoint
+        user_token: Optional Azure AD user token for Fabric Data Agent authentication
         
     Returns:
         Tuple of (messages, usage_info) where messages is LangGraph-compatible format
@@ -177,8 +275,8 @@ def _run_azure_agent_v2(agent_name: str, claim_data: Dict[str, Any]) -> tuple[Li
         user_message = fabric_query
     
     # Run Azure agent v2 and get messages with usage info
-    logger.info(f"[AGENT] Calling run_agent_v2 for {agent_name} (tool_choice={tool_choice})")
-    azure_messages, usage_info, _ = run_agent_v2(agent_id, user_message, functions=functions, tool_choice=tool_choice)
+    logger.info(f"[AGENT] Calling run_agent_v2 for {agent_name} (tool_choice={tool_choice}, has_user_token={user_token is not None})")
+    azure_messages, usage_info, _ = run_agent_v2(agent_id, user_message, functions=functions, tool_choice=tool_choice, user_token=user_token)
     logger.info(f"[AGENT] Agent {agent_name} returned {len(azure_messages)} messages")
     
     # Log response content for Claims Data Analyst debugging
@@ -190,36 +288,73 @@ def _run_azure_agent_v2(agent_name: str, claim_data: Dict[str, Any]) -> tuple[Li
         preview = content[:500] if len(content) > 500 else content
         logger.info(f"[CLAIMS_DATA_ANALYST] Response preview: {preview}")
         
-        # Add query header to the response for UI display
-        if fabric_query and azure_messages:
-            # Find the last assistant message and prepend the query info
-            for msg in reversed(azure_messages):
-                if msg.get("role") == "assistant":
-                    original_content = msg.get("content", "")
-                    if isinstance(original_content, list):
-                        # Handle Azure AI message format
-                        for item in original_content:
-                            if isinstance(item, dict) and item.get("type") == "text":
-                                text_obj = item.get("text", {})
-                                if isinstance(text_obj, dict):
-                                    original_text = text_obj.get("value", "")
-                                    text_obj["value"] = f"**📊 Fabric Query:** `{fabric_query}`\n\n---\n\n{original_text}"
-                                    break
-                    else:
-                        msg["content"] = f"**📊 Fabric Query:** `{fabric_query}`\n\n---\n\n{original_content}"
-                    break
-        
         # Check for connectivity issues - match the same phrases used in azure_agent_client_v2.py
         connectivity_phrases = [
-            "technical difficulties", "connectivity issue", "unable to retrieve", 
+            "technical difficulties", "technical issue", "connectivity issue", "unable to retrieve", 
             "data service issue", "encountered an issue", "failure connecting",
-            "issue retrieving", "cannot query", "unable to query",
-            "will retry", "please advise", "alternate access"
+            "issue retrieving", "cannot query", "unable to query", "error accessing",
+            "will retry", "please advise", "alternate access", "made an error",
+            "apologize", "i apologize", "issue accessing", "having trouble",
+            "trouble accessing", "cannot access", "unable to access", "failed to access",
+            "could not access", "could not retrieve", "failed to retrieve",
+            "unable to connect", "failed to connect", "no data available",
+            "encountered a technical", "unable to directly", "was unable to",
+            "let me retry", "ensure connection", "once accessible"
         ]
-        if any(phrase in content.lower() for phrase in connectivity_phrases):
+        fabric_failed = any(phrase in content.lower() for phrase in connectivity_phrases)
+        
+        if fabric_failed:
             logger.warning(f"[CLAIMS_DATA_ANALYST] Fabric connectivity issue detected in response!")
+            logger.info(f"[CLAIMS_DATA_ANALYST] Attempting Lakehouse fallback...")
+            
+            # Try Lakehouse direct query fallback
+            from app.services.lakehouse_service import get_lakehouse_service, get_demo_claims_data
+            
+            lakehouse = get_lakehouse_service()
+            if lakehouse:
+                try:
+                    claimant_history = lakehouse.get_claimant_history(claimant_id)
+                    fraud_stats = lakehouse.get_fraud_rate_by_region(state, claim_type)
+                    
+                    # Format Lakehouse data into response
+                    fallback_content = _format_lakehouse_response(
+                        claimant_history, fraud_stats, claimant_id, claimant_name, state, claim_type
+                    )
+                    logger.info(f"[CLAIMS_DATA_ANALYST] Lakehouse fallback successful")
+                except Exception as e:
+                    logger.error(f"[CLAIMS_DATA_ANALYST] Lakehouse query failed: {e}")
+                    fallback_content = get_demo_claims_data(claimant_id, claim_type, state, claimant_name)
+                    logger.info(f"[CLAIMS_DATA_ANALYST] Using demo data fallback")
+            else:
+                # No Lakehouse configured, use demo data
+                fallback_content = get_demo_claims_data(claimant_id, claim_type, state, claimant_name)
+                logger.info(f"[CLAIMS_DATA_ANALYST] Using demo data fallback (Lakehouse not configured)")
+            
+            # Replace the error message with fallback content
+            azure_messages = [{
+                "role": "assistant", 
+                "content": f"**📊 Fabric Query:** `{fabric_query}`\n\n---\n\n{fallback_content}"
+            }]
         else:
             logger.info(f"[CLAIMS_DATA_ANALYST] Fabric data retrieved successfully")
+            # Add query header to the response for UI display
+            if fabric_query and azure_messages:
+                # Find the last assistant message and prepend the query info
+                for msg in reversed(azure_messages):
+                    if msg.get("role") == "assistant":
+                        original_content = msg.get("content", "")
+                        if isinstance(original_content, list):
+                            # Handle Azure AI message format
+                            for item in original_content:
+                                if isinstance(item, dict) and item.get("type") == "text":
+                                    text_obj = item.get("text", {})
+                                    if isinstance(text_obj, dict):
+                                        original_text = text_obj.get("value", "")
+                                        text_obj["value"] = f"**📊 Fabric Query:** `{fabric_query}`\n\n---\n\n{original_text}"
+                                        break
+                        else:
+                            msg["content"] = f"**📊 Fabric Query:** `{fabric_query}`\n\n---\n\n{original_content}"
+                        break
     
     # Log token usage and attach to current span for telemetry tracking
     if usage_info and (usage_info.get('total_tokens', 0) > 0):

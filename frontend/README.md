@@ -43,11 +43,40 @@ For local development, the frontend automatically connects to `http://localhost:
 
 In production (Azure Container Apps), it automatically detects and connects to the deployed backend.
 
-Required configuration in `.env.local` (optional for local dev):
+Required configuration in `.env.local`:
 
 ```bash
-NEXT_PUBLIC_API_URL=http://localhost:8000  # Backend API URL
+# Backend API URL (optional for local dev)
+NEXT_PUBLIC_API_URL=http://localhost:8000
+
+# Azure AD Authentication for Fabric Data Agent (optional)
+# These enable user identity passthrough (On-Behalf-Of) for Fabric queries
+NEXT_PUBLIC_AZURE_CLIENT_ID=your-app-registration-client-id
+NEXT_PUBLIC_AZURE_TENANT_ID=your-azure-tenant-id
 ```
+
+### Azure AD Authentication Setup (Optional)
+
+If you want to use the **Fabric Data Agent** with user identity passthrough, you need to configure Azure AD authentication:
+
+1. **Create an App Registration** in Azure Portal:
+   ```bash
+   az ad app create --display-name "Insurance Multi-Agent Frontend" \
+     --sign-in-audience AzureADMyOrg
+   ```
+
+2. **Configure SPA Platform** in Azure Portal:
+   - Go to App Registrations → Your App → Authentication
+   - Add platform: Single-page application
+   - Redirect URI: `http://localhost:3000`
+   - Enable: Access tokens, ID tokens
+
+3. **Add API Permissions**:
+   - Microsoft Graph: `openid`, `profile`, `email`
+
+4. **Update `.env.local`** with your Client ID and Tenant ID
+
+When configured, users can sign in on the Claims Data Analyst page to enable Fabric identity passthrough. Without authentication, the agent will use demo data as a fallback.
 
 ## Key Features
 
