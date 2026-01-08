@@ -5,20 +5,16 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Alert, AlertDescription } from '@/components/ui/alert'
-import { ScrollArea } from '@/components/ui/scroll-area'
-import { Separator } from '@/components/ui/separator'
+
 import { 
   IconMessage,
   IconRefresh,
   IconCircleCheck,
   IconAlertCircle,
   IconClock,
-  IconUser,
-  IconRobot,
-  IconTool,
-  IconBook,
   IconMail,
-  IconFileText
+  IconFileText,
+  IconTool
 } from '@tabler/icons-react'
 import { toast } from 'sonner'
 import { getApiUrl } from '@/lib/config'
@@ -107,65 +103,6 @@ export default function CommunicationAgentDemo() {
   const resetDemo = () => {
     setResult(null)
     setError(null)
-  }
-
-  const formatConversationStep = (step: { role: string; content: string }, index: number, isLast: boolean) => {
-    const isUser = step.role === 'human'
-    const isAssistant = step.role === 'ai'
-
-    // Skip tool calls in the display
-    if (step.content.startsWith('TOOL_CALL:')) {
-      return null
-    }
-
-    return (
-      <div key={index} className="relative">
-        <div className="flex gap-4">
-          {/* Timeline connector */}
-          <div className="flex flex-col items-center">
-            <div className={`flex-shrink-0 w-10 h-10 rounded-full flex items-center justify-center border-2 ${
-              isUser ? 'bg-blue-100 dark:bg-blue-900/30 border-blue-200 dark:border-blue-800' :
-              isAssistant ? 'bg-green-100 dark:bg-green-900/30 border-green-200 dark:border-green-800' :
-              'bg-orange-100 dark:bg-orange-900/30 border-orange-200 dark:border-orange-800'
-            }`}>
-              {isUser ? (
-                <IconUser className="h-5 w-5 text-blue-600 dark:text-blue-400" />
-              ) : isAssistant ? (
-                <IconRobot className="h-5 w-5 text-green-600 dark:text-green-400" />
-              ) : (
-                <IconTool className="h-5 w-5 text-orange-600 dark:text-orange-400" />
-              )}
-            </div>
-            {/* Connecting line */}
-            {!isLast && (
-              <div className="w-0.5 h-8 bg-border mt-2"></div>
-            )}
-          </div>
-          
-          {/* Content */}
-          <div className="flex-1 pb-8">
-            <div className="flex items-center gap-2 mb-2">
-              <Badge variant={isUser ? 'secondary' : isAssistant ? 'default' : 'outline'}>
-                {isUser ? 'User' : isAssistant ? 'Communication Agent' : 'Tool Response'}
-              </Badge>
-              <span className="text-xs text-muted-foreground">
-                Step {index + 1}
-              </span>
-            </div>
-            
-            <div className={`rounded-lg p-4 shadow-sm ${
-              isUser ? 'bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800' :
-              isAssistant ? 'bg-green-50 dark:bg-green-950/30 border border-green-200 dark:border-green-800' :
-              'bg-orange-50 dark:bg-orange-950/30 border border-orange-200 dark:border-orange-800'
-            }`}>
-              <div className="text-sm whitespace-pre-wrap leading-relaxed">
-                {step.content}
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-    )
   }
 
   const extractEmailContent = (conversation: Array<{ role: string; content: string }>) => {
@@ -443,22 +380,6 @@ export default function CommunicationAgentDemo() {
                   </div>
                 </div>
 
-                <Separator />
-
-                {/* Conversation Timeline */}
-                <div>
-                  <h4 className="font-medium mb-3 flex items-center gap-2">
-                    <IconBook className="h-4 w-4" />
-                    Conversation Timeline
-                  </h4>
-                  <ScrollArea className="h-[calc(100vh-28rem)] min-h-[500px] max-h-[700px]">
-                    <div className="py-4">
-                      {result.conversation_chronological
-                        .map((step, index, array) => formatConversationStep(step, index, index === array.length - 1))
-                        .filter(Boolean)}
-                    </div>
-                  </ScrollArea>
-                </div>
               </div>
             )}
 
