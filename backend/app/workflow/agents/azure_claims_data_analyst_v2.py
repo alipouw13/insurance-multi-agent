@@ -194,32 +194,19 @@ def create_claims_data_analyst_agent_v2(project_client: AIProjectClient = None):
     
     logger.info(f"Created Fabric toolset with connection: {fabric_connection_id}")
     
-    # Check if agent already exists by name
+    # Check if agent already exists by name - delete and recreate to ensure latest config
     try:
         agents = project_client.agents.list_agents()
         for agent in agents:
             if hasattr(agent, 'name') and agent.name == "claims_data_analyst_v2":
-                # Check if agent has Fabric tool
-                has_fabric_tool = False
-                if hasattr(agent, 'tools') and agent.tools:
-                    for tool in agent.tools:
-                        tool_type = tool.get('type') if isinstance(tool, dict) else getattr(tool, 'type', None)
-                        if tool_type == 'fabric_dataagent':
-                            has_fabric_tool = True
-                            break
-                
-                if has_fabric_tool:
-                    logger.info(f"[OK] Using existing Azure AI Agent with Fabric tool: {agent.id}")
-                    return agent, toolset
-                else:
-                    # Agent exists but without Fabric tool - delete and recreate
-                    logger.info(f"[WARN] Existing agent {agent.id} doesn't have Fabric tool, deleting...")
-                    try:
-                        project_client.agents.delete_agent(agent.id)
-                        logger.info(f"Deleted old agent {agent.id}")
-                    except Exception as delete_err:
-                        logger.warning(f"Could not delete agent: {delete_err}")
-                    break
+                # Always delete and recreate to ensure preview headers and latest config
+                logger.info(f"[INFO] Deleting existing claims_data_analyst_v2 agent {agent.id} to recreate with latest config...")
+                try:
+                    project_client.agents.delete_agent(agent.id)
+                    logger.info(f"[OK] Deleted old agent {agent.id}")
+                except Exception as delete_err:
+                    logger.warning(f"Could not delete agent: {delete_err}")
+                break
     except Exception as e:
         logger.debug(f"Could not list existing agents: {e}")
     
@@ -230,6 +217,7 @@ def create_claims_data_analyst_agent_v2(project_client: AIProjectClient = None):
             name="claims_data_analyst_v2",
             instructions=CLAIMS_DATA_ANALYST_INSTRUCTIONS,
             tools=fabric_tool.definitions,  # Fabric tool definitions
+            headers={"x-ms-enable-preview": "true"},  # Required for Fabric Data Agent preview
         )
         logger.info(f"[OK] Created Azure AI Agent (v2): {agent.id} (claims_data_analyst_v2)")
         logger.info(f"   Agent tools: {[t.type if hasattr(t, 'type') else str(t) for t in agent.tools] if hasattr(agent, 'tools') and agent.tools else 'None'}")
