@@ -13,8 +13,12 @@ import uuid
 from typing import Any, Dict, List
 
 from app.workflow.registry import AGENTS
+from app.core.config import get_settings
 
 logger = logging.getLogger(__name__)
+
+# Get settings instance
+settings = get_settings()
 
 
 class UnknownAgentError(ValueError):
@@ -229,7 +233,7 @@ def _run_azure_agent_v2(agent_name: str, claim_data: Dict[str, Any]) -> tuple[Li
             current_span.set_attribute("gen_ai.usage.completion_tokens", usage_info['completion_tokens'])
             current_span.set_attribute("gen_ai.usage.total_tokens", usage_info['total_tokens'])
             current_span.set_attribute("gen_ai.system", "azure_ai_agents")
-            current_span.set_attribute("gen_ai.request.model", "gpt-4o")
+            current_span.set_attribute("gen_ai.request.model", settings.azure_openai_deployment_name or "gpt-4o")
             current_span.set_attribute("agent.type", agent_name)
             logger.debug(f"✅ Attached token usage to span for {agent_name}")
     

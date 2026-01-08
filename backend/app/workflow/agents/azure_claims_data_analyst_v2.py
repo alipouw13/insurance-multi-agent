@@ -194,32 +194,29 @@ def create_claims_data_analyst_agent_v2(project_client: AIProjectClient = None):
     
     logger.info(f"Created Fabric toolset with connection: {fabric_connection_id}")
     
-    # Check if agent already exists by name - delete and recreate to ensure latest config
+    # Check if agent already exists by name - reuse if it exists
     try:
         agents = project_client.agents.list_agents()
         for agent in agents:
             if hasattr(agent, 'name') and agent.name == "claims_data_analyst_v2":
-                # Always delete and recreate to ensure preview headers and latest config
-                logger.info(f"[INFO] Deleting existing claims_data_analyst_v2 agent {agent.id} to recreate with latest config...")
-                try:
-                    project_client.agents.delete_agent(agent.id)
-                    logger.info(f"[OK] Deleted old agent {agent.id}")
-                except Exception as delete_err:
-                    logger.warning(f"Could not delete agent: {delete_err}")
-                break
+                logger.info(f"[OK] Reusing existing claims_data_analyst_v2 agent: {agent.id}")
+                return agent, toolset
     except Exception as e:
         logger.debug(f"Could not list existing agents: {e}")
     
-    # Create the agent with Fabric tool
+    # Create the agent with Fabric tool (only if it doesn't exist)
+    model_name = settings.azure_openai_deployment_name or "gpt-4o"
+    logger.info(f"[INFO] Creating NEW claims_data_analyst_v2 with model: {model_name}")
+    
     try:
         agent = project_client.agents.create_agent(
-            model=settings.azure_openai_deployment_name or "gpt-4o",
+            model=model_name,
             name="claims_data_analyst_v2",
             instructions=CLAIMS_DATA_ANALYST_INSTRUCTIONS,
             tools=fabric_tool.definitions,  # Fabric tool definitions
             headers={"x-ms-enable-preview": "true"},  # Required for Fabric Data Agent preview
         )
-        logger.info(f"[OK] Created Azure AI Agent (v2): {agent.id} (claims_data_analyst_v2)")
+        logger.info(f"[OK] Created Azure AI Agent (v2): {agent.id} (claims_data_analyst_v2) with model: {model_name}")
         logger.info(f"   Agent tools: {[t.type if hasattr(t, 'type') else str(t) for t in agent.tools] if hasattr(agent, 'tools') and agent.tools else 'None'}")
         return agent, toolset
     except Exception as e:

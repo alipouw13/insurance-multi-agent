@@ -99,13 +99,20 @@ export default function ClaimsDataAnalystDemo() {
         requestBody.custom_query = customQuery.trim()
       }
 
+      // Add timeout for long-running Fabric queries
+      const controller = new AbortController()
+      const timeoutId = setTimeout(() => controller.abort(), 120000) // 2 minute timeout
+
       const response = await fetch(`${apiUrl}/api/v1/agent/claims_data_analyst/run`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify(requestBody),
+        signal: controller.signal,
       })
+
+      clearTimeout(timeoutId)
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}))
@@ -116,7 +123,14 @@ export default function ClaimsDataAnalystDemo() {
       setResult(data)
       toast.success('Data analysis completed successfully!')
     } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Unknown error occurred'
+      let errorMessage = 'Unknown error occurred'
+      if (err instanceof Error) {
+        if (err.name === 'AbortError') {
+          errorMessage = 'Request timed out. The Fabric Data Agent may be unavailable or taking too long to respond.'
+        } else {
+          errorMessage = err.message
+        }
+      }
       setError(errorMessage)
       toast.error('Analysis failed: ' + errorMessage)
     } finally {

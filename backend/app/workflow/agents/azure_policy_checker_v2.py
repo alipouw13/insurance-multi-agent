@@ -113,23 +113,19 @@ IMPORTANT: The claim's policy_number is for reference only. Coverage verificatio
 Provide clear verification results with specific policy references.
 End your verification with: COVERED, PARTIALLY COVERED, or NOT COVERED."""
 
-    # Check if agent already exists by name - delete and recreate to update instructions
+    # Check if agent already exists by name - reuse if it exists
     try:
         agents = project_client.agents.list_agents()
         for agent in agents:
             if hasattr(agent, 'name') and agent.name == "policy_checker_v2":
-                logger.info(f"🔄 Deleting existing policy_checker_v2 agent {agent.id} to update instructions")
-                try:
-                    project_client.agents.delete_agent(agent.id)
-                    logger.info(f"✅ Deleted old policy_checker_v2 agent")
-                except Exception as del_err:
-                    logger.warning(f"Could not delete old agent: {del_err}")
-                break
+                logger.info(f"[OK] Reusing existing policy_checker_v2 agent: {agent.id}")
+                return agent, toolset
     except Exception as e:
         logger.debug(f"Could not list existing agents: {e}")
     
-    # Create the agent using new SDK with toolset
+    # Create the agent using new SDK with toolset (only if it doesn't exist)
     try:
+        logger.info(f"[INFO] Creating NEW policy_checker_v2 agent")
         agent = project_client.agents.create_agent(
             model=settings.azure_openai_deployment_name or "gpt-4o",
             name="policy_checker_v2",

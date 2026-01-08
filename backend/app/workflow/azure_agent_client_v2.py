@@ -166,7 +166,7 @@ def _run_agent_simple(
     agent_id: str, 
     thread_id: str,
     tool_choice: str = None,
-    max_retries: int = 5
+    max_retries: int = 2
 ) -> tuple[List[Dict[str, Any]], Dict[str, Any]]:
     """Run agent without tool handling (simple mode).
     
@@ -179,7 +179,7 @@ def _run_agent_simple(
         agent_id: ID of the agent to run
         thread_id: ID of the thread to run in
         tool_choice: Optional tool type to force (e.g., "fabric_dataagent" for FabricTool)
-        max_retries: Number of retries for Fabric tool failures (default 5)
+        max_retries: Number of retries for Fabric tool failures (default 2)
     """
     import time as time_module
     from datetime import datetime
@@ -208,7 +208,7 @@ def _run_agent_simple(
     retry_count = 0
     last_messages = None
     last_usage = {}
-    retry_delays = [3, 5, 8, 12, 20]  # Exponential backoff delays in seconds
+    retry_delays = [2, 3, 5]  # Shorter delays for faster feedback
     
     while retry_count < max_retries:
         attempt_start = time_module.time()

@@ -430,14 +430,14 @@ export default function DocumentAnalyzePage() {
             className="border-r bg-muted/10 flex flex-col overflow-hidden"
             style={{ 
               width: `${leftWidth}%`,
-              minWidth: '280px',
+              minWidth: '380px',
               maxWidth: '600px'
             }}
           >
             <div className="p-4 border-b space-y-4">
               <div className="flex items-center justify-between">
                 <div>
-                  <h2 className="text-lg font-semibold">Processing Queue</h2>
+                  <h2 className="text-lg font-semibold">Document Library</h2>
                   <p className="text-sm text-muted-foreground">
                     {documents.length} document{documents.length !== 1 ? 's' : ''} analyzed
                   </p>
@@ -490,29 +490,29 @@ export default function DocumentAnalyzePage() {
                     >
                       <CardContent className="p-3">
                         <div className="flex items-start justify-between gap-2 mb-2">
-                          <div className="flex items-center gap-2 min-w-0">
+                          <div className="flex items-center gap-2 min-w-0 flex-1">
                             {getStatusIcon(doc.status)}
                             <span className="text-sm font-medium truncate">
                               {doc.filename}
                             </span>
                           </div>
-                          {getStatusBadge(doc.status)}
+                          <div className="flex-shrink-0">
+                            {getStatusBadge(doc.status)}
+                          </div>
                         </div>
                         
                         <div className="space-y-1 text-xs text-muted-foreground">
-                          <div className="flex justify-between">
-                            <span>Fields:</span>
-                            <span className="font-medium">{doc.field_count}</span>
-                          </div>
-                          {doc.schema_score !== undefined && (
-                            <div className="flex justify-between items-center">
-                              <span>Schema Score:</span>
-                              <div className="flex items-center gap-1">
-                                <span className="font-medium">{doc.schema_score}%</span>
-                                <TrendingUp className="h-3 w-3" />
-                              </div>
+                          <div className="flex justify-between items-center">
+                            <span>Schema Score:</span>
+                            <div className="flex items-center gap-1">
+                              <span className="font-medium">
+                                {doc.schema_score !== undefined && doc.schema_score !== null 
+                                  ? `${doc.schema_score}%` 
+                                  : 'N/A'}
+                              </span>
+                              <TrendingUp className="h-3 w-3" />
                             </div>
-                          )}
+                          </div>
                           <div className="text-xs">
                             {new Date(doc.timestamp).toLocaleString()}
                           </div>
