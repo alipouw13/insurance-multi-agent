@@ -175,9 +175,18 @@ The application requires the following Azure resources:
    - Extracts 19+ fields including policyholder info, dates, amounts, and damaged items
    - Processes PDF, PNG, JPG, JPEG, and TIFF formats
 
+7. **Microsoft Fabric** (Optional): For historical claims data analysis
+   - Fabric Lakehouse with claims data tables (claims_history, claimant_profiles, fraud_indicators, etc.)
+   - Fabric Data Agent published and connected to Azure AI Foundry
+   - Enables the Claims Data Analyst agent for natural language queries against enterprise data
+   - Requires user identity authentication (service principals not supported)
+   - Falls back to demo data when unavailable
+
 ### Azure Content Understanding Setup
 
 The Document Analyzer page uses Azure Content Understanding to automatically extract structured data from insurance claim forms. You need to create and train a custom analyzer before using this feature.
+
+![Content Understanding UI](./frontend/public/cu.png)
 
 #### Creating a Custom Analyzer
 
@@ -239,6 +248,8 @@ After deployment, you can test the analyzer using the Document Analyzer page:
 ### Cosmos DB Setup
 
 The application requires Azure Cosmos DB for NoSQL to persist agent definitions, execution history, and token usage telemetry.
+
+![Cosmos](./frontend/public/cosmos.png)
 
 #### Creating Cosmos DB Resources
 
