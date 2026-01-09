@@ -1,10 +1,13 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import React, { useState, useEffect } from 'react'
 import { toast } from 'sonner'
 import { AppSidebar } from "@/components/app-sidebar"
 import { SiteHeader } from "@/components/site-header"
-import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar"
+import {
+  SidebarInset,
+  SidebarProvider,
+} from "@/components/ui/sidebar"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -52,11 +55,6 @@ export default function DocumentAnalyzePage() {
   const [searchTerm, setSearchTerm] = useState('')
   const [isAnalyzing, setIsAnalyzing] = useState(false)
   const [documentUrl, setDocumentUrl] = useState<string | null>(null)
-  
-  // Panel widths (percentages)
-  const [leftWidth, setLeftWidth] = useState(20)
-  const [centerWidth, setCenterWidth] = useState(40)
-  const [isResizing, setIsResizing] = useState<'left' | 'right' | null>(null)
 
   // Load document history from storage on mount
   useEffect(() => {
@@ -371,80 +369,39 @@ export default function DocumentAnalyzePage() {
     if (typeof value === 'boolean') return 'boolean'
     if (Array.isArray(value)) return 'array'
     if (typeof value === 'object' && value !== null) return 'object'
-    // Check if it's a date string
     if (typeof value === 'string' && /^\d{4}-\d{2}-\d{2}/.test(value)) return 'date'
     return 'string'
   }
 
-  // Handle resize
-  const handleMouseMove = (e: MouseEvent) => {
-    if (!isResizing) return
-    
-    const containerWidth = window.innerWidth - 288 // Subtract sidebar width
-    const mouseX = e.clientX - 288 // Adjust for sidebar
-    
-    if (isResizing === 'left') {
-      const newLeftWidth = (mouseX / containerWidth) * 100
-      if (newLeftWidth >= 15 && newLeftWidth <= 35) {
-        setLeftWidth(newLeftWidth)
-      }
-    } else if (isResizing === 'right') {
-      const newCenterWidth = (mouseX / containerWidth) * 100 - leftWidth
-      if (newCenterWidth >= 25 && newCenterWidth <= 60) {
-        setCenterWidth(newCenterWidth)
-      }
-    }
-  }
-
-  const handleMouseUp = () => {
-    setIsResizing(null)
-  }
-
-  useEffect(() => {
-    if (isResizing) {
-      document.addEventListener('mousemove', handleMouseMove)
-      document.addEventListener('mouseup', handleMouseUp)
-      return () => {
-        document.removeEventListener('mousemove', handleMouseMove)
-        document.removeEventListener('mouseup', handleMouseUp)
-      }
-    }
-  }, [isResizing, leftWidth, centerWidth])
-
-  const rightWidth = 100 - leftWidth - centerWidth
-
   return (
     <SidebarProvider
-      style={{
-        "--sidebar-width": "calc(var(--spacing) * 72)",
-        "--header-height": "calc(var(--spacing) * 12)",
-      } as React.CSSProperties}
+      style={
+        {
+          "--sidebar-width": "calc(var(--spacing) * 72)",
+          "--header-height": "calc(var(--spacing) * 12)",
+        } as React.CSSProperties
+      }
     >
       <AppSidebar variant="inset" />
       <SidebarInset>
         <SiteHeader />
-        
-        <div className="flex h-[calc(100vh-var(--header-height))] overflow-hidden relative">
-          {/* Left Panel - Document Queue */}
-          <div 
-            className="border-r bg-muted/10 flex flex-col overflow-hidden"
-            style={{ 
-              width: `${leftWidth}%`,
-              minWidth: '300px',
-              maxWidth: '600px'
-            }}
-          >
-            <div className="p-4 border-b space-y-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <h2 className="text-lg font-semibold">Document Library</h2>
-                  <p className="text-sm text-muted-foreground">
-                    {documents.length} document{documents.length !== 1 ? 's' : ''} analyzed
-                  </p>
-                </div>
-                {documents.length > 0 && (
-                  <Button
-                    variant="ghost"
+        <div className="flex flex-1 flex-col">
+          <div className="flex flex-1 overflow-hidden" style={{ height: 'calc(100vh - var(--header-height) - 16px)' }}>
+            {/* Left Panel - Document Queue */}
+            <div 
+              className="w-80 min-w-[280px] max-w-[400px] border-r bg-muted/10 flex flex-col overflow-hidden flex-shrink-0"
+            >
+          <div className="p-4 border-b space-y-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <h2 className="text-lg font-semibold">Document Library</h2>
+                <p className="text-sm text-muted-foreground">
+                  {documents.length} document{documents.length !== 1 ? 's' : ''} analyzed
+                </p>
+              </div>
+              {documents.length > 0 && (
+                <Button
+                  variant="ghost"
                     size="sm"
                     onClick={handleClearCache}
                     className="h-8 text-xs"
@@ -472,8 +429,8 @@ export default function DocumentAnalyzePage() {
               </div>
             </div>
 
-            <ScrollArea className="flex-1">
-              <div className="p-2 space-y-2">
+            <ScrollArea className="flex-1 overflow-hidden">
+              <div className="p-2 space-y-2 overflow-hidden">
                 {filteredDocs.length === 0 ? (
                   <div className="text-center py-8 text-muted-foreground">
                     <FileText className="h-12 w-12 mx-auto mb-2 opacity-50" />
@@ -486,14 +443,15 @@ export default function DocumentAnalyzePage() {
                       className={`cursor-pointer transition-colors hover:bg-accent ${
                         selectedDoc?.id === doc.id ? 'border-primary bg-accent' : ''
                       }`}
-                      style={{ minWidth: '340px' }}
                       onClick={() => setSelectedDoc(doc)}
                     >
                       <CardContent className="p-3">
                         <div className="flex items-start justify-between gap-2 mb-2">
-                          <div className="flex items-center gap-2 min-w-0 flex-1">
-                            {getStatusIcon(doc.status)}
-                            <span className="text-sm font-medium truncate">
+                          <div className="flex items-center gap-2 min-w-0 flex-1 overflow-hidden">
+                            <div className="flex-shrink-0">
+                              {getStatusIcon(doc.status)}
+                            </div>
+                            <span className="text-sm font-medium truncate block" title={doc.filename}>
                               {doc.filename}
                             </span>
                           </div>
@@ -526,21 +484,9 @@ export default function DocumentAnalyzePage() {
             </ScrollArea>
           </div>
 
-          {/* Resize Handle - Left */}
-          <div
-            className="w-1 hover:w-2 bg-border hover:bg-primary cursor-col-resize transition-all relative group"
-            onMouseDown={() => setIsResizing('left')}
-          >
-            <div className="absolute inset-y-0 -left-1 -right-1" />
-          </div>
-
           {/* Center Panel - Document Viewer */}
           <div 
-            className="flex flex-col bg-muted/5 overflow-hidden"
-            style={{ 
-              width: `${centerWidth}%`,
-              minWidth: '300px'
-            }}
+            className="flex-1 flex flex-col bg-muted/5 min-w-[300px] overflow-hidden"
           >
             {selectedDoc ? (
               <>
@@ -600,21 +546,9 @@ export default function DocumentAnalyzePage() {
             )}
           </div>
 
-          {/* Resize Handle - Right */}
-          <div
-            className="w-1 hover:w-2 bg-border hover:bg-primary cursor-col-resize transition-all relative group"
-            onMouseDown={() => setIsResizing('right')}
-          >
-            <div className="absolute inset-y-0 -left-1 -right-1" />
-          </div>
-
           {/* Right Panel - Extracted Results */}
           <div 
-            className="border-l bg-background flex flex-col overflow-hidden"
-            style={{ 
-              width: `${rightWidth}%`,
-              minWidth: '300px'
-            }}
+            className="w-96 min-w-[320px] max-w-[450px] border-l bg-background flex flex-col overflow-hidden flex-shrink-0"
           >
             {selectedDoc && selectedDoc.result ? (
               <>
@@ -699,7 +633,7 @@ export default function DocumentAnalyzePage() {
                                 <CardHeader className="p-0 pb-3">
                                   <CardTitle className="text-sm">Table {idx + 1}</CardTitle>
                                   <CardDescription className="text-xs">
-                                    {table.row_count} rows × {table.column_count} columns
+                                    {(table as { row_count?: number; column_count?: number }).row_count ?? '?'} rows × {(table as { row_count?: number; column_count?: number }).column_count ?? '?'} columns
                                   </CardDescription>
                                 </CardHeader>
                                 <CardContent className="p-0">
@@ -743,6 +677,7 @@ export default function DocumentAnalyzePage() {
             )}
           </div>
         </div>
+      </div>
       </SidebarInset>
     </SidebarProvider>
   )

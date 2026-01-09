@@ -143,7 +143,6 @@ export default function DocumentsPage() {
       <AppSidebar variant="inset" />
       <SidebarInset>
         <SiteHeader />
-        
         <div className="flex flex-1 h-[calc(100vh-var(--header-height))] bg-muted/50">
           {/* Document List Sidebar */}
           <div className="w-1/3 bg-background border-r flex flex-col">

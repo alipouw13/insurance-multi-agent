@@ -63,7 +63,6 @@ export const msalConfig: Configuration = {
       },
       piiLoggingEnabled: false,
     },
-    allowNativeBroker: false, // Disable WAM broker for web apps
   },
 }
 

@@ -1,6 +1,5 @@
 "use client"
 
-import Link from "next/link"
 import { IconChevronRight, type Icon } from "@tabler/icons-react"
 import {
   Collapsible,
@@ -58,9 +57,9 @@ export function NavMain({
                         {item.items.map((subItem) => (
                           <SidebarMenuSubItem key={subItem.title}>
                             <SidebarMenuSubButton asChild>
-                              <Link href={subItem.url}>
+                              <a href={subItem.url}>
                                 <span>{subItem.title}</span>
-                              </Link>
+                              </a>
                             </SidebarMenuSubButton>
                           </SidebarMenuSubItem>
                         ))}
@@ -69,10 +68,10 @@ export function NavMain({
                   </>
                 ) : (
                   <SidebarMenuButton tooltip={item.title} asChild>
-                    <Link href={item.url}>
+                    <a href={item.url}>
                       {item.icon && <item.icon />}
                       <span>{item.title}</span>
-                    </Link>
+                    </a>
                   </SidebarMenuButton>
                 )}
               </SidebarMenuItem>
