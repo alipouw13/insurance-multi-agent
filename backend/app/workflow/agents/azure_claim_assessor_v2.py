@@ -149,7 +149,7 @@ End your assessment with: VALID, QUESTIONABLE, or INVALID."""
     # Create the agent using new SDK with toolset
     try:
         agent = project_client.agents.create_agent(
-            model=settings.azure_openai_deployment_name or "gpt-4o",
+            model=settings.azure_openai_deployment_name or "gpt-4.1-mini",
             name="claim_assessor_v2",
             instructions=instructions,
             toolset=toolset,

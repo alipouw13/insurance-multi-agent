@@ -127,7 +127,7 @@ End your verification with: COVERED, PARTIALLY COVERED, or NOT COVERED."""
     try:
         logger.info(f"[INFO] Creating NEW policy_checker_v2 agent")
         agent = project_client.agents.create_agent(
-            model=settings.azure_openai_deployment_name or "gpt-4o",
+            model=settings.azure_openai_deployment_name or "gpt-4.1-mini",
             name="policy_checker_v2",
             instructions=instructions,
             toolset=toolset,

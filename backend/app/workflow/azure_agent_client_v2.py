@@ -216,13 +216,25 @@ def _extract_fabric_output_from_run(project_client: AIProjectClient, thread_id: 
                 tool_calls = getattr(step.step_details, 'tool_calls', [])
                 for tc in tool_calls:
                     tc_type = getattr(tc, 'type', None)
-                    if tc_type == 'fabric_dataagent':
-                        fabric_data = getattr(tc, 'fabric_dataagent', None)
-                        if fabric_data:
-                            output = getattr(fabric_data, 'output', None)
-                            if output:
-                                logger.info(f"[FABRIC] Extracted output from run steps ({len(output)} chars)")
-                                return output
+                    logger.debug(f"[FABRIC] Checking tool call type: {tc_type}")
+                    
+                    # Try multiple attribute names for Fabric output
+                    fabric_data = None
+                    for attr_name in ['fabric_dataagent', 'fabric', 'microsoft_fabric']:
+                        if hasattr(tc, attr_name):
+                            fabric_data = getattr(tc, attr_name)
+                            logger.debug(f"[FABRIC] Found attribute '{attr_name}' on tool call")
+                            break
+                    
+                    if fabric_data:
+                        output = getattr(fabric_data, 'output', None)
+                        if output:
+                            logger.info(f"[FABRIC] Extracted output from run steps ({len(output)} chars)")
+                            return output
+                        else:
+                            # Log available attributes for debugging
+                            attrs = [a for a in dir(fabric_data) if not a.startswith('_')]
+                            logger.debug(f"[FABRIC] fabric_data attributes: {attrs}")
     except Exception as e:
         logger.warning(f"[FABRIC] Failed to extract output from run steps: {e}")
     return None
@@ -233,7 +245,7 @@ def _run_agent_simple(
     agent_id: str, 
     thread_id: str,
     tool_choice: str = None,
-    max_retries: int = 2
+    max_retries: int = 4
 ) -> tuple[List[Dict[str, Any]], Dict[str, Any]]:
     """Run agent without tool handling (simple mode).
     
@@ -246,7 +258,8 @@ def _run_agent_simple(
         agent_id: ID of the agent to run
         thread_id: ID of the thread to run in
         tool_choice: Optional tool type to force (e.g., "fabric_dataagent" for FabricTool)
-        max_retries: Number of retries for Fabric tool failures (default 2)
+                     When set, uses tool_choice="required" to FORCE the model to use a tool.
+        max_retries: Number of retries for Fabric tool failures (default 4 for Fabric instability)
     """
     import time as time_module
     from datetime import datetime
@@ -265,17 +278,20 @@ def _run_agent_simple(
         "agent_id": agent_id
     }
     
-    # Note: tool_choice is tracked for retry logic but NOT passed to the API
-    # Azure Agents API only supports "none" and "auto" for tool_choice
-    # FabricTool agents will automatically invoke the Fabric tool when needed
-    if tool_choice:
-        logger.info(f"[SIMPLE_RUN] Agent has {tool_choice} tool - will auto-invoke")
+    # When tool_choice is specified (e.g., "fabric_dataagent"), we use tool_choice="required"
+    # to FORCE the model to invoke a tool instead of generating text saying it will.
+    # This is critical for Fabric agents where the model must call the Fabric tool.
+    force_tool_use = bool(tool_choice)
+    if force_tool_use:
+        run_kwargs["tool_choice"] = "required"
+        logger.info(f"[SIMPLE_RUN] Using tool_choice='required' to force {tool_choice} tool usage")
     
     # Retry logic for Fabric tool connectivity issues and server errors
+    # Fabric Data Agent (preview) can be unstable, so we use aggressive retries
     retry_count = 0
     last_messages = None
     last_usage = {}
-    retry_delays = [2, 3, 5]  # Shorter delays for faster feedback
+    retry_delays = [5, 8, 12, 15]  # Longer delays to give Fabric time to recover
     
     while retry_count < max_retries:
         attempt_start = time_module.time()
@@ -283,7 +299,35 @@ def _run_agent_simple(
         logger.info(f"[SIMPLE_RUN] Thread: {thread_id}, Agent: {agent_id}")
         
         try:
-            run = project_client.agents.runs.create_and_process(**run_kwargs)
+            # When forcing tool use, we use runs.create + polling instead of create_and_process
+            # because create_and_process doesn't support tool_choice parameter
+            if force_tool_use:
+                # For Azure-managed tools like Fabric, we need to specify the tool type
+                # Format: {"type": "fabric_dataagent"} to force Fabric tool invocation
+                tool_choice_spec = {"type": "fabric_dataagent"}
+                logger.info(f"[SIMPLE_RUN] Creating run with tool_choice={tool_choice_spec}...")
+                run = project_client.agents.runs.create(
+                    thread_id=thread_id,
+                    agent_id=agent_id,
+                    tool_choice=tool_choice_spec  # Force the model to call Fabric tool
+                )
+                logger.info(f"[SIMPLE_RUN] Run created, polling for completion...")
+                
+                # Poll for completion - similar to create_and_process behavior
+                poll_count = 0
+                max_poll_wait = 120  # 2 minutes max wait
+                poll_interval = 1  # 1 second between polls
+                
+                while run.status in ["queued", "in_progress"] and poll_count < max_poll_wait:
+                    time_module.sleep(poll_interval)
+                    run = project_client.agents.runs.get(thread_id=thread_id, run_id=run.id)
+                    poll_count += 1
+                    if poll_count % 10 == 0:
+                        logger.info(f"[SIMPLE_RUN] Poll {poll_count}: status={run.status}")
+            else:
+                # Normal path without forced tool choice
+                run = project_client.agents.runs.create_and_process(**run_kwargs)
+            
             attempt_duration = time_module.time() - attempt_start
             
             logger.info(f"[SIMPLE_RUN] Run completed in {attempt_duration:.1f}s")
@@ -335,18 +379,35 @@ def _run_agent_simple(
         
         # Check for tool calls that were made during the run
         run_steps = _get_run_steps(project_client, thread_id, run.id)
+        logger.info(f"[SIMPLE_RUN] Retrieved {len(run_steps) if run_steps else 0} run steps")
         if run_steps:
             logger.info(f"[SIMPLE_RUN] Run had {len(run_steps)} steps")
-            for step in run_steps:
+            for i, step in enumerate(run_steps):
                 step_type = getattr(step, 'type', 'unknown')
-                logger.info(f"  Run step: {step_type}")
+                step_status = getattr(step, 'status', 'unknown')
+                logger.info(f"  Run step {i+1}: type={step_type}, status={step_status}")
                 if step_type == 'tool_calls' and hasattr(step, 'step_details'):
                     tool_calls = getattr(step.step_details, 'tool_calls', [])
+                    logger.info(f"    Found {len(tool_calls)} tool calls")
                     for tc in tool_calls:
                         tc_type = getattr(tc, 'type', 'unknown')
-                        logger.info(f"    Tool call type: {tc_type}")
-                        if hasattr(tc, 'fabric'):
-                            logger.info(f"    Fabric query executed: {getattr(tc.fabric, 'query', 'N/A')}")
+                        tc_id = getattr(tc, 'id', 'unknown')
+                        logger.info(f"    Tool call: type={tc_type}, id={tc_id}")
+                        # Check for fabric_dataagent tool call
+                        if hasattr(tc, 'fabric_dataagent'):
+                            fabric_call = tc.fabric_dataagent
+                            logger.info(f"    Fabric call found!")
+                            if hasattr(fabric_call, 'output'):
+                                output_len = len(fabric_call.output) if fabric_call.output else 0
+                                logger.info(f"    Fabric output length: {output_len}")
+                        elif hasattr(tc, 'fabric'):
+                            fabric_call = tc.fabric
+                            logger.info(f"    Fabric (legacy) call found!")
+                            if hasattr(fabric_call, 'output'):
+                                output_len = len(fabric_call.output) if fabric_call.output else 0
+                                logger.info(f"    Fabric output length: {output_len}")
+        else:
+            logger.warning(f"[SIMPLE_RUN] No run steps found - tool may not have been called")
         
         last_usage = _extract_usage(run)
         
@@ -481,7 +542,17 @@ def _run_agent_simple(
                 # Phrases indicating agent didn't use tool output
                 "am unable to access",
                 "unable to access the claims",
-                "i am unable to access"
+                "i am unable to access",
+                # New phrases for "tool not responding" errors
+                "not responding",
+                "tool is not responding",
+                "seems the tool is not responding",
+                "is not responding",
+                "let me attempt again",
+                "attempt again specifically",
+                "invoking microsoft fabric",
+                "currently set to query",
+                "set to query microsoft fabric"
             ]
             
             has_connectivity_error = any(phrase in response_text.lower() for phrase in connectivity_phrases)

@@ -153,10 +153,10 @@ class TrackedAzureAgent:
                 agent_version=step.agent_version,
                 claim_id=claim_id
             ) as span:
-                # Run the agent
-                agent_run = self.project_client.agents.create_and_process_run(
+                # Run the agent (using updated SDK API: runs.create_and_process with agent_id)
+                agent_run = self.project_client.agents.runs.create_and_process(
                     thread_id=thread.id,
-                    assistant_id=self.agent_id,
+                    agent_id=self.agent_id,
                     **kwargs
                 )
                 
@@ -184,10 +184,10 @@ class TrackedAzureAgent:
                     if span:
                         record_token_usage(span, prompt_tokens, completion_tokens, total_tokens)
                 
-                # Extract output
-                messages = self.project_client.agents.list_messages(thread_id=thread.id)
-                if messages and len(messages.data) > 0:
-                    last_message = messages.data[0]
+                # Extract output (using updated SDK API: messages.list returns iterable)
+                messages_list = list(self.project_client.agents.messages.list(thread_id=thread.id))
+                if messages_list and len(messages_list) > 0:
+                    last_message = messages_list[0]
                     if hasattr(last_message, 'content') and last_message.content:
                         output_text = str(last_message.content[0].text.value)
                         step.output_data = {"response": output_text}

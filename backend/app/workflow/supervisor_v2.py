@@ -289,12 +289,12 @@ def _generate_fabric_query_for_supervisor(claim_data: dict) -> str:
     claimant_id = claim_data.get('claimant_id', 'unknown')
     claim_type = claim_data.get('claim_type', 'unknown')
     state = claim_data.get('state', 'unknown')
-    claimant_name = claim_data.get('claimant_name', 'unknown')
+    # Don't include claimant_name in query - can confuse Fabric when it's "unknown"
     
     claim_type_lower = claim_type.lower()
     
     if 'collision' in claim_type_lower or 'major collision' in claim_type_lower:
-        return f"Show claims history for claimant {claimant_id} ({claimant_name}) and fraud rate for collision claims over $20000 in {state}"
+        return f"Show claims history for claimant {claimant_id} and fraud rate for collision claims over 20000 in {state}"
     elif 'property' in claim_type_lower or 'property damage' in claim_type_lower:
         return f"Show claims history for claimant {claimant_id} and average property damage claims in {state}"
     elif 'auto accident' in claim_type_lower or 'accident' in claim_type_lower:

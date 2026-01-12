@@ -210,18 +210,23 @@ def create_claims_data_analyst_agent_v2(project_client: AIProjectClient = None):
     
     logger.info(f"Created Fabric toolset with connection: {fabric_connection_id}")
     
-    # Check if agent already exists by name - reuse if it exists
+    # Check if agent already exists by name - delete and recreate to ensure Fabric tool is fresh
+    # The Fabric tool connection is baked into the agent at creation time, so we must
+    # recreate the agent if the connection has changed
     try:
         agents = project_client.agents.list_agents()
         for agent in agents:
             if hasattr(agent, 'name') and agent.name == "claims_data_analyst_v2":
-                logger.info(f"[OK] Reusing existing claims_data_analyst_v2 agent: {agent.id}")
-                return agent, toolset
+                logger.info(f"[FABRIC] Found existing claims_data_analyst_v2 agent: {agent.id}")
+                logger.info(f"[FABRIC] Deleting old agent to ensure fresh Fabric tool connection...")
+                project_client.agents.delete_agent(agent.id)
+                logger.info(f"[FABRIC] Deleted old agent: {agent.id}")
+                break
     except Exception as e:
-        logger.debug(f"Could not list existing agents: {e}")
+        logger.debug(f"Could not list/delete existing agents: {e}")
     
     # Create the agent with Fabric tool (only if it doesn't exist)
-    model_name = settings.azure_openai_deployment_name or "gpt-4o"
+    model_name = settings.azure_openai_deployment_name or "gpt-4.1-mini"
     logger.info(f"[INFO] Creating NEW claims_data_analyst_v2 with model: {model_name}")
     
     try:

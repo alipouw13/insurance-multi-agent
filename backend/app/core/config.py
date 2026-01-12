@@ -23,7 +23,7 @@ class Settings(BaseSettings):  # noqa: D101
     azure_openai_endpoint: str | None = Field(
         default=None, alias="AZURE_OPENAI_ENDPOINT")
     azure_openai_deployment_name: str | None = Field(
-        default="gpt-4o", alias="AZURE_OPENAI_DEPLOYMENT_NAME")
+        default="gpt-4.1-mini", alias="AZURE_OPENAI_DEPLOYMENT_NAME")
     azure_openai_embedding_model: str | None = Field(
         default="text-embedding-ada-002", alias="AZURE_OPENAI_EMBEDDING_MODEL")
     azure_openai_api_version: str | None = Field(

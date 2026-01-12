@@ -107,7 +107,7 @@ End your analysis with a risk level: LOW RISK, MODERATE RISK, or HIGH RISK."""
     # Create the agent using new SDK with toolset
     try:
         agent = project_client.agents.create_agent(
-            model=settings.azure_openai_deployment_name or "gpt-4o",
+            model=settings.azure_openai_deployment_name or "gpt-4.1-mini",
             name="risk_analyst_v2",
             instructions=instructions,
             toolset=toolset,

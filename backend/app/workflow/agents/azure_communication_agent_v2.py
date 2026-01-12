@@ -69,7 +69,7 @@ Always structure emails with:
     # Create the agent using new SDK (no tools needed for communication agent)
     try:
         agent = project_client.agents.create_agent(
-            model=settings.azure_openai_deployment_name or "gpt-4o",
+            model=settings.azure_openai_deployment_name or "gpt-4.1-mini",
             name="communication_agent_v2",
             instructions=instructions,
         )
