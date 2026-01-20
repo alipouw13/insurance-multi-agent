@@ -52,6 +52,7 @@ interface AnalysisResult {
     content: string
   }>
   execution_id?: string
+  thread_id?: string
 }
 
 export default function ClaimsDataAnalystDemo() {
@@ -64,6 +65,10 @@ export default function ClaimsDataAnalystDemo() {
   const [evaluationDialogOpen, setEvaluationDialogOpen] = useState(false)
   const [evaluation, setEvaluation] = useState<EvaluationResult | null>(null)
   const [evaluatingExecution, setEvaluatingExecution] = useState(false)
+  
+  // Chat state for follow-up messages
+  const [chatInput, setChatInput] = useState<string>('')
+  const [isSendingMessage, setIsSendingMessage] = useState(false)
   
   // Auth context for Fabric token passthrough
   const { isConfigured, isAuthenticated, userName, login, logout, getFabricToken, isLoading: authLoading } = useAuth()
@@ -163,11 +168,78 @@ export default function ClaimsDataAnalystDemo() {
     }
   }
 
+  const sendFollowUp = async () => {
+    if (!chatInput.trim() || !result?.thread_id) {
+      return
+    }
+
+    setIsSendingMessage(true)
+    setError(null)
+
+    try {
+      const apiUrl = await getApiUrl()
+
+      // Get Fabric token if user is authenticated
+      let fabricToken: string | null = null
+      if (isAuthenticated) {
+        try {
+          fabricToken = await getFabricToken()
+        } catch (tokenErr) {
+          console.warn('[ClaimsDataAnalyst] Could not get Fabric token:', tokenErr)
+        }
+      }
+
+      const headers: Record<string, string> = {
+        'Content-Type': 'application/json',
+      }
+      if (fabricToken) {
+        headers['X-User-Token'] = fabricToken
+      }
+
+      const response = await fetch(`${apiUrl}/api/v1/agent/claims_data_analyst/continue`, {
+        method: 'POST',
+        headers,
+        body: JSON.stringify({
+          thread_id: result.thread_id,
+          message: chatInput.trim(),
+        }),
+      })
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}))
+        throw new Error(errorData.detail || `HTTP error! status: ${response.status}`)
+      }
+
+      const data: AnalysisResult = await response.json()
+      
+      // Append new messages to the existing conversation
+      setResult(prev => ({
+        ...prev!,
+        conversation_chronological: [
+          ...prev!.conversation_chronological,
+          { role: 'human', content: chatInput.trim() },
+          ...data.conversation_chronological
+        ],
+        thread_id: data.thread_id,
+      }))
+      
+      setChatInput('')
+      toast.success('Response received!')
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'Unknown error occurred'
+      setError(errorMessage)
+      toast.error('Failed to send message: ' + errorMessage)
+    } finally {
+      setIsSendingMessage(false)
+    }
+  }
+
   const resetDemo = () => {
     setResult(null)
     setError(null)
     setCustomQuery('')
     setEvaluation(null)
+    setChatInput('')
   }
 
   const handleEvaluate = async () => {
@@ -604,7 +676,7 @@ export default function ClaimsDataAnalystDemo() {
                   <IconBook className="h-4 w-4" />
                   Analysis Timeline
                 </h4>
-                <ScrollArea className="h-[calc(100vh-28rem)] min-h-[500px] max-h-[700px]">
+                <ScrollArea className="h-[calc(100vh-32rem)] min-h-[400px] max-h-[600px]">
                   <div className="py-4">
                     {result.conversation_chronological
                       .map((step, index, array) => formatConversationStep(step, index, index === array.length - 1))
@@ -612,6 +684,45 @@ export default function ClaimsDataAnalystDemo() {
                   </div>
                 </ScrollArea>
               </div>
+
+              {/* Chat Input for Follow-up */}
+              {result.thread_id && (
+                <div className="pt-4 border-t">
+                  <h4 className="font-medium mb-3 flex items-center gap-2">
+                    <IconUser className="h-4 w-4" />
+                    Continue Conversation
+                  </h4>
+                  <div className="flex gap-2">
+                    <Textarea
+                      placeholder="Send a follow-up message to the agent (e.g., 'Yes, please proceed with the query')"
+                      value={chatInput}
+                      onChange={(e) => setChatInput(e.target.value)}
+                      className="min-h-[60px] flex-1"
+                      disabled={isSendingMessage}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter' && !e.shiftKey) {
+                          e.preventDefault()
+                          sendFollowUp()
+                        }
+                      }}
+                    />
+                    <Button 
+                      onClick={sendFollowUp}
+                      disabled={isSendingMessage || !chatInput.trim()}
+                      className="self-end"
+                    >
+                      {isSendingMessage ? (
+                        <IconClock className="h-4 w-4 animate-spin" />
+                      ) : (
+                        'Send'
+                      )}
+                    </Button>
+                  </div>
+                  <p className="text-xs text-muted-foreground mt-2">
+                    Press Enter to send, Shift+Enter for new line
+                  </p>
+                </div>
+              )}
             </div>
           )}
 

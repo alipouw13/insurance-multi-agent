@@ -38,7 +38,7 @@ Supporting Images: None provided yet
 Please analyze this claim."""
     
     try:
-        messages, usage = run_agent_v2(agent_id, test_message, toolset=toolset)
+        messages, usage, _, _ = run_agent_v2(agent_id, test_message, toolset=toolset)
         logger.info(f"\n✅ Agent Response:\n{messages[0]['content'] if messages else 'No response'}")
         logger.info(f"\n📊 Token Usage: {usage}")
         return True
@@ -68,7 +68,7 @@ Claim Amount: $3,500
 Is this claim covered under the policy?"""
     
     try:
-        messages, usage = run_agent_v2(agent_id, test_message, toolset=toolset)
+        messages, usage, _, _ = run_agent_v2(agent_id, test_message, toolset=toolset)
         logger.info(f"\n✅ Agent Response:\n{messages[0]['content'] if messages else 'No response'}")
         logger.info(f"\n📊 Token Usage: {usage}")
         return True
@@ -98,7 +98,7 @@ Incident Type: Collision
 What is the risk level for this claim?"""
     
     try:
-        messages, usage = run_agent_v2(agent_id, test_message, toolset=toolset)
+        messages, usage, _, _ = run_agent_v2(agent_id, test_message, toolset=toolset)
         logger.info(f"\n✅ Agent Response:\n{messages[0]['content'] if messages else 'No response'}")
         logger.info(f"\n📊 Token Usage: {usage}")
         return True
@@ -128,7 +128,7 @@ Missing: Photos of rear damage and police report
 Draft a professional request email."""
     
     try:
-        messages, usage = run_agent_v2(agent_id, test_message, toolset=toolset)
+        messages, usage, _, _ = run_agent_v2(agent_id, test_message, toolset=toolset)
         logger.info(f"\n✅ Agent Response:\n{messages[0]['content'] if messages else 'No response'}")
         logger.info(f"\n📊 Token Usage: {usage}")
         return True

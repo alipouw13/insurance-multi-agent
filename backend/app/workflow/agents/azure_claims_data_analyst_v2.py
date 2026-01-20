@@ -46,75 +46,27 @@ except ImportError:
 
 
 # ---------------------------------------------------------------------------
-# Agent Instructions
+# Agent Instructions  
 # ---------------------------------------------------------------------------
 
-CLAIMS_DATA_ANALYST_INSTRUCTIONS = """You are a Claims Data Analyst with access to enterprise claims data through Microsoft Fabric.
+# Microsoft Best Practices: Describe what data the Fabric tool can access
+# See: https://learn.microsoft.com/en-us/azure/ai-foundry/agents/how-to/tools/fabric
+# IMPORTANT: Instructions must be clear about WHEN and HOW to use the Fabric tool
+CLAIMS_DATA_ANALYST_INSTRUCTIONS = """You are a Claims Data Analyst with access to enterprise claims data through the Fabric tool.
 
-CRITICAL: You MUST use the Microsoft Fabric tool to query data. For any claims-related data questions, ALWAYS invoke the Fabric tool to query the lakehouse.
+IMPORTANT: You MUST use the Fabric tool to answer ANY question about claims, claimants, fraud, or data analytics. 
+Do NOT respond with "I don't have access" - you DO have access through the Fabric tool.
 
-Your role is to provide data-driven insights by querying the insurance company's claims data lakehouse. You can answer questions about:
+The Fabric tool connects to a Microsoft Fabric Lakehouse with these tables:
+- claims_history: claim_id, claimant_id, claimant_name, claim_type, estimated_damage, amount_paid, status, claim_date, incident_date, location, state, fraud_flag, police_report, photos_provided, witness_statements, license_plate, vehicle_info, description
+- claimant_profiles: claimant_id, name, age, location, risk_score, policy_number
 
-## Available Data Tables
+For ANY data-related question:
+1. Call the Fabric tool with a natural language query
+2. Present the results clearly to the user
+3. Include relevant statistics and insights
 
-1. **claims_history** - Historical claim records
-   - claim_id, policy_number, claimant_id, claim_type, claim_amount
-   - claim_date, incident_date, settlement_date, status (APPROVED/DENIED/PENDING)
-   - location, description, fraud_flag
-
-2. **claimant_profiles** - Customer information
-   - claimant_id, name, age, location, customer_since
-   - total_claims_count, total_claims_amount, risk_score
-   - policy_count, account_status
-
-3. **fraud_indicators** - Fraud analysis data
-   - claim_id, indicator_type, severity, detected_date
-   - pattern_description, investigation_status
-
-4. **regional_statistics** - Geographic claims analysis
-   - region, state, city, avg_claim_amount, claim_frequency
-   - fraud_rate, most_common_claim_type, seasonal_patterns
-
-5. **policy_claims_summary** - Policy-level aggregations
-   - policy_number, total_claims, total_amount_paid
-   - avg_claim_amount, last_claim_date, claims_trend
-
-## Your Responsibilities
-
-1. **Historical Analysis**: Query past claims for patterns, trends, and anomalies
-2. **Benchmarking**: Compare current claim against similar historical claims
-3. **Risk Profiling**: Analyze claimant's historical behavior and patterns
-4. **Fraud Pattern Matching**: Check if claim matches known fraud patterns
-5. **Regional Context**: Provide regional statistics for claim validation
-6. **Statistical Insights**: Calculate averages, frequencies, and outliers
-
-## Query Guidelines
-
-- Always provide specific numbers and statistics from the data
-- Compare current claim amounts against historical averages
-- Identify any anomalies or outliers in the claimant's history
-- Reference specific claim IDs when discussing historical claims
-- Provide confidence levels based on data quality and sample size
-
-## Output Format
-
-Structure your analysis as:
-
-DATA ANALYSIS SUMMARY:
-- Key findings from the data query
-- Relevant statistics and benchmarks
-
-HISTORICAL CONTEXT:
-- Claimant's claim history summary
-- Comparison to similar claimants/claims
-
-PATTERN ANALYSIS:
-- Identified patterns or anomalies
-- Fraud indicator matches (if any)
-
-DATA-DRIVEN RECOMMENDATIONS:
-- Insights that should inform the claim decision
-- Areas requiring further investigation based on data"""
+Never say you cannot access data - always use the Fabric tool first."""
 
 
 def get_claims_data_analyst_functions() -> Dict[str, Any]:
@@ -194,36 +146,89 @@ def create_claims_data_analyst_agent_v2(project_client: AIProjectClient = None):
     try:
         connection = project_client.connections.get(settings.fabric_connection_name)
         fabric_connection_id = connection.id
-        logger.info(f"[OK] Found Fabric connection: {settings.fabric_connection_name} -> {fabric_connection_id}")
+        logger.info(f"[FABRIC] === CONNECTION DETAILS ===")
+        logger.info(f"[FABRIC] Connection name: {settings.fabric_connection_name}")
+        logger.info(f"[FABRIC] Connection ID: {fabric_connection_id}")
+        
+        # Log ALL connection attributes for debugging
+        conn_attrs = [a for a in dir(connection) if not a.startswith('_')]
+        logger.info(f"[FABRIC] Connection attributes: {conn_attrs}")
+        for attr in ['type', 'target', 'properties', 'metadata', 'credentials', 'is_shared', 'category']:
+            if hasattr(connection, attr):
+                val = getattr(connection, attr)
+                if val is not None:
+                    # Don't log sensitive credential info
+                    if attr == 'credentials':
+                        logger.info(f"[FABRIC]   {attr}: <credentials present>")
+                    else:
+                        logger.info(f"[FABRIC]   {attr}: {val}")
+        
+        # Check if connection has target endpoint (Fabric endpoint URL)
+        if hasattr(connection, 'target') and connection.target:
+            logger.info(f"[FABRIC] Fabric endpoint: {connection.target}")
+            
     except Exception as e:
+        logger.error(f"[FABRIC] Failed to get connection: {e}", exc_info=True)
         raise ValueError(
             f"Could not find Fabric connection '{settings.fabric_connection_name}' in Azure AI Foundry. "
             f"Ensure the connection exists and you have access. Error: {e}"
         )
     
     # Create Fabric tool with the connection ID
+    # The connection_id should be the full Azure resource ID
     fabric_tool = FabricTool(connection_id=fabric_connection_id)
+    logger.info(f"[FABRIC] === FABRIC TOOL DETAILS ===")
+    logger.info(f"[FABRIC] FabricTool connection_id: {fabric_connection_id}")
+    logger.info(f"[FABRIC] FabricTool definitions: {fabric_tool.definitions}")
+    
+    # Log the tool definition structure
+    if fabric_tool.definitions:
+        for i, defn in enumerate(fabric_tool.definitions):
+            logger.info(f"[FABRIC] Tool definition {i+1}:")
+            defn_attrs = [a for a in dir(defn) if not a.startswith('_')]
+            for attr in defn_attrs:
+                try:
+                    val = getattr(defn, attr)
+                    if not callable(val) and val is not None:
+                        logger.info(f"[FABRIC]   {attr}: {val}")
+                except:
+                    pass
     
     # Create toolset with Fabric tool
     toolset = ToolSet()
     toolset.add(fabric_tool)
     
-    logger.info(f"Created Fabric toolset with connection: {fabric_connection_id}")
+    logger.info(f"[FABRIC] Created Fabric toolset successfully")
     
-    # Check if agent already exists by name - delete and recreate to ensure Fabric tool is fresh
-    # The Fabric tool connection is baked into the agent at creation time, so we must
-    # recreate the agent if the connection has changed
+    # Check if agent already exists by name - REUSE it instead of recreating
+    # This prevents issues where multiple processes (backend + diagnostic scripts)
+    # delete each other's agents, causing "No assistant found" errors
     try:
         agents = project_client.agents.list_agents()
         for agent in agents:
             if hasattr(agent, 'name') and agent.name == "claims_data_analyst_v2":
                 logger.info(f"[FABRIC] Found existing claims_data_analyst_v2 agent: {agent.id}")
-                logger.info(f"[FABRIC] Deleting old agent to ensure fresh Fabric tool connection...")
-                project_client.agents.delete_agent(agent.id)
-                logger.info(f"[FABRIC] Deleted old agent: {agent.id}")
-                break
+                
+                # Verify the agent has the Fabric tool configured
+                has_fabric_tool = False
+                if hasattr(agent, 'tools') and agent.tools:
+                    for tool in agent.tools:
+                        tool_type = getattr(tool, 'type', None)
+                        if tool_type and 'fabric' in str(tool_type).lower():
+                            has_fabric_tool = True
+                            break
+                
+                if has_fabric_tool:
+                    logger.info(f"[FABRIC] Reusing existing agent with Fabric tool: {agent.id}")
+                    return agent, toolset
+                else:
+                    # Agent exists but doesn't have Fabric tool - need to recreate
+                    logger.warning(f"[FABRIC] Agent exists but has no Fabric tool - recreating...")
+                    project_client.agents.delete_agent(agent.id)
+                    logger.info(f"[FABRIC] Deleted old agent without Fabric tool: {agent.id}")
+                    break
     except Exception as e:
-        logger.debug(f"Could not list/delete existing agents: {e}")
+        logger.debug(f"Could not list/check existing agents: {e}")
     
     # Create the agent with Fabric tool (only if it doesn't exist)
     model_name = settings.azure_openai_deployment_name or "gpt-4.1-mini"

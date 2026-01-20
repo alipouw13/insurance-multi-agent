@@ -77,7 +77,7 @@ Provide a detailed assessment including:
 5. Final verdict: VALID, QUESTIONABLE, or INVALID"""
 
     try:
-        messages, usage, _ = run_agent_v2(agent_id, prompt, functions=functions)
+        messages, usage, _, _ = run_agent_v2(agent_id, prompt, functions=functions)
         if messages:
             logger.info(f"Claim Assessor completed (tokens: {usage.get('total_tokens', 'N/A')})")
             return messages[0].get('content', 'No response from Claim Assessor')
@@ -133,7 +133,7 @@ Provide verification including:
 5. Final verdict: COVERED, PARTIALLY COVERED, or NOT COVERED"""
 
     try:
-        messages, usage, _ = run_agent_v2(agent_id, prompt, functions=functions)
+        messages, usage, _, _ = run_agent_v2(agent_id, prompt, functions=functions)
         if messages:
             logger.info(f"Policy Checker completed (tokens: {usage.get('total_tokens', 'N/A')})")
             return messages[0].get('content', 'No response from Policy Checker')
@@ -175,7 +175,7 @@ Provide risk analysis including:
 5. Final verdict: LOW RISK, MODERATE RISK, or HIGH RISK"""
 
     try:
-        messages, usage, _ = run_agent_v2(agent_id, prompt, functions=functions)
+        messages, usage, _, _ = run_agent_v2(agent_id, prompt, functions=functions)
         if messages:
             logger.info(f"Risk Analyst completed (tokens: {usage.get('total_tokens', 'N/A')})")
             return messages[0].get('content', 'No response from Risk Analyst')
@@ -218,7 +218,7 @@ The email should:
 
     try:
         # No functions needed for communication agent
-        messages, usage, _ = run_agent_v2(agent_id, prompt)
+        messages, usage, _, _ = run_agent_v2(agent_id, prompt)
         if messages:
             logger.info(f"Communication Agent completed (tokens: {usage.get('total_tokens', 'N/A')})")
             return messages[0].get('content', 'No response from Communication Agent')
@@ -269,7 +269,7 @@ def call_claims_data_analyst(claim_query: str) -> str:
 
     try:
         # Force the Fabric Data Agent tool to be invoked
-        messages, usage, _ = run_agent_v2(agent_id, fabric_query, tool_choice="fabric_dataagent")
+        messages, usage, _, _ = run_agent_v2(agent_id, fabric_query, tool_choice="fabric_dataagent")
         if messages:
             logger.info(f"Claims Data Analyst completed (tokens: {usage.get('total_tokens', 'N/A')})")
             response_content = messages[0].get('content', 'No response from Claims Data Analyst')
@@ -678,7 +678,7 @@ IMPORTANT: You must call all four agents (claim_assessor, policy_checker, risk_a
     try:
         # Run the supervisor agent with manual tool execution
         # Pass the functions dict so run_agent_v2 can execute them when needed
-        messages, usage, tool_results = run_agent_v2(
+        messages, usage, tool_results, _ = run_agent_v2(
             supervisor_id, 
             user_message, 
             functions=supervisor_functions_dict

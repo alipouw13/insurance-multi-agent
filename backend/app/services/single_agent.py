@@ -29,6 +29,8 @@ def _generate_fabric_query(claim_data: Dict[str, Any]) -> str:
     """Generate a claim-specific Fabric query based on claim type and context.
     
     Creates simple, natural language queries optimized for Fabric Data Agent.
+    The Fabric Data Agent works best with focused, single-purpose queries.
+    Complex queries with multiple conditions often fail.
     
     Args:
         claim_data: The claim data dictionary
@@ -37,41 +39,11 @@ def _generate_fabric_query(claim_data: Dict[str, Any]) -> str:
         A focused natural language query string
     """
     claimant_id = claim_data.get('claimant_id', 'unknown')
-    claim_type = claim_data.get('claim_type', 'unknown')
-    state = claim_data.get('state', 'unknown')
     claimant_name = claim_data.get('claimant_name', 'unknown')
-    estimated_damage = claim_data.get('estimated_damage', 0)
     
-    # Generate query based on claim type
-    claim_type_lower = claim_type.lower()
-    
-    if 'collision' in claim_type_lower or 'major collision' in claim_type_lower:
-        # Major collision - focus on claimant history and high-value collision fraud
-        return f"Show claims history for claimant {claimant_id} ({claimant_name}) and fraud rate for collision claims over $20000 in {state}"
-    
-    elif 'property' in claim_type_lower or 'property damage' in claim_type_lower:
-        # Property damage - focus on property claims and regional patterns
-        return f"Show claims history for claimant {claimant_id} and average property damage claims in {state}"
-    
-    elif 'auto accident' in claim_type_lower or 'accident' in claim_type_lower:
-        # Auto accident - focus on claimant history and accident patterns
-        return f"Show claims history for claimant {claimant_id} and fraud rate for auto accident claims in {state}"
-    
-    elif 'fire' in claim_type_lower or 'fire damage' in claim_type_lower:
-        # Fire damage - focus on fire claims and fraud indicators
-        return f"Show claims history for claimant {claimant_id} and fire damage fraud indicators in {state}"
-    
-    elif 'theft' in claim_type_lower or 'auto theft' in claim_type_lower:
-        # Theft - focus on theft claims and fraud patterns
-        return f"Show claims history for claimant {claimant_id} and auto theft fraud rate in {state}"
-    
-    elif 'liability' in claim_type_lower:
-        # Liability - focus on liability history and patterns
-        return f"Show claims history for claimant {claimant_id} and liability claim patterns in {state}"
-    
-    else:
-        # Default query for other claim types
-        return f"Show claims history for claimant {claimant_id} and fraud rate for {claim_type} claims in {state}"
+    # Simple, reliable query - just get the claimant's history
+    # Complex queries with "and fraud rate for X claims over $Y in Z" frequently fail
+    return f"Show all claims for claimant {claimant_id} ({claimant_name})"
 
 
 def _format_lakehouse_response(
@@ -170,7 +142,7 @@ def _format_lakehouse_response(
     return response
 
 
-async def run(agent_name: str, claim_data: Dict[str, Any], user_token: str = None) -> tuple[List[Dict[str, Any]], Dict[str, int]]:  # noqa: D401
+async def run(agent_name: str, claim_data: Dict[str, Any], user_token: str = None) -> tuple[List[Dict[str, Any]], Dict[str, int], str]:  # noqa: D401
     """Run *one* agent on the claim data and return its message list with token usage.
 
     Args:
@@ -179,7 +151,8 @@ async def run(agent_name: str, claim_data: Dict[str, Any], user_token: str = Non
         user_token: Optional Azure AD user token for Fabric Data Agent authentication.
 
     Returns:
-        Tuple of (messages, usage_info) where usage_info contains token counts
+        Tuple of (messages, usage_info, thread_id) where usage_info contains token counts
+        and thread_id is for continuing the conversation
     """
     from opentelemetry import trace
     from opentelemetry.trace import Status, StatusCode
@@ -211,7 +184,8 @@ async def run(agent_name: str, claim_data: Dict[str, Any], user_token: str = Non
             else:
                 logger.debug(f"📊 Using LangGraph agent for {agent_name}")
                 span.set_attribute("gen_ai.system", "langgraph")
-                result = _run_langgraph_agent(agent_name, claim_data)
+                messages, usage = _run_langgraph_agent(agent_name, claim_data)
+                result = (messages, usage, None)  # No thread_id for LangGraph
             
             span.set_status(Status(StatusCode.OK))
             return result
@@ -222,12 +196,14 @@ async def run(agent_name: str, claim_data: Dict[str, Any], user_token: str = Non
             raise
 
 
-def _run_azure_agent_v2(agent_name: str, claim_data: Dict[str, Any], user_token: str = None) -> tuple[List[Dict[str, Any]], Dict[str, int]]:
+def _run_azure_agent_v2(agent_name: str, claim_data: Dict[str, Any], user_token: str = None, thread_id: str = None) -> tuple[List[Dict[str, Any]], Dict[str, int], str]:
     """Run an Azure AI Agent Service v2 agent.
     
     Args:
         agent_name: Name of the agent
         claim_data: Claim dict already merged/cleaned by the endpoint
+        user_token: Optional Azure AD user token for Fabric Data Agent authentication
+        thread_id: Optional existing thread ID to continue a conversation
         user_token: Optional Azure AD user token for Fabric Data Agent authentication
         
     Returns:
@@ -271,13 +247,13 @@ def _run_azure_agent_v2(agent_name: str, claim_data: Dict[str, Any], user_token:
         logger.info(f"[CLAIMS_DATA_ANALYST] State: {state}")
         logger.info(f"[CLAIMS_DATA_ANALYST] Fabric Query: {fabric_query}")
         
-        # Simple, focused query for Fabric Data Agent
+        # Keep the user message simple and direct
         user_message = fabric_query
     
     # Run Azure agent v2 and get messages with usage info
     logger.info(f"[AGENT] Calling run_agent_v2 for {agent_name} (tool_choice={tool_choice}, has_user_token={user_token is not None})")
-    azure_messages, usage_info, _ = run_agent_v2(agent_id, user_message, functions=functions, tool_choice=tool_choice, user_token=user_token)
-    logger.info(f"[AGENT] Agent {agent_name} returned {len(azure_messages)} messages")
+    azure_messages, usage_info, _, thread_id = run_agent_v2(agent_id, user_message, functions=functions, tool_choice=tool_choice, user_token=user_token)
+    logger.info(f"[AGENT] Agent {agent_name} returned {len(azure_messages)} messages, thread_id={thread_id}")
     
     # Log response content for Claims Data Analyst debugging
     if agent_name == "claims_data_analyst" and azure_messages:
@@ -287,6 +263,11 @@ def _run_azure_agent_v2(agent_name: str, claim_data: Dict[str, Any], user_token:
             content = " ".join([c.get("text", {}).get("value", "") if isinstance(c, dict) else str(c) for c in content])
         preview = content[:500] if len(content) > 500 else content
         logger.info(f"[CLAIMS_DATA_ANALYST] Response preview: {preview}")
+        
+        # DEBUG: Log the FULL response before fallback check
+        logger.warning(f"[CLAIMS_DATA_ANALYST] ===== FULL AGENT RESPONSE =====")
+        logger.warning(f"[CLAIMS_DATA_ANALYST] {content}")
+        logger.warning(f"[CLAIMS_DATA_ANALYST] ===== END RESPONSE =====")
         
         # Check for connectivity issues - match the same phrases used in azure_agent_client_v2.py
         connectivity_phrases = [
@@ -302,6 +283,13 @@ def _run_azure_agent_v2(agent_name: str, claim_data: Dict[str, Any], user_token:
             "let me retry", "ensure connection", "once accessible"
         ]
         fabric_failed = any(phrase in content.lower() for phrase in connectivity_phrases)
+        
+        # DEBUG: Log which phrase triggered fallback
+        if fabric_failed:
+            for phrase in connectivity_phrases:
+                if phrase in content.lower():
+                    logger.warning(f"[CLAIMS_DATA_ANALYST] FALLBACK TRIGGERED by phrase: '{phrase}'")
+                    break
         
         if fabric_failed:
             logger.warning(f"[CLAIMS_DATA_ANALYST] Fabric connectivity issue detected in response!")
@@ -396,8 +384,8 @@ def _run_azure_agent_v2(agent_name: str, claim_data: Dict[str, Any], user_token:
                 "content": content
             })
     
-    logger.debug("✅ Azure AI agent v2 run finished: %s messages", len(messages))
-    return messages, usage_info
+    logger.debug("✅ Azure AI agent v2 run finished: %s messages, thread_id=%s", len(messages), thread_id)
+    return messages, usage_info, thread_id
 
 
 def _run_langgraph_agent(agent_name: str, claim_data: Dict[str, Any]) -> tuple[List[Dict[str, Any]], Dict[str, int]]:
