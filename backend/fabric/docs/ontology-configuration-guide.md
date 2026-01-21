@@ -50,21 +50,21 @@ This guide provides step-by-step instructions for configuring your Insurance Cla
                │ claims_history_has_fraud_indicators (1:Many)
                │ JOIN: claim_id → claim_id
                ▼
-    ┌──────────────────────┐
-    │  fraud_indicators    │
-    │  ══════════════════  │
-    │  [PK] indicator_id   │
-    │  • claim_id (FK)     │
-    │  • indicator_type    │
-    │  • severity          │
-    │  • detected_date     │
-    │  • pattern_description│
+    ┌────────────────────────┐
+    │  fraud_indicators      │
+    │  ══════════════════    │
+    │  [PK] indicator_id     │
+    │  • claim_id (FK)       │
+    │  • indicator_type      │
+    │  • severity            │
+    │  • detected_date       │
+    │  • pattern_description │
     │  • investigation_status│
-    └──────────────────────┘
+    └────────────────────────┘
 
     ┌──────────────────────┐
-    │ regional_statistics  │◄─── claims_in_region (Many:1)
-    │  ══════════════════  │     JOIN: state → state (+ city optional)
+    │ regional_statistics  │     (standalone - no relationship to claims)
+    │  ══════════════════  │     Query directly for regional analysis
     │  [PK] state + city   │
     │  • region            │
     │  • avg_claim_amount  │
@@ -80,6 +80,10 @@ This guide provides step-by-step instructions for configuring your Insurance Cla
     ──► = Relationship direction (parent → child)
     ═══════════════════════════════════════════════════════════════
 ```
+
+### Fabric IQ Ontology Screenshot
+
+![Ontology Diagram](../../../frontend/public/ontology.png)
 
 ---
 
@@ -280,23 +284,14 @@ This relationship should already exist based on your screenshot. Verify:
 | Cardinality | One-to-Many |
 | Join | `claim_id` → `claim_id` |
 
-#### 3.4 Create `claims_in_region` Relationship (Optional)
+#### 3.4 `claims_in_region` Relationship - SKIPPED
 
-1. Click **"+ Add relationship"**
-2. Configure:
+**Note**: This relationship is skipped because:
+- `regional_statistics` has a composite key (`state` + `city`)
+- `claims_history` doesn't have a separate `city` column (only combined `location`)
+- The relationship would effectively be many-to-many, which is not well-supported
 
-   | Setting | Value |
-   |---------|-------|
-   | Relationship name | `claims_in_region` |
-   | From entity | `claims_history` |
-   | To entity | `regional_statistics` |
-   | Cardinality | Many-to-One |
-
-3. Define the join:
-   - From property: `state`
-   - To property: `state`
-
-4. Click **"Add"**
+**Alternative**: Query `regional_statistics` directly for regional analysis rather than traversing from claims.
 
 ---
 
@@ -404,7 +399,7 @@ After configuration, test with these sample queries:
 
 - [ ] All 5 entity types created
 - [ ] All properties mapped correctly
-- [ ] 4 relationships configured
+- [ ] 3 relationships configured (claimant_has_claims, policy_has_claims, claims_history_has_fraud_indicators)
 - [ ] Key bindings added
 - [ ] Synonyms configured (optional)
 - [ ] Test queries working
