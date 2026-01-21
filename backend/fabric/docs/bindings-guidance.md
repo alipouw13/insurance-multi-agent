@@ -16,6 +16,7 @@ Your multi-agent system has specific agents with specific needs:
 - **Claim Assessor** → Needs damage assessment, documentation status
 - **Policy Checker** → Needs coverage validation, policy limits
 - **Risk Analyst** → Needs fraud indicators, risk scores, patterns
+- **Claims Data Analyst** → Needs regional statistics, historical trends, portfolio analytics
 - **Communication Agent** → Needs customer info, claim status for messaging
 
 ### 3. Balance Pre-computation vs. Flexibility

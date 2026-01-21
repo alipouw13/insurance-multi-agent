@@ -4,17 +4,17 @@ This guide provides step-by-step instructions for configuring your Insurance Cla
 
 ---
 
-## 📊 Ontology Relationship Diagram
+## Ontology Relationship Diagram
 
 ```
-┌─────────────────────────────────────────────────────────────────────────────────────────┐
-│                           INSURANCE CLAIMS ONTOLOGY                                      │
-└─────────────────────────────────────────────────────────────────────────────────────────┘
+┌─────────────────────────────────────────────────────────────────────────────────────┐
+│                          INSURANCE CLAIMS ONTOLOGY                                  │
+└─────────────────────────────────────────────────────────────────────────────────────┘
 
     ┌──────────────────────┐
     │  claimant_profiles   │
     │  ══════════════════  │
-    │  🔑 claimant_id      │
+    │  [PK] claimant_id    │
     │  • name              │
     │  • age               │
     │  • state             │
@@ -33,7 +33,7 @@ This guide provides step-by-step instructions for configuring your Insurance Cla
     ┌──────────────────────┐         ┌──────────────────────┐
     │   claims_history     │◄────────│ policy_claims_summary│
     │  ══════════════════  │         │  ═══════════════════ │
-    │  🔑 claim_id         │         │  🔑 policy_number    │
+    │  [PK] claim_id       │         │  [PK] policy_number  │
     │  • policy_number     │         │  • total_claims      │
     │  • claimant_id       │         │  • total_amount_paid │
     │  • claim_type        │         │  • avg_claim_amount  │
@@ -53,7 +53,7 @@ This guide provides step-by-step instructions for configuring your Insurance Cla
     ┌──────────────────────┐
     │  fraud_indicators    │
     │  ══════════════════  │
-    │  🔑 indicator_id     │
+    │  [PK] indicator_id   │
     │  • claim_id (FK)     │
     │  • indicator_type    │
     │  • severity          │
@@ -65,7 +65,7 @@ This guide provides step-by-step instructions for configuring your Insurance Cla
     ┌──────────────────────┐
     │ regional_statistics  │◄─── claims_in_region (Many:1)
     │  ══════════════════  │     JOIN: state → state (+ city optional)
-    │  🔑 state + city     │
+    │  [PK] state + city   │
     │  • region            │
     │  • avg_claim_amount  │
     │  • fraud_rate        │
@@ -75,7 +75,7 @@ This guide provides step-by-step instructions for configuring your Insurance Cla
 
     ═══════════════════════════════════════════════════════════════
     LEGEND:
-    🔑 = Primary Key
+    [PK] = Primary Key
     FK = Foreign Key
     ──► = Relationship direction (parent → child)
     ═══════════════════════════════════════════════════════════════
@@ -83,12 +83,26 @@ This guide provides step-by-step instructions for configuring your Insurance Cla
 
 ---
 
-## 🔧 Step-by-Step Configuration Instructions
+## Step-by-Step Configuration Instructions
 
 ### Prerequisites
 - Access to Microsoft Fabric workspace
 - Data already loaded into Lakehouse tables
 - Fabric IQ resource created
+
+### Your Lakehouse Structure
+```
+LH_AIClaimsDemo
+ +-- Tables
+ |   +-- dbo
+ |       +-- claimant_profiles
+ |       +-- claims_history
+ |       +-- fraud_indicators
+ |       +-- policy_claims_summary
+ |       +-- regional_statistics
+ +-- Files
+     +-- claims_data
+```
 
 ---
 
@@ -96,42 +110,48 @@ This guide provides step-by-step instructions for configuring your Insurance Cla
 
 1. **Navigate to your Fabric IQ resource** → Select "Ontology" tab
 2. Click **"+ Add entity type"** button
-3. Configure the entity:
+3. **Select Data Source:**
+   - Source type: **Lakehouse**
+   - Lakehouse: **LH_AIClaimsDemo**
+   - Schema: **dbo**
+   - Table: **claimant_profiles**
+4. Configure the entity:
 
    | Setting | Value |
    |---------|-------|
    | Entity type name | `claimant_profiles` |
-   | Data source | Select your Lakehouse table `claimant_profiles` |
    | Key | `claimant_id` |
 
-4. Click **"Add"** to create the entity
+5. Click **"Add"** to create the entity - Fabric will auto-import all columns as properties
 
-5. **Add Properties** - In the Properties tab, add each column:
+6. **Verify imported properties** match these expected columns:
 
-   | Property Name | Data Source Column | Property Type |
-   |---------------|-------------------|---------------|
-   | `claimant_id` | claimant_id | Static |
-   | `name` | name | Static |
-   | `age` | age | Static |
-   | `state` | state | Static |
-   | `city` | city | Static |
-   | `address` | address | Static |
-   | `phone` | phone | Static |
-   | `email` | email | Static |
-   | `customer_since` | customer_since | Static |
-   | `total_claims_count` | total_claims_count | Static |
-   | `total_claims_amount` | total_claims_amount | Static |
-   | `average_claim_amount` | average_claim_amount | Static |
-   | `risk_score` | risk_score | Static |
-   | `claim_frequency` | claim_frequency | Static |
-   | `credit_score` | credit_score | Static |
-   | `driving_record` | driving_record | Static |
-   | `policy_count` | policy_count | Static |
-   | `account_status` | account_status | Static |
+   | Property Name | Data Type | Notes |
+   |---------------|-----------|-------|
+   | `claimant_id` | String | **Set as Key** |
+   | `name` | String | |
+   | `age` | Integer | |
+   | `state` | String | |
+   | `city` | String | |
+   | `address` | String | |
+   | `phone` | String | |
+   | `email` | String | |
+   | `customer_since` | Date | |
+   | `total_claims_count` | Integer | |
+   | `total_claims_amount` | Decimal | |
+   | `average_claim_amount` | Decimal | |
+   | `risk_score` | Decimal | |
+   | `claim_frequency` | String | |
+   | `credit_score` | String | |
+   | `driving_record` | String | |
+   | `policy_count` | Integer | |
+   | `account_status` | String | |
 
 ---
 
 ### Step 2: Verify Existing Entity Configurations
+
+For each existing entity, verify it's connected to **LH_AIClaimsDemo.dbo.[table_name]**
 
 #### 2.1 Verify `claims_history` Entity
 
@@ -369,7 +389,7 @@ After configuration, test with these sample queries:
 
 ---
 
-## 🔍 Troubleshooting
+## Troubleshooting
 
 ### Common Issues
 
@@ -391,7 +411,7 @@ After configuration, test with these sample queries:
 
 ---
 
-## 📚 Next Steps
+## Next Steps
 
 1. **Add instance display names** - Configure how entities appear in results
 2. **Set up semantic model** - For Power BI integration
