@@ -38,7 +38,7 @@ Microsoft Purview provides unified data governance for discovering, classifying,
 
 ---
 
-## Lineage Visualization
+## Lineage
 
 The complete data lineage from source documents through AI agents to outputs:
 
