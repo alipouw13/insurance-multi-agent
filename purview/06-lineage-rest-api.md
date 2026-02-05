@@ -15,6 +15,10 @@ While Purview auto-captures lineage for many Azure services, you need custom lin
 - Cross-service connections (Lakehouse → Fabric Data Agent → Foundry Agents)
 - Application-level data flows (Agents → Cosmos DB)
 
+### Lineage in Purview Portal
+
+![Insurance Claims Lineage](../frontend/public/lineage.png)
+
 ### Lineage Architecture
 
 ```
@@ -100,7 +104,7 @@ python scripts/create_lineage.py --purview-account pview-apfsipurviewdemo --dry-
 # Create lineage (specify collection ID, not friendly name)
 python scripts/create_lineage.py \
     --purview-account pview-apfsipurviewdemo \
-    --collection 8idoto
+    --collection collection-id
 
 # With cleanup (recreate entities)
 python scripts/create_lineage.py --cleanup --reset-types
