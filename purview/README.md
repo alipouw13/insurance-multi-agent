@@ -33,16 +33,9 @@ Microsoft Purview provides unified data governance for discovering, classifying,
 | 3 | [Scan Cosmos DB](03-scan-cosmos-db.md) | Connect and scan Cosmos DB |
 | 4 | [Scan Fabric Tenant](04-scan-fabric-tenant.md) | Register and scan Microsoft Fabric tenant |
 | 5 | [Governance Domains](05-governance-domains.md) | Create domains and data products |
-| 6 | [Lineage REST API](06-lineage-rest-api.md) | Custom lineage via Apache Atlas API |
-| 7 | [Sensitivity Labels & DLP](07-sensitivity-labels-dlp.md) | Classification and protection policies |
+| 6 | [Sensitivity Labels & DLP](06-sensitivity-labels-dlp.md) | Classification and protection policies |
+| 7 | [Lineage REST API](07-lineage-rest-api.md) | Custom lineage via Atlas API |
 
----
-
-## Lineage
-
-The complete data lineage from source documents through AI agents to outputs:
-
-![Insurance Claims Lineage](../frontend/public/lineage.png)
 
 ---
 
@@ -50,28 +43,28 @@ The complete data lineage from source documents through AI agents to outputs:
 
 ```
 ┌─────────────────────────────────────────────────────────────────────────┐
-│                         MICROSOFT PURVIEW                                │
+│                         MICROSOFT PURVIEW                               │
 ├─────────────────────────────────────────────────────────────────────────┤
-│                                                                          │
-│  ┌─────────────┐  ┌─────────────┐  ┌─────────────┐  ┌─────────────┐    │
-│  │  Data Map   │  │  Catalog    │  │  Lineage    │  │  Policies   │    │
-│  └──────┬──────┘  └──────┬──────┘  └──────┬──────┘  └──────┬──────┘    │
+│                                                                         │
+│  ┌─────────────┐  ┌─────────────┐  ┌─────────────┐  ┌─────────────┐     │
+│  │  Data Map   │  │  Catalog    │  │  Lineage    │  │  Policies   │     │
+│  └──────┬──────┘  └──────┬──────┘  └──────┬──────┘  └──────┬──────┘     │
 │         │                │                │                │            │
 └─────────┼────────────────┼────────────────┼────────────────┼────────────┘
           │                │                │                │
           ▼                ▼                ▼                ▼
 ┌─────────────────────────────────────────────────────────────────────────┐
-│                           DATA SOURCES                                   │
+│                           DATA SOURCES                                  │
 ├─────────────────┬─────────────────┬─────────────────┬───────────────────┤
 │                 │                 │                 │                   │
-│  ┌───────────┐  │  ┌───────────┐  │  ┌───────────┐  │  ┌───────────┐   │
-│  │  Azure    │  │  │  Cosmos   │  │  │  Fabric   │  │  │  Power    │   │
-│  │  Storage  │  │  │  DB       │  │  │  Lakehouse│  │  │  BI       │   │
-│  └───────────┘  │  └───────────┘  │  └───────────┘  │  └───────────┘   │
+│  ┌───────────┐  │  ┌───────────┐  │  ┌───────────┐  │  ┌───────────┐    │
+│  │  Azure    │  │  │  Cosmos   │  │  │  Fabric   │  │  │  Power    │    │
+│  │  Storage  │  │  │  DB       │  │  │  Lakehouse│  │  │  BI       │    │
+│  └───────────┘  │  └───────────┘  │  └───────────┘  │  └───────────┘    │
 │                 │                 │                 │                   │
-│  - Claims docs  │  - Executions   │  - claims_      │  - Dashboards    │
-│  - Raw files    │  - Evaluations  │    history      │  - Reports       │
-│  - Uploads      │  - Agent logs   │  - claimant_    │  - Datasets      │
+│  - Claims docs  │  - Executions   │  - claims_      │  - Dashboards     │
+│  - Raw files    │  - Evaluations  │    history      │  - Reports        │
+│  - Uploads      │  - Agent logs   │  - claimant_    │  - Datasets       │
 │                 │                 │    profiles     │                   │
 │                 │                 │  - fraud_       │                   │
 │                 │                 │    indicators   │                   │
@@ -127,82 +120,3 @@ The complete data lineage from source documents through AI agents to outputs:
 | Fabric | Workspace Admin or Member |
 
 ---
-
-## Python Scripts
-
-Automation scripts are available in the [scripts/](scripts/) folder:
-
-| Script | Description |
-|--------|-------------|
-| [create_lineage.py](scripts/create_lineage.py) | Create custom lineage relationships between agents, Lakehouse, and Cosmos DB |
-| [verify_lineage.py](scripts/verify_lineage.py) | Verify lineage relationships exist in Purview |
-| [export_catalog.py](scripts/export_catalog.py) | Export Unified Catalog to JSON for backup |
-
-### Usage
-
-```bash
-# Install dependencies
-pip install azure-identity requests
-
-# List collections (to find collection ID)
-python scripts/create_lineage.py --list-collections
-
-# Create lineage (dry run first)
-python scripts/create_lineage.py --dry-run
-python scripts/create_lineage.py --collection <collection-id>
-
-# With cleanup (delete and recreate entities)
-python scripts/create_lineage.py --cleanup --reset-types --collection <collection-id>
-
-# Verify lineage
-python scripts/verify_lineage.py --purview-account pview-apfsipurviewdemo
-
-# Export catalog
-python scripts/export_catalog.py --purview-account pview-apfsipurviewdemo --output catalog.json
-```
-
----
-
-## Related Documentation
-
-- [Fabric IQ Ontology Configuration](../backend/fabric/docs/ontology-configuration-guide.md)
-- [Fabric IQ Bindings Guidance](../backend/fabric/docs/bindings-guidance.md)
-
-### Tools
-- Azure CLI or Azure Portal
-- Python 3.9+ (for REST API scripts)
-- Azure Identity SDK
-
----
-
-## Insurance Claims Data Classification
-
-### Using Default Sensitivity Labels
-
-We use the default Microsoft sensitivity labels that are pre-configured in your tenant:
-
-| Label | Priority | Apply To |
-|-------|----------|----------|
-| **Public** | 1 | Publicly shareable policy terms |
-| **General** | 2 | regional_statistics, Claims Dashboard |
-| **Confidential** | 5 | claims_history, policy_claims_summary, Claims Semantic Model |
-| **Highly Confidential** | 9 | claimant_profiles (PII), fraud_indicators |
-
-### Recommended Glossary Terms
-
-| Term | Definition | Related Assets |
-|------|------------|----------------|
-| Claimant | Person filing an insurance claim | claimant_profiles |
-| Claim | Insurance claim record | claims_history |
-| Fraud Indicator | Potential fraud signal | fraud_indicators |
-| Policy | Insurance policy contract | policy_claims_summary |
-
----
-
-## Contact
-
-For questions about data governance for this project, contact the data steward assigned to the Insurance Claims domain.
-
----
-
-*Last Updated: February 2026*

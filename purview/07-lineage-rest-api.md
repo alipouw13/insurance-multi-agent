@@ -218,10 +218,3 @@ python scripts/verify_lineage.py --purview-account purview-prod
 | Assets not found | Ensure Purview scans have completed for Storage, Cosmos DB, and Fabric |
 | Permission denied | Verify Data Curator role on Purview account |
 | Type already exists | Safe to ignore - script handles existing types |
-
----
-
-## Next Steps
-
-1. [Configure sensitivity labels and DLP](07-sensitivity-labels-dlp.md)
-

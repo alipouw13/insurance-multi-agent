@@ -131,74 +131,24 @@ Assign Ownership by Governance Domain - Governance Domains should be aligned to 
 
 ## Step 4: Create Business Glossary
 
-### Glossary Structure
+### Glossary Terms
 
-See below for some ideas on glossary items for each of our governance domains.
+Define glossary terms in the appropriate governance domains and data assets.
 
-```
-Insurance Claims Glossary
-├── Claims Terms
-│   ├── Claim
-│   ├── Claimant
-│   ├── Claim Type
-│   ├── Estimated Damage
-│   └── Settlement
-├── Customer Terms
-│   ├── Customer Profile
-│   ├── Risk Score
-│   └── Policy Holder
-├── Fraud Terms
-│   ├── Fraud Indicator
-│   ├── Fraud Pattern
-│   └── Investigation Status
-└── Operational Terms
-    ├── Agent Execution
-    ├── Evaluation Score
-    └── Token Usage
-```
-
-### Create Glossary Terms
-
-#### Term: Claim
-
-| Setting | Value |
-|---------|-------|
-| Name | `Claim` |
-| Definition | `A formal request by a policyholder to an insurance company for coverage or compensation for a covered loss or policy event` |
-| Status | `Approved` |
-| Domain | Claims |
-| Related Terms | Claimant, Policy, Settlement |
-
-#### Term: Fraud Indicator
-
-| Setting | Value |
-|---------|-------|
-| Name | `Fraud Indicator` |
-| Definition | `A data point or pattern that suggests potential fraudulent activity in an insurance claim` |
-| Status | `Approved` |
-| Domain | Fraud |
-| Sensitivity | Highly Confidential |
-
----
-
-## Step 5: Link Glossary Terms to Assets
-
-Associate terms with data assets for better discovery:
-
-### Via Portal
-
-1. Open asset in Unified Catalog
-2. Click **Edit**
-3. Under **Glossary terms**, add relevant terms
-
-### Asset-Term Mapping
-
-| Asset | Glossary Terms |
-|-------|---------------|
-| claims_history | Claim, Claim Type, Settlement, Estimated Damage |
-| claimant_profiles | Claimant, Customer Profile, Risk Score |
-| fraud_indicators | Fraud Indicator, Fraud Pattern, Investigation Status |
-| agent_executions | Agent Execution, Evaluation Score |
+| Term | Definition | Data Assets | Governance Domain |
+|------|------------|-------------|-------------------|
+| Claim | A formal request by a policyholder for coverage or compensation for a covered loss or policy event | claims_history | Claims |
+| Claim Type | Category of insurance claim (e.g., auto, property, liability, health) | claims_history | Claims |
+| Settlement | The agreed payment amount to resolve an insurance claim | claims_history | Claims |
+| Estimated Damage | Assessed monetary value of loss or damage in a claim | claims_history | Claims |
+| Claimant | Person or entity filing an insurance claim | claimant_profiles | Customer |
+| Customer Profile | Consolidated view of customer/claimant information and history | claimant_profiles | Customer |
+| Risk Score | Numerical assessment of claim or claimant risk level (0-100) | claimant_profiles | Customer |
+| Fraud Indicator | Data point or pattern suggesting potential fraudulent activity | fraud_indicators | Fraud |
+| Fraud Pattern | Recognized sequence of behaviors associated with fraudulent claims | fraud_indicators | Fraud |
+| Investigation Status | Current state of a fraud investigation (Open, In Progress, Closed) | fraud_indicators | Fraud |
+| Agent Execution | Single run of an AI agent processing a claim or query | agent-executions | Operations |
+| Evaluation Score | Quality metric for AI agent response (groundedness, relevance, coherence) | agent-executions, evaluations | Operations |
 
 ---
 
@@ -215,12 +165,5 @@ Associate terms with data assets for better discovery:
 | Fraud Investigation | Fraud | Dataset | Business Analyst | fraud_cases | Highly Restricted |
 | Agent Operations | Operations | Operational | Data Engineer | agent-executions, evaluations | Internal |
 | System Metrics | Operations | Operational | Software Engineer | Application Insights, Azure Monitor | Internal |
-
----
-
-## Next Steps
-
-1. [Create custom lineage via REST API](06-lineage-rest-api.md)
-2. [Configure sensitivity labels and DLP](07-sensitivity-labels-dlp.md)
 
 ---
