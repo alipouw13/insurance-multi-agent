@@ -5,6 +5,7 @@ from typing import Any, Dict, Optional
 from dataclasses import dataclass
 
 import requests
+from azure.identity import DefaultAzureCredential
 from app.core.config import get_settings
 
 logger = logging.getLogger(__name__)
@@ -23,26 +24,41 @@ class AnalysisResult:
 
 
 class ContentUnderstandingClient:
-    """Client for Azure Content Understanding API."""
+    """Client for Azure Content Understanding API.
+    
+    Uses DefaultAzureCredential for authentication (bearer token).
+    Falls back to API key if provided, but token auth is preferred
+    since key-based auth may be disabled on the resource.
+    """
     
     def __init__(
         self,
         endpoint: str,
-        subscription_key: str,
+        subscription_key: Optional[str] = None,
         api_version: str = "2025-05-01-preview"
     ):
         if not endpoint:
             raise ValueError("Endpoint must be provided")
-        if not subscription_key:
-            raise ValueError("Subscription key must be provided")
         
         self._endpoint = endpoint.rstrip("/")
         self._api_version = api_version
-        self._headers = {
-            "Ocp-Apim-Subscription-Key": subscription_key,
-            "x-ms-useragent": "insurance-multi-agent"
-        }
+        self._credential = DefaultAzureCredential()
+        self._subscription_key = subscription_key
         self._logger = logging.getLogger(__name__)
+    
+    def _get_auth_headers(self) -> dict:
+        """Get authentication headers using bearer token (preferred) or API key fallback."""
+        headers = {"x-ms-useragent": "insurance-multi-agent"}
+        try:
+            token = self._credential.get_token("https://cognitiveservices.azure.com/.default")
+            headers["Authorization"] = f"Bearer {token.token}"
+        except Exception as e:
+            if self._subscription_key:
+                self._logger.warning(f"Bearer token auth failed ({e}), falling back to API key")
+                headers["Ocp-Apim-Subscription-Key"] = self._subscription_key
+            else:
+                raise ValueError(f"Bearer token auth failed and no API key configured: {e}")
+        return headers
     
     def begin_analyze(self, analyzer_id: str, file_data: bytes, content_type: str = "application/pdf") -> requests.Response:
         """
@@ -58,7 +74,7 @@ class ContentUnderstandingClient:
         """
         url = f"{self._endpoint}/contentunderstanding/analyzers/{analyzer_id}:analyze?api-version={self._api_version}&stringEncoding=utf16"
         
-        headers = self._headers.copy()
+        headers = self._get_auth_headers()
         headers["Content-Type"] = "application/octet-stream"
         
         self._logger.info(f"Starting analysis with analyzer: '{analyzer_id}'")
@@ -97,7 +113,7 @@ class ContentUnderstandingClient:
         if not operation_location:
             raise ValueError("Operation location not found in response headers")
         
-        headers = self._headers.copy()
+        headers = self._get_auth_headers()
         headers["Content-Type"] = "application/json"
         
         start_time = time.time()
@@ -351,17 +367,16 @@ class ContentUnderstandingService:
         
         if not all([
             settings.azure_content_understanding_endpoint,
-            settings.azure_content_understanding_key,
             settings.azure_content_understanding_analyzer_id
         ]):
-            logger.warning("Content Understanding not configured - service unavailable")
+            logger.warning("Content Understanding not configured - endpoint and analyzer_id required")
             self._initialized = True
             return
         
         try:
             self._client = ContentUnderstandingClient(
                 endpoint=settings.azure_content_understanding_endpoint,
-                subscription_key=settings.azure_content_understanding_key
+                subscription_key=settings.azure_content_understanding_key  # optional fallback
             )
             self._initialized = True
             logger.info("Content Understanding service initialized")
