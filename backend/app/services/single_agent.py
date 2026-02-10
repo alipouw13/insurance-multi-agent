@@ -181,11 +181,17 @@ async def run(agent_name: str, claim_data: Dict[str, Any], user_token: str = Non
                 logger.debug(f"✨ Using Azure AI Agent Service (v2) for {agent_name}")
                 span.set_attribute("gen_ai.system", "azure_ai_agents_v2")
                 result = _run_azure_agent_v2(agent_name, claim_data, user_token=user_token)
-            else:
+            elif agent_name in AGENTS:
                 logger.debug(f"📊 Using LangGraph agent for {agent_name}")
                 span.set_attribute("gen_ai.system", "langgraph")
                 messages, usage = _run_langgraph_agent(agent_name, claim_data)
                 result = (messages, usage, None)  # No thread_id for LangGraph
+            else:
+                # Agent not yet deployed (background thread still running) and no LangGraph fallback
+                raise UnknownAgentError(
+                    f"Agent '{agent_name}' is not ready yet. "
+                    f"It may still be deploying — please wait a few seconds and try again."
+                )
             
             span.set_status(Status(StatusCode.OK))
             return result

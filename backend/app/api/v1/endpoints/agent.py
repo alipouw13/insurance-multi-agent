@@ -142,7 +142,9 @@ async def agent_run(agent_name: str, claim: ClaimIn):  # noqa: D401
         )
 
     except UnknownAgentError as err:
-        raise HTTPException(status_code=404, detail=str(err))
+        # Return 503 if agent is still deploying, 404 if truly unknown
+        status = 503 if "not ready yet" in str(err) else 404
+        raise HTTPException(status_code=status, detail=str(err))
     except Exception as exc:  # pragma: no cover
         raise HTTPException(status_code=500, detail=str(exc))
 

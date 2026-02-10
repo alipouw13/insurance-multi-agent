@@ -11,6 +11,7 @@ from app.core.config import get_settings
 logger = logging.getLogger(__name__)
 
 _project_client = None
+_fabric_project_client = None
 
 
 class UserTokenCredential(TokenCredential):
@@ -98,6 +99,35 @@ def get_project_client_with_user_token(user_token: str) -> AIProjectClient:
     return client
 
 
+def _get_fabric_project_client() -> AIProjectClient:
+    """Get or create an AIProjectClient using user identity for Fabric Data Agent.
+    
+    Fabric Data Agent requires user identity (not service principal) for data access.
+    DefaultAzureCredential picks up EnvironmentCredential (SPN) when AZURE_CLIENT_ID etc.
+    are set, which Fabric rejects. This uses AzureCliCredential to ensure user identity.
+    
+    Returns:
+        AIProjectClient configured with user identity credential
+    """
+    global _fabric_project_client
+    
+    if _fabric_project_client is None:
+        from azure.identity import AzureCliCredential
+        
+        settings = get_settings()
+        if not settings.project_endpoint:
+            raise ValueError("PROJECT_ENDPOINT environment variable must be set.")
+        
+        logger.info("[FABRIC_CLIENT] Creating AIProjectClient with AzureCliCredential (user identity)")
+        _fabric_project_client = AIProjectClient(
+            endpoint=settings.project_endpoint,
+            credential=AzureCliCredential()
+        )
+        logger.info("[FABRIC_CLIENT] AIProjectClient created with user identity")
+    
+    return _fabric_project_client
+
+
 def run_agent_v2(
     agent_id: str, 
     user_message: str, 
@@ -144,6 +174,13 @@ def run_agent_v2(
     if user_token and tool_choice == "fabric_dataagent":
         logger.info("[RUN_AGENT_V2] Using user token credential for Fabric Data Agent (OBO)")
         project_client = get_project_client_with_user_token(user_token)
+    elif tool_choice == "fabric_dataagent":
+        # Fabric Data Agent requires USER identity — DefaultAzureCredential may resolve to
+        # EnvironmentCredential (service principal) if AZURE_CLIENT_ID/SECRET/TENANT_ID are
+        # set in .env, which Fabric rejects with "Failed to retrieve data from conversational
+        # data retrieval service." Use AzureCliCredential to ensure user identity.
+        logger.info("[RUN_AGENT_V2] Using AzureCliCredential for Fabric Data Agent (user identity required)")
+        project_client = _get_fabric_project_client()
     else:
         project_client = get_project_client_v2()
     
@@ -328,11 +365,18 @@ def _run_agent_simple(
         "agent_id": agent_id
     }
     
-    # Note: tool_choice parameter causes 404 errors with Azure AI Agent Service
-    # when passed to create_and_process. The Fabric tool is invoked automatically
-    # based on the agent's instructions and the user's query.
-    # Testing shows the tool works when the agent is properly configured.
-    logger.info(f"[SIMPLE_RUN] Using create_and_process (tool_choice not supported, relies on instructions)")
+    # Pass tool_choice to force tool invocation when specified.
+    # The tool_choice parameter must be a dict with {"type": "<tool_type>"} format.
+    # See inspect_agent.py which successfully uses tool_choice={"type": "fabric_dataagent"}.
+    if tool_choice:
+        # Convert string format to dict format if needed
+        if isinstance(tool_choice, str):
+            run_kwargs["tool_choice"] = {"type": tool_choice}
+        else:
+            run_kwargs["tool_choice"] = tool_choice
+        logger.info(f"[SIMPLE_RUN] Using create_and_process with tool_choice={run_kwargs['tool_choice']}")
+    else:
+        logger.info(f"[SIMPLE_RUN] Using create_and_process without tool_choice (auto mode)")
     
     # Retry logic for Fabric tool connectivity issues and server errors
     # Reduced retries since Fabric is generally working
@@ -347,11 +391,11 @@ def _run_agent_simple(
         logger.info(f"[SIMPLE_RUN] Thread: {thread_id}, Agent: {agent_id}")
         
         try:
-            # Use create_and_process - the standard pattern from MS docs
-            logger.info(f"[SIMPLE_RUN] Creating run with create_and_process...")
+            # Use create_and_process — the standard pattern from MS docs
+            # Pass tool_choice from run_kwargs to force tool invocation when configured
+            logger.info(f"[SIMPLE_RUN] Creating run with create_and_process (kwargs: {list(run_kwargs.keys())})...")
             run = project_client.agents.runs.create_and_process(
-                thread_id=thread_id,
-                agent_id=agent_id
+                **run_kwargs
             )
             
             attempt_duration = time_module.time() - attempt_start
@@ -495,152 +539,16 @@ def _run_agent_simple(
         # Get the messages
         last_messages = _get_assistant_messages(project_client, thread_id)
         
-        # Check if Fabric tool returned actual data or a connectivity error
+        # For Fabric tool runs, verify the tool was actually invoked
         if tool_choice == "fabric_dataagent" and last_messages:
             response_text = last_messages[-1].get("content", "") if last_messages else ""
-            response_length = len(response_text)
-            logger.info(f"[SIMPLE_RUN] Fabric response length: {response_length} chars")
-            logger.info(f"[SIMPLE_RUN] Response preview: {response_text[:200]}...")
+            logger.info(f"[SIMPLE_RUN] Fabric response length: {len(response_text)} chars")
+            logger.info(f"[SIMPLE_RUN] Response preview: {response_text[:300]}...")
             
-            # Phrases that indicate Fabric connectivity/data retrieval issues
-            connectivity_phrases = [
-                "technical difficulties",
-                "connectivity issue",
-                "unable to retrieve",
-                "data service issue",
-                "unable to access",
-                "cannot access",
-                "failed to connect",
-                "connection error",
-                "encountered an issue",
-                "failure connecting",
-                "issue retrieving",
-                "cannot query",
-                "unable to query",
-                "data access issue",
-                "lakehouse connection",
-                "will retry",
-                "i will retry",
-                "please advise",
-                "alternate access",
-                "experiencing issues",
-                "temporary issue",
-                "try again later",
-                "service is currently",
-                # Key phrase for recent errors
-                "difficulty retrieving",
-                "was a difficulty",
-                "having trouble",
-                "having trouble accessing",
-                "trouble accessing",
-                "i am having trouble",
-                # Technical issue phrases
-                "technical issue",
-                "encountered a technical",
-                "was unable to",
-                "let me retry",
-                "ensure connection",
-                "once accessible",
-                "not available at this time",
-                "do not have direct access",
-                "cannot directly access",
-                "unable to directly",
-                "cannot run sql queries",
-                "no direct access",
-                # New phrases for incomplete responses
-                "please hold on while i access",
-                "hold on while i access",
-                "i will now query",
-                "please provide access",
-                "provide access to the fabric",
-                "share data extracts",
-                "once i have that data",
-                "if you can provide",
-                "please share the data",
-                "i need access to",
-                "waiting for data",
-                "currently unable to access",
-                "appears i am currently unable",
-                "to proceed with the analysis, please",
-                # More phrases from recent errors
-                "not currently working",
-                "connection to the fabric tool",
-                "internal connection",
-                "provide an alternative way",
-                "alternative way to access",
-                "confirm or provide",
-                "i am ready to query",
-                "ready to query the claims",
-                "not working properly",
-                # System error phrases
-                "system error",
-                "system error with the fabric",
-                "error with the fabric tool",
-                "once the tools are functioning",
-                "tools are functioning",
-                "attempt again to retrieve",
-                # Phrases indicating agent didn't use tool output
-                "am unable to access",
-                "unable to access the claims",
-                "i am unable to access",
-                # New phrases for "tool not responding" errors
-                "not responding",
-                "tool is not responding",
-                "seems the tool is not responding",
-                "is not responding",
-                "let me attempt again",
-                "attempt again specifically",
-                "invoking microsoft fabric",
-                "currently set to query",
-                "set to query microsoft fabric"
-            ]
+            # Check run steps to verify Fabric tool was invoked
+            if not run_steps:
+                run_steps = _get_run_steps(project_client, thread_id, run.id)
             
-            has_connectivity_error = any(phrase in response_text.lower() for phrase in connectivity_phrases)
-            
-            # IMPORTANT: Check if Fabric tool actually returned data in run steps
-            # Sometimes the model doesn't include the output in its final message
-            if has_connectivity_error:
-                fabric_output = _extract_fabric_output_from_run(project_client, thread_id, run.id)
-                if fabric_output and len(fabric_output) > 100:
-                    # Fabric DID return data - use it directly instead of the agent's unhelpful message
-                    logger.info(f"[SIMPLE_RUN] ✅ Found Fabric data in run steps ({len(fabric_output)} chars) - using direct output")
-                    # Clean up the output (remove citations like 【6:0†source】)
-                    import re
-                    clean_output = re.sub(r'【\d+:\d+†source】\s*', '', fabric_output)
-                    last_messages = [{
-                        "role": "assistant",
-                        "content": clean_output
-                    }]
-                    has_connectivity_error = False  # Don't retry - we have data
-            
-            # Also check if the response is just a promise to query without actual data
-            # A valid Fabric response should contain actual data like numbers, percentages, or specific claim info
-            has_actual_data = False
-            data_indicators = [
-                "data analysis summary",
-                "fraud rate",
-                "claim_id",
-                "clm-",
-                "pol-",
-                "total claims",
-                "claim amount",
-                "approved",
-                "denied",
-                "under_review",
-                "claim records",
-                "claims in",
-                "percentage",
-                "%",
-                "table contains",
-                "rows",
-                "records found",
-                "historical context",
-                "pattern analysis"
-            ]
-            has_actual_data = any(indicator in response_text.lower() for indicator in data_indicators)
-            
-            # Check run steps to see if Fabric tool was actually invoked
-            run_steps = _get_run_steps(project_client, thread_id, run.id)
             tool_was_invoked = False
             if run_steps:
                 for step in run_steps:
@@ -648,41 +556,21 @@ def _run_agent_simple(
                         tool_was_invoked = True
                         break
             
-            # If no tool was invoked, the model is just generating text - this is a failure
             if not tool_was_invoked:
-                logger.warning(f"[SIMPLE_RUN] ⚠️ No tool calls in run steps - Fabric tool was NOT invoked!")
-            
-            # If no actual data and response is short, consider it incomplete
-            # Also treat "no tool invoked" as incomplete
-            is_incomplete_response = (
-                not tool_was_invoked or  # Tool was never called!
-                (not has_actual_data and 
-                 len(response_text) < 500 and
-                 ("will now query" in response_text.lower() or 
-                  "will now proceed" in response_text.lower() or
-                  "i will now" in response_text.lower() or
-                  "hold on" in response_text.lower() or
-                  "please hold" in response_text.lower() or
-                  "let me" in response_text.lower() or
-                  "please provide" in response_text.lower()))
-            )
-            
-            if has_connectivity_error or is_incomplete_response:
-                retry_count += 1
-                if not tool_was_invoked:
-                    error_type = "TOOL NOT INVOKED - model generated text instead of calling Fabric"
-                elif has_connectivity_error:
-                    error_type = "connectivity error"
-                else:
-                    error_type = "incomplete response (no actual data)"
-                logger.warning(f"[SIMPLE_RUN] ⚠️ Fabric {error_type} detected")
-                logger.warning(f"[SIMPLE_RUN] Response: '{response_text[:200]}...'")
+                logger.warning(f"[SIMPLE_RUN] ⚠️ Fabric tool was NOT invoked in run steps!")
                 
-                if retry_count < max_retries:
+                # Check if Fabric tool returned data in run steps that the model didn't include
+                fabric_output = _extract_fabric_output_from_run(project_client, thread_id, run.id)
+                if fabric_output and len(fabric_output) > 100:
+                    logger.info(f"[SIMPLE_RUN] Found Fabric data in run steps ({len(fabric_output)} chars) - using direct output")
+                    import re
+                    clean_output = re.sub(r'【\d+:\d+†source】\s*', '', fabric_output)
+                    last_messages = [{"role": "assistant", "content": clean_output}]
+                elif retry_count < max_retries - 1:
+                    # Tool wasn't invoked — retry with a new thread
+                    retry_count += 1
                     delay = retry_delays[min(retry_count - 1, len(retry_delays) - 1)]
-                    logger.warning(f"[SIMPLE_RUN] Retrying Fabric query in {delay}s ({retry_count}/{max_retries})...")
-                    
-                    # Create a new thread for retry
+                    logger.warning(f"[SIMPLE_RUN] Retrying in {delay}s ({retry_count}/{max_retries})...")
                     new_thread = project_client.agents.threads.create()
                     original_messages = project_client.agents.messages.list(thread_id=thread_id)
                     for msg in original_messages:
@@ -700,12 +588,31 @@ def _run_agent_simple(
                     continue
                 else:
                     total_duration = time_module.time() - start_time
-                    logger.error(f"[SIMPLE_RUN] ❌ Fabric connectivity failed after {max_retries} attempts (total time: {total_duration:.1f}s)")
+                    logger.error(f"[SIMPLE_RUN] Fabric tool not invoked after {max_retries} attempts ({total_duration:.1f}s)")
             else:
-                # Success - Fabric returned actual data
-                total_duration = time_module.time() - start_time
-                logger.info(f"[SIMPLE_RUN] ✅ Fabric tool returned data successfully in {total_duration:.1f}s")
-                break
+                # Tool was invoked — check if model relayed the data or gave a generic error
+                # If the model says it can't access data but the tool DID run, extract tool output directly
+                fabric_error_indicators = [
+                    "unable to retrieve", "unable to access", "cannot access",
+                    "having trouble", "technical difficulties", "connectivity issue",
+                    "do not have direct access", "currently unable"
+                ]
+                response_lower = response_text.lower()
+                has_fabric_error = any(phrase in response_lower for phrase in fabric_error_indicators)
+                
+                if has_fabric_error:
+                    fabric_output = _extract_fabric_output_from_run(project_client, thread_id, run.id)
+                    if fabric_output and len(fabric_output) > 100:
+                        logger.info(f"[SIMPLE_RUN] Tool invoked but model gave error — using direct Fabric output ({len(fabric_output)} chars)")
+                        import re
+                        clean_output = re.sub(r'【\d+:\d+†source】\s*', '', fabric_output)
+                        last_messages = [{"role": "assistant", "content": clean_output}]
+                    else:
+                        logger.warning(f"[SIMPLE_RUN] Tool invoked but returned error. Response: {response_text[:200]}")
+                else:
+                    total_duration = time_module.time() - start_time
+                    logger.info(f"[SIMPLE_RUN] ✅ Fabric tool returned data successfully in {total_duration:.1f}s")
+            break
         else:
             # Not a Fabric tool call, no need to check for retries
             total_duration = time_module.time() - start_time

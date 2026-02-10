@@ -277,9 +277,10 @@ def test_simple_query(client, agent_id: str):
         print("\n  Running agent (this may take 30-60 seconds)...")
         start_time = time.time()
         
-        run = client.agents.create_and_process_run(
+        run = client.agents.runs.create_and_process(
             thread_id=thread.id,
-            assistant_id=agent_id
+            agent_id=agent_id,
+            tool_choice={"type": "fabric_dataagent"}
         )
         
         elapsed = time.time() - start_time
@@ -305,9 +306,9 @@ def test_simple_query(client, agent_id: str):
             return False
         
         # Get response messages
-        messages = client.agents.list_messages(thread_id=thread.id)
+        messages = client.agents.messages.list(thread_id=thread.id)
         print("\n  Response:")
-        for msg in messages.data:
+        for msg in messages:
             if msg.role == "assistant":
                 for content in msg.content:
                     if hasattr(content, 'text'):
@@ -318,7 +319,7 @@ def test_simple_query(client, agent_id: str):
         
         # Cleanup
         try:
-            client.agents.threads.delete(thread.id)
+            client.agents.threads.delete(thread_id=thread.id)
         except:
             pass
         
@@ -338,7 +339,7 @@ def cleanup_test_agent(client, agent_id: str):
     print("="*60)
     
     try:
-        client.agents.delete_agent(agent_id)
+        client.agents.delete_agent(agent_id=agent_id)
         print(f"  ✅ Test agent deleted: {agent_id}")
     except Exception as e:
         print(f"  ⚠️  Could not delete agent: {e}")
