@@ -46,4 +46,11 @@ def configure_logging(level: int = logging.INFO, fmt: str | None = None) -> None
             format=fmt or "%(levelname)s: %(message)s",
         )
 
+    # Suppress noisy Azure SDK HTTP request/response logging
+    logging.getLogger("azure.core.pipeline.policies.http_logging_policy").setLevel(logging.WARNING)
+    logging.getLogger("azure.identity").setLevel(logging.WARNING)
+    logging.getLogger("azure.core").setLevel(logging.WARNING)
+    logging.getLogger("azure.monitor").setLevel(logging.WARNING)
+    logging.getLogger("opentelemetry").setLevel(logging.WARNING)
+
     logging.getLogger(__name__).debug("Logging configured (rich=%s)", RichHandler is not None)

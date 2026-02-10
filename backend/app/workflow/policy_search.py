@@ -14,6 +14,7 @@ import pickle
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
+from azure.identity import DefaultAzureCredential, get_bearer_token_provider
 from langchain_openai import AzureOpenAIEmbeddings
 from langchain_community.document_loaders import DirectoryLoader, TextLoader
 from langchain.text_splitter import RecursiveCharacterTextSplitter
@@ -69,10 +70,14 @@ class PolicyVectorSearch:  # noqa: D101
             from app.core.config import get_settings
             settings = get_settings()
 
+            token_provider = get_bearer_token_provider(
+                DefaultAzureCredential(),
+                "https://cognitiveservices.azure.com/.default",
+            )
             self.embeddings = AzureOpenAIEmbeddings(
                 model=settings.azure_openai_embedding_model or "text-embedding-ada-002",
                 azure_endpoint=settings.azure_openai_endpoint,
-                api_key=settings.azure_openai_api_key,
+                azure_ad_token_provider=token_provider,
                 api_version=settings.azure_openai_api_version or "2024-08-01-preview",
             )
             logger.info("Azure OpenAI embeddings initialized")

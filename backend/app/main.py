@@ -95,18 +95,25 @@ async def startup_event():
         logger.error("[ERROR] Failed to initialize policy search index: %s", e)
         # Don't raise - let the app start but log the error
     
-    # Deploy Azure AI agents (v2)
-    logger.info("[START] Deploying Azure AI Agent Service agents (v2)...")
-    try:
-        from app.workflow.azure_agent_manager_v2 import deploy_azure_agents_v2
-        azure_agents = deploy_azure_agents_v2()
-        if azure_agents:
-            logger.info(f"[OK] Azure AI agents (v2) deployed: {list(azure_agents.keys())}")
-        else:
-            logger.info("[INFO] Using LangGraph agents (Azure AI agents not available)")
-    except Exception as e:
-        logger.warning(f"[WARN] Failed to deploy Azure AI agents: {e}")
-        logger.info("[INFO] Using LangGraph agents as fallback")
+    # Deploy Azure AI agents (v2) in background thread so API starts immediately
+    # This prevents 25+ minute startup hangs when Azure services are unreachable
+    import threading
+    def _deploy_agents_background():
+        try:
+            logger.info("[START] Deploying Azure AI Agent Service agents (v2) in background...")
+            from app.workflow.azure_agent_manager_v2 import deploy_azure_agents_v2
+            azure_agents = deploy_azure_agents_v2()
+            if azure_agents:
+                logger.info(f"[OK] Azure AI agents (v2) deployed: {list(azure_agents.keys())}")
+            else:
+                logger.info("[INFO] Using LangGraph agents (Azure AI agents not available)")
+        except Exception as e:
+            logger.warning(f"[WARN] Failed to deploy Azure AI agents: {e}")
+            logger.info("[INFO] Using LangGraph agents as fallback")
+    
+    agent_thread = threading.Thread(target=_deploy_agents_background, daemon=True)
+    agent_thread.start()
+    logger.info("[INFO] Agent deployment started in background — API is ready")
 
 # Root
 

@@ -11,7 +11,7 @@ from typing import List, Dict, Any, Optional
 from datetime import datetime
 from pathlib import Path
 
-from azure.identity import ClientSecretCredential
+from azure.identity import ClientSecretCredential, DefaultAzureCredential, get_bearer_token_provider
 from azure.search.documents import SearchClient
 from azure.search.documents.indexes import SearchIndexClient
 from azure.search.documents.indexes.models import (
@@ -72,10 +72,14 @@ class AzureClaimsSearchService:
         )
         
         # Initialize embeddings
+        token_provider = get_bearer_token_provider(
+            DefaultAzureCredential(),
+            "https://cognitiveservices.azure.com/.default",
+        )
         self.embeddings = AzureOpenAIEmbeddings(
             model=settings.azure_openai_embedding_model or "text-embedding-3-large",
             azure_endpoint=settings.azure_openai_endpoint,
-            api_key=settings.azure_openai_api_key,
+            azure_ad_token_provider=token_provider,
             api_version=settings.azure_openai_api_version or "2024-08-01-preview",
         )
         

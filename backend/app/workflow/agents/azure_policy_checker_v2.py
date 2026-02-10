@@ -22,18 +22,17 @@ def get_policy_details(policy_number: str) -> Dict[str, Any]:
     return get_policy_tool.invoke(policy_number)
 
 
-def search_policy_documents(query: str, score_threshold: float = 0.7) -> str:
+def search_policy_documents(query: str) -> str:
     """Search policy documents using semantic search to find relevant policy information.
     
     Args:
-        query: The search query (e.g., "coverage for hail damage")
-        score_threshold: Minimum similarity score (0.0-1.0) for results
+        query: The search query (e.g., "collision coverage limits and deductibles")
         
     Returns:
         Formatted string with relevant policy excerpts and sources
     """
     from app.workflow.tools import search_policy_documents as search_tool
-    return search_tool.invoke({"query": query, "score_threshold": score_threshold})
+    return search_tool.invoke(query)
 
 
 def get_policy_checker_functions() -> Dict[str, Any]:

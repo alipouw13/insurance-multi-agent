@@ -320,35 +320,7 @@ def _run_agent_simple(
     from datetime import datetime
     
     start_time = time_module.time()
-    logger.info(f"[SIMPLE_RUN] ========== STARTING AGENT RUN ==========")
-    logger.info(f"[SIMPLE_RUN] Agent ID: {agent_id}")
-    
-    # DIAGNOSTIC: Fetch and log the agent object to see its tool configuration
-    try:
-        agent_obj = project_client.agents.get_agent(agent_id=agent_id)
-        logger.info(f"[SIMPLE_RUN] Agent name: {agent_obj.name}")
-        logger.info(f"[SIMPLE_RUN] Agent model: {agent_obj.model}")
-        logger.info(f"[SIMPLE_RUN] Agent instructions length: {len(agent_obj.instructions) if agent_obj.instructions else 0}")
-        if agent_obj.tools:
-            logger.info(f"[SIMPLE_RUN] Agent has {len(agent_obj.tools)} tools configured:")
-            for i, tool in enumerate(agent_obj.tools):
-                tool_type = getattr(tool, 'type', str(type(tool).__name__))
-                logger.info(f"  Tool {i+1}: type={tool_type}")
-                # Log full tool object for debugging
-                logger.info(f"  Tool {i+1} details: {tool}")
-                # Check for fabric-specific attributes
-                if hasattr(tool, 'connection_id'):
-                    logger.info(f"  Tool {i+1} connection_id: {tool.connection_id}")
-                if hasattr(tool, 'fabric_connection_name'):
-                    logger.info(f"  Tool {i+1} fabric_connection_name: {tool.fabric_connection_name}")
-        else:
-            logger.warning(f"[SIMPLE_RUN] ⚠️ Agent has NO tools configured!")
-    except Exception as agent_err:
-        logger.error(f"[SIMPLE_RUN] Failed to fetch agent details: {agent_err}")
-    logger.info(f"[SIMPLE_RUN] Thread ID: {thread_id}")
-    logger.info(f"[SIMPLE_RUN] Tool choice: {tool_choice}")
-    logger.info(f"[SIMPLE_RUN] Max retries: {max_retries}")
-    logger.info(f"[SIMPLE_RUN] Start time: {datetime.now().isoformat()}")
+    logger.info(f"[SIMPLE_RUN] Starting agent run: agent_id={agent_id}, tool_choice={tool_choice}")
     
     # Build run parameters
     run_kwargs = {
@@ -427,98 +399,19 @@ def _run_agent_simple(
                     "content": f"Error: Failed to execute agent after {max_retries} attempts - {run_error}"
                 }], {})
         
-        # Log additional run details for debugging Fabric integration
-        if hasattr(run, 'tools') and run.tools:
-            logger.info(f"[SIMPLE_RUN] Agent tools: {[t.type if hasattr(t, 'type') else str(t) for t in run.tools]}")
-        
-        # Log ALL available run attributes for debugging
-        logger.info(f"[SIMPLE_RUN] === DETAILED RUN INFO ===")
-        run_attrs = ['id', 'status', 'model', 'created_at', 'started_at', 'completed_at', 
-                     'failed_at', 'last_error', 'required_action', 'incomplete_details',
-                     'usage', 'temperature', 'max_prompt_tokens', 'max_completion_tokens',
-                     'truncation_strategy', 'response_format', 'tool_choice', 'parallel_tool_calls']
-        for attr in run_attrs:
-            if hasattr(run, attr):
-                val = getattr(run, attr)
-                if val is not None:
-                    logger.info(f"[SIMPLE_RUN]   {attr}: {val}")
-        
-        # Check for tool calls that were made during the run
-        run_steps = _get_run_steps(project_client, thread_id, run.id)
-        logger.info(f"[SIMPLE_RUN] Retrieved {len(run_steps) if run_steps else 0} run steps")
-        if run_steps:
-            logger.info(f"[SIMPLE_RUN] Run had {len(run_steps)} steps")
-            for i, step in enumerate(run_steps):
-                step_type = getattr(step, 'type', 'unknown')
-                step_status = getattr(step, 'status', 'unknown')
-                step_id = getattr(step, 'id', 'unknown')
-                logger.info(f"  Run step {i+1}: id={step_id}, type={step_type}, status={step_status}")
-                
-                # Log step error details if available
-                if hasattr(step, 'last_error') and step.last_error:
-                    logger.error(f"    Step error: {step.last_error}")
-                
-                if step_type == 'tool_calls' and hasattr(step, 'step_details'):
-                    tool_calls = getattr(step.step_details, 'tool_calls', [])
-                    logger.info(f"    Found {len(tool_calls)} tool calls")
-                    for tc in tool_calls:
-                        tc_type = getattr(tc, 'type', 'unknown')
-                        tc_id = getattr(tc, 'id', 'unknown')
-                        logger.info(f"    Tool call: type={tc_type}, id={tc_id}")
-                        
-                        # Log ALL attributes of the tool call for debugging
-                        tc_attrs = [a for a in dir(tc) if not a.startswith('_')]
-                        logger.info(f"    Tool call attributes: {tc_attrs}")
-                        
-                        # Check for fabric tool call - handle both dict and object types
-                        fabric_call = None
-                        fabric_attr_name = None
-                        for attr_name in ['microsoft_fabric', 'fabric_dataagent', 'fabric']:
-                            if hasattr(tc, attr_name):
-                                fabric_call = getattr(tc, attr_name)
-                                fabric_attr_name = attr_name
-                                break
-                        
-                        if fabric_call:
-                            logger.info(f"    ✅ Fabric call found via '{fabric_attr_name}', type={type(fabric_call).__name__}")
-                            
-                            # Handle dict type (current SDK behavior)
-                            if isinstance(fabric_call, dict):
-                                logger.info(f"    Fabric dict keys: {list(fabric_call.keys())}")
-                                output = fabric_call.get('output', '')
-                                input_query = fabric_call.get('input', '')
-                                if input_query:
-                                    logger.info(f"    Fabric input: {input_query[:200]}...")
-                                output_len = len(output) if output else 0
-                                logger.info(f"    Fabric output length: {output_len}")
-                                if output_len > 0:
-                                    logger.info(f"    Fabric output preview: {output[:300]}...")
-                            else:
-                                # Handle object type (legacy)
-                                fabric_attrs = [a for a in dir(fabric_call) if not a.startswith('_')]
-                                logger.info(f"    Fabric call attributes: {fabric_attrs}")
-                                for attr in fabric_attrs:
-                                    try:
-                                        val = getattr(fabric_call, attr)
-                                        if not callable(val):
-                                            val_str = str(val)[:500] if val else 'None'
-                                            logger.info(f"      {attr}: {val_str}")
-                                    except Exception as e:
-                                        logger.debug(f"      {attr}: <error reading: {e}>")
-                                if hasattr(fabric_call, 'output'):
-                                    output_len = len(fabric_call.output) if fabric_call.output else 0
-                                    logger.info(f"    Fabric output length: {output_len}")
-                                    if output_len > 0:
-                                        logger.info(f"    Fabric output preview: {fabric_call.output[:300]}...")
-                                
-                # Log message creation steps
-                elif step_type == 'message_creation' and hasattr(step, 'step_details'):
-                    msg_details = step.step_details
-                    if hasattr(msg_details, 'message_creation'):
-                        msg_id = getattr(msg_details.message_creation, 'message_id', 'unknown')
-                        logger.info(f"    Message created: {msg_id}")
-        else:
-            logger.warning(f"[SIMPLE_RUN] No run steps found - tool may not have been called")
+        # Only fetch detailed run steps for Fabric runs or failures (avoid extra API calls)
+        run_steps = None
+        if tool_choice == "fabric_dataagent" or run.status == "failed":
+            run_steps = _get_run_steps(project_client, thread_id, run.id)
+            if run_steps:
+                logger.debug(f"[SIMPLE_RUN] Run had {len(run_steps)} steps")
+                for i, step in enumerate(run_steps):
+                    step_type = getattr(step, 'type', 'unknown')
+                    step_status = getattr(step, 'status', 'unknown')
+                    logger.debug(f"  Run step {i+1}: type={step_type}, status={step_status}")
+                    
+                    if hasattr(step, 'last_error') and step.last_error:
+                        logger.error(f"    Step error: {step.last_error}")
         
         last_usage = _extract_usage(run)
         
@@ -968,7 +861,7 @@ def _run_agent_with_manual_tools(
         
         elif run.status in ["queued", "in_progress"]:
             # Still processing, wait and poll again
-            time.sleep(0.5)
+            time.sleep(0.2)
         
         else:
             logger.warning(f"Unexpected run status: {run.status}")
@@ -987,6 +880,7 @@ def _poll_run_status(
     """Poll until run reaches a terminal or actionable state."""
     start_time = time.time()
     terminal_states = {"completed", "failed", "cancelled", "expired", "requires_action"}
+    poll_interval = 0.2  # Start with fast polling
     
     while True:
         run = project_client.agents.runs.get(thread_id=thread_id, run_id=run_id)
@@ -998,7 +892,9 @@ def _poll_run_status(
             logger.warning(f"Polling timeout after {timeout_seconds}s, status: {run.status}")
             return run
         
-        time.sleep(0.5)
+        time.sleep(poll_interval)
+        # Gradually increase interval to reduce API calls on long-running agents
+        poll_interval = min(poll_interval * 1.3, 1.0)
 
 
 def _get_run_steps(
