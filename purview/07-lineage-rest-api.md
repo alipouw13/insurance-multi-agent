@@ -36,15 +36,21 @@ While Purview auto-captures lineage for many Azure services, you need custom lin
 │    ├── policies/       ────────────────────────────────────────────► policy_claims_summary      │
 │    └── policy/                                                       fraud_indicators           │
 │                                                                      regional_statistics        │
+│  [Excel Spreadsheets] ──► [Lakehouse Files] ──► [Delta Tables]                                 │
 │                                                                                                 │
-│  [Cosmos DB]                          [Fabric Pipeline]                                         │
-│  insurance-agents/                                                                              │
-│    └── token-usage     ────────────────────────────────────────────► (analytics aggregation)    │
+│  [Storage + Content Understanding] ──► [Azure AI Search]                                       │
+│    (Document vectorization)              Policies Search Index                                  │
+│                                                                                                 │
+│  [Cosmos DB]                          [Fabric Mirroring]           [Mirrored Tables]            │
+│  insurance-agents/                     (near real-time)                                         │
+│    ├── agent-executions ───────────────────────────────────────────► mirrored_agent_executions  │
+│    ├── token-tracking   ───────────────────────────────────────────► mirrored_token_tracking    │
+│    └── evaluations      ───────────────────────────────────────────► mirrored_evaluations       │
 │                                                                                                 │
 └─────────────────────────────────────────────────────────────────────────────────────────────────┘
                                               │
                                               ▼
-                                     FABRIC DATA AGENT LAYER
+                              FABRIC ANALYTICS & DATA AGENT LAYER
 ┌─────────────────────────────────────────────────────────────────────────────────────────────────┐
 │                                                                                                 │
 │  [Lakehouse Tables]              [Fabric IQ Ontology]            [Fabric Data Agent]            │
@@ -52,6 +58,11 @@ While Purview auto-captures lineage for many Azure services, you need custom lin
 │  claimant_profiles  ──────────►  ClaimantEntity       ──────────► (Queries via natural lang)    │
 │  fraud_indicators   ──────────►  PolicyEntity                                                   │
 │  policy_claims_sum  ──────────►  FraudIndicator                                                 │
+│  regional_statistics                                                                            │
+│         │                                                                                       │
+│         ▼                                                                                       │
+│  [Semantic Model]  ──────────►  [Power BI Report]                                              │
+│  (Claims Analytics)              Claims Dashboard                                               │
 │                                                                                                 │
 └─────────────────────────────────────────────────────────────────────────────────────────────────┘
                                               │
@@ -61,23 +72,25 @@ While Purview auto-captures lineage for many Azure services, you need custom lin
 │                                                                                                 │
 │  [Fabric Data Agent]          [Foundry Supervisor]          [Foundry Specialist Agents]         │
 │  Claims Data Analyst  ──────► Supervisor Agent    ◄──────── Claim Assessor Agent                │
-│                                     │             ◄──────── Policy Checker Agent                │
+│                                     │             ◄──────── Policy Checker Agent ◄── AI Search  │
 │  [Lakehouse]                        │             ◄──────── Risk Analyst Agent ◄── fraud_ind    │
 │  fraud_indicators ─────────────────►│             ◄──────── Claims Data Analyst Agent           │
 │                                     │             ◄──────── Communication Agent                 │
 │  [Azure AI Services]                │                                                           │
 │  Content Understanding ─────────────┤                                                           │
 │                                     │                                                           │
-│  [Azure Storage]                    │                                                           │
-│  insurance-documents/ ──────────────┤ (via AI Search for Policy Checker)                        │
+│  [Azure AI Search]                  │                                                           │
+│  Policies Search Index ─────────────┤ (vectorized search for Policy Checker)                    │
 │                                     │                                                           │
 └─────────────────────────────────────│───────────────────────────────────────────────────────────┘
                                       ▼
                                     OUTPUT LAYER
 ┌─────────────────────────────────────────────────────────────────────────────────────────────────┐
 │                                                                                                 │
-│  [Cosmos DB]                    [Evaluation]                 [Power BI]                         │
-│  agent-executions  ────────────► evaluations  ──────────────► Claims Dashboard                  │
+│  [Cosmos DB]                                          [Cosmos DB]                               │
+│  agent-executions  ──────────► evaluations             token-tracking                           │
+│                                                                                                 │
+│       │ (mirrored to Fabric ─ see Ingestion Layer above)                                       │
 │                                                                                                 │
 └─────────────────────────────────────────────────────────────────────────────────────────────────┘
 ```
@@ -121,6 +134,7 @@ The script creates these custom types in Purview to represent AI components:
 | `fabric_data_agent` | Fabric Data Agent powered by IQ | projectName, lakehouseName, ontologyEntities |
 | `azure_foundry_agent` | Azure AI Foundry Agent | agentType, agentId, toolsUsed, modelDeployment |
 | `azure_ai_service` | Azure AI Service | serviceType, endpoint, analyzerId |
+| `azure_ai_search_index` | Azure AI Search vectorized index | searchServiceName, indexName, vectorizerType, embeddingModel |
 
 ---
 
@@ -164,15 +178,24 @@ Creates entities for:
 
 | Lineage | Description |
 |---------|---------|
+| **Data Ingestion** | |
 | Storage → Lakehouse | Fabric Pipeline ingests claim documents and policy files |
-| Cosmos DB → Lakehouse | Token usage sync for analytics |
+| Excel → Lakehouse Files → Delta Tables | Enterprise data spreadsheets uploaded and converted to Delta Tables |
+| Storage + Content Understanding → AI Search | Documents processed, vectorized, and indexed |
+| Cosmos DB → Fabric Mirrored Tables | Near real-time mirroring of agent-executions, token-tracking, evaluations |
+| **Fabric Analytics** | |
+| Lakehouse → Semantic Model | Delta Tables feed Fabric Semantic Model for claims analytics |
+| Semantic Model → Power BI Report | Claims Dashboard built on Semantic Model |
+| **Fabric Data Agent** | |
 | Lakehouse → Fabric Data Agent | IQ semantic layer enables natural language queries |
+| **Agent Orchestration** | |
 | Fabric Agent → Foundry Agent | Claims Data Analyst queries via Fabric Data Agent |
+| AI Search → Policy Checker | Policy verification via vectorized search |
 | AI Services → Claim Assessor | Content Understanding extracts document data |
 | Fraud Data → Risk Analyst | Risk scoring uses fraud indicators from Lakehouse |
-| Storage → Policy Checker | Policy verification via AI Search |
 | Specialist Agents → Supervisor | Orchestration flow |
-| Supervisor → Cosmos DB | Execution results stored |
+| Supervisor → Cosmos DB (agent-executions) | Execution results stored |
+| Supervisor → Cosmos DB (token-tracking) | Token usage and scale metrics stored |
 | Executions → Evaluations | Quality evaluation pipeline |
 
 ---
@@ -199,14 +222,19 @@ python scripts/verify_lineage.py --purview-account purview-prod
 | Source | Process | Target | Description |
 |--------|---------|--------|-------------|
 | Azure Storage (insurance-documents/) | Insurance Documents Ingestion | Lakehouse (claims_history, claimant_profiles, policy_claims_summary) | Fabric Pipeline ingests documents |
-| Cosmos DB (token-usage) | Token Usage Analytics Sync | Lakehouse (claimant_profiles) | Pipeline transforms for analytics |
-| Lakehouse Tables | Lakehouse to Fabric Data Agent | Fabric Data Agent | IQ semantic layer queries |
+| Excel / Storage | Enterprise Data Ingestion | Lakehouse (all 5 tables) | Excel → Lakehouse Files → Delta Tables |
+| Storage + Content Understanding | Document Vectorization Pipeline | AI Search (Policies Search Index) | Documents processed, vectorized, indexed |
+| Cosmos DB (agent-executions, token-usage, evaluations) | Cosmos DB Mirroring to Fabric | Fabric Mirrored Tables (3 tables) | Near real-time Cosmos mirroring |
+| Lakehouse Tables (all) | Lakehouse to Semantic Model | Semantic Model | Delta Tables feed Semantic Model |
+| Semantic Model | Semantic Model to Power BI | Power BI Report (Claims Dashboard) | Dashboard built on Semantic Model |
+| Lakehouse Tables (4 tables) | Lakehouse to Fabric Data Agent | Fabric Data Agent | IQ semantic layer queries |
 | Fabric Data Agent | Fabric Agent to Foundry | Foundry Claims Data Analyst | Natural language data queries |
+| AI Search (Policies Index) | AI Search to Policy Checker | Foundry Policy Checker | Vectorized policy search |
 | Storage + Content Understanding | Content Understanding to Assessor | Foundry Claim Assessor | Document extraction |
 | Lakehouse (fraud_indicators) | Fraud Data to Risk Analyst | Foundry Risk Analyst | Risk scoring |
-| Storage (insurance-documents) | Policy Files to Policy Checker | Foundry Policy Checker | Policy verification via AI Search |
 | All Specialist Agents | Agents to Supervisor | Foundry Supervisor | Orchestration flow |
-| Foundry Supervisor | Supervisor to Cosmos | Cosmos DB (agent-executions) | Execution logging |
+| Foundry Supervisor | Supervisor to Cosmos (Executions) | Cosmos DB (agent-executions) | Execution logging |
+| Foundry Supervisor | Supervisor to Cosmos (Tokens) | Cosmos DB (token-usage) | Token tracking |
 | Cosmos DB (agent-executions) | Evaluation Pipeline | Cosmos DB (evaluations) | Quality evaluation |
 
 ---

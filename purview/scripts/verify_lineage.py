@@ -139,12 +139,26 @@ def main():
             "regional_statistics",
             # Cosmos collections
             "agent-executions",
+            "token-usage",
             "evaluations",
+            # Cosmos mirrored tables in Fabric
+            "mirrored_agent_executions",
+            "mirrored_token_tracking",
+            "mirrored_evaluations",
+            # AI Services
+            "Policies Search Index",
+            "Content Understanding Analyzer",
+            # Fabric analytics
+            "Semantic Model",
+            "Power BI",
             # Agents
             "Supervisor Agent",
             "Claim Assessor Agent",
             "Claims Data Analyst Agent",
-            "Risk Analyst Agent"
+            "Risk Analyst Agent",
+            "Policy Checker Agent",
+            "Communication Agent",
+            "Claims Data Analyst (Fabric Data Agent)"
         ]
         
         print(f"\nVerifying {len(assets)} assets...\n")

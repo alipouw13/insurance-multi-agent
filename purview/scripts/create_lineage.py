@@ -2,16 +2,23 @@
 """
 Create custom lineage in Microsoft Purview for Insurance Multi-Agent Application.
 
-This script creates data lineage relationships between:
-- Azure Storage containers → Fabric Lakehouse tables
-- Cosmos DB collections → Fabric Lakehouse tables
-- Lakehouse tables → Fabric Data Agent
-- Fabric Data Agent → Azure AI Foundry Agents
-- Azure AI Services → Foundry Agents
-- Foundry Agents → Cosmos DB outputs
+This script creates data lineage relationships covering the FULL data flow:
+
+  Flow 1 — Claim Processing:
+    Upload → Azure Storage → Content Understanding → AI Search (vectorized)
+    → Orchestrator/Agents → Cosmos DB → Fabric Mirrored Tables
+
+  Flow 2 — Enterprise Data:
+    Excel → Lakehouse Files → Delta Tables → Semantic Model → Power BI
+    Delta Tables → Fabric Data Agent (via IQ semantic layer)
+
+  Flow 3 — Agent Orchestration:
+    Supervisor → Specialist Agents (Claim Assessor, Policy Checker,
+    Risk Analyst, Claims Data Analyst, Communication)
+    → Agent Executions & Token Tracking → Cosmos DB → Fabric Mirrors
 
 Usage:
-    python create_lineage.py --purview-account pview-apfsipurviewdemo <account-name>
+    python create_lineage.py --purview-account pview-apfsipurviewdemo
     
 Environment variables (can be set in .env file):
     PURVIEW_ACCOUNT - Purview account name
@@ -113,6 +120,17 @@ class PurviewLineageManager:
                         {"name": "serviceType", "typeName": "string", "isOptional": False},
                         {"name": "endpoint", "typeName": "string", "isOptional": True},
                         {"name": "analyzerId", "typeName": "string", "isOptional": True}
+                    ]
+                },
+                {
+                    "name": "azure_ai_search_index",
+                    "description": "Azure AI Search index (vectorized data store)",
+                    "superTypes": ["DataSet"],
+                    "attributeDefs": [
+                        {"name": "searchServiceName", "typeName": "string", "isOptional": False},
+                        {"name": "indexName", "typeName": "string", "isOptional": False},
+                        {"name": "vectorizerType", "typeName": "string", "isOptional": True},
+                        {"name": "embeddingModel", "typeName": "string", "isOptional": True}
                     ]
                 }
             ]
@@ -398,6 +416,94 @@ def create_ai_service_entities(manager: PurviewLineageManager, config: dict) -> 
     return service_guids
 
 
+def create_ai_search_entity(manager: PurviewLineageManager, config: dict) -> Optional[str]:
+    """Create Azure AI Search index entity for vectorized claims/policy data."""
+    collection = config.get("collection")
+    print(f"\nCreating Azure AI Search entity{' in collection: ' + collection if collection else ''}...")
+
+    entity = {
+        "typeName": "azure_ai_search_index",
+        "attributes": {
+            "qualifiedName": "azure-ai-search-policies-index@insurance-multi-agent",
+            "name": "Policies Search Index (AI Search)",
+            "description": "Vectorized policy and claims documents used by Policy Checker and agents via Azure AI Search",
+            "searchServiceName": config.get("search_service_name", ""),
+            "indexName": "policies-index",
+            "vectorizerType": "Azure OpenAI",
+            "embeddingModel": "text-embedding-ada-002"
+        }
+    }
+
+    guid = manager.create_entity(entity, collection=collection)
+    if guid:
+        print(f"  Created: Policies Search Index (AI Search)")
+    return guid
+
+
+def find_semantic_model_assets(manager: PurviewLineageManager) -> Dict[str, str]:
+    """Find Fabric Semantic Model assets (auto-discovered by Fabric scan)."""
+    print("\nSearching for Fabric Semantic Model assets...")
+
+    asset_guids = {}
+    # Search for semantic models that Purview discovered via Fabric scan
+    for search_term in ["Claims", "Semantic Model", "insurance"]:
+        guid = manager.search_asset(search_term)
+        if guid:
+            asset_guids["semantic_model"] = guid
+            print(f"  Found Semantic Model via search: {search_term}")
+            break
+
+    if not asset_guids:
+        print("  Not found via scan - will create placeholder")
+    return asset_guids
+
+
+def find_powerbi_report_assets(manager: PurviewLineageManager) -> Dict[str, str]:
+    """Find Power BI report assets (auto-discovered by Fabric scan)."""
+    print("\nSearching for Power BI Report assets...")
+
+    asset_guids = {}
+    for search_term in ["Claims Dashboard", "Power BI", "Claims Report"]:
+        guid = manager.search_asset(search_term)
+        if guid:
+            asset_guids["powerbi_report"] = guid
+            print(f"  Found Power BI Report via search: {search_term}")
+            break
+
+    if not asset_guids:
+        print("  Not found via scan - will create placeholder")
+    return asset_guids
+
+
+def find_cosmos_mirrored_tables(manager: PurviewLineageManager) -> Dict[str, str]:
+    """Find Fabric mirrored Cosmos DB tables (created by Cosmos DB mirroring)."""
+    print("\nSearching for Cosmos DB mirrored tables in Fabric...")
+
+    tables = [
+        "mirrored_agent_executions",
+        "mirrored_token_tracking",
+        "mirrored_evaluations"
+    ]
+
+    asset_guids = {}
+    for table in tables:
+        guid = manager.search_asset(table)
+        if guid:
+            asset_guids[table] = guid
+            print(f"  Found: {table}")
+        else:
+            # Also search without prefix
+            short_name = table.replace("mirrored_", "")
+            guid = manager.search_asset(short_name)
+            if guid:
+                asset_guids[table] = guid
+                print(f"  Found (via short name): {short_name}")
+            else:
+                print(f"  Not found: {table}")
+
+    return asset_guids
+
+
 def find_storage_assets(manager: PurviewLineageManager) -> Dict[str, str]:
     """Find Azure Storage container/folder GUIDs from stapfsidemoinsurance storage account."""
     print("\nSearching for Azure Storage assets...")
@@ -480,9 +586,19 @@ def create_data_ingestion_lineage(
     manager: PurviewLineageManager,
     storage_guids: Dict[str, str],
     lakehouse_guids: Dict[str, str],
-    cosmos_guids: Dict[str, str]
+    cosmos_guids: Dict[str, str],
+    cosmos_mirrored_guids: Dict[str, str],
+    ai_search_guid: Optional[str],
+    ai_service_guids: Dict[str, str]
 ):
-    """Create lineage from source systems to Lakehouse."""
+    """Create lineage for all data ingestion paths.
+    
+    Covers:
+      - Storage (docs) → Content Understanding → AI Search (vectorized)
+      - Storage (docs) → Lakehouse tables
+      - Excel → Lakehouse Files → Delta Tables (modeled as Storage → Lakehouse)
+      - Cosmos DB → Fabric Mirrored Delta Tables
+    """
     print("\nCreating data ingestion lineage...")
     
     # Storage (insurance-documents container) → Lakehouse
@@ -499,17 +615,63 @@ def create_data_ingestion_lineage(
             ]
         )
         print("  Created: Storage (insurance-documents) → Lakehouse")
-    
-    # Cosmos DB → Lakehouse (token usage sync)
-    if cosmos_guids.get("token-usage") and lakehouse_guids:
+
+    # Excel → Lakehouse (enterprise data ingestion path)
+    # Excel files are uploaded to Lakehouse Files section, then converted to Delta Tables
+    if lakehouse_guids:
         manager.create_process_lineage(
-            name="Token Usage Analytics Sync",
-            qualified_name="lineage-cosmos-to-lakehouse@insurance",
-            description="Fabric Pipeline transforms and aggregates token usage data for analytics",
-            input_guids=[cosmos_guids.get("token-usage")],
-            output_guids=[lakehouse_guids.get("claimant_profiles")]  # Links to analytics data
+            name="Enterprise Data Ingestion (Excel to Lakehouse)",
+            qualified_name="lineage-excel-to-lakehouse@insurance",
+            description="Excel spreadsheets uploaded to Lakehouse Files section and converted to Delta Tables",
+            input_guids=[storage_guids.get("insurance_documents")] if storage_guids.get("insurance_documents") else [],
+            output_guids=[
+                lakehouse_guids.get("claims_history"),
+                lakehouse_guids.get("claimant_profiles"),
+                lakehouse_guids.get("fraud_indicators"),
+                lakehouse_guids.get("policy_claims_summary"),
+                lakehouse_guids.get("regional_statistics")
+            ]
         )
-        print("  Created: Cosmos DB (token-usage) → Lakehouse")
+        print("  Created: Excel/Files → Lakehouse Delta Tables")
+
+    # Storage → Content Understanding → AI Search (vectorization pipeline)
+    if ai_search_guid and storage_guids.get("insurance_documents"):
+        inputs = [storage_guids["insurance_documents"]]
+        if ai_service_guids.get("content_understanding"):
+            inputs.append(ai_service_guids["content_understanding"])
+        
+        manager.create_process_lineage(
+            name="Document Vectorization Pipeline",
+            qualified_name="lineage-storage-to-ai-search@insurance",
+            description="Claim and policy documents processed by Content Understanding, vectorized and indexed in Azure AI Search",
+            input_guids=inputs,
+            output_guids=[ai_search_guid]
+        )
+        print("  Created: Storage + Content Understanding → AI Search (vectorized)")
+
+    # Cosmos DB → Fabric Mirrored Tables (near real-time mirroring)
+    cosmos_mirror_pairs = [
+        ("agent-executions", "mirrored_agent_executions"),
+        ("token-usage", "mirrored_token_tracking"),
+        ("evaluations", "mirrored_evaluations"),
+    ]
+    mirror_inputs = []
+    mirror_outputs = []
+    for cosmos_key, mirror_key in cosmos_mirror_pairs:
+        if cosmos_guids.get(cosmos_key):
+            mirror_inputs.append(cosmos_guids[cosmos_key])
+        if cosmos_mirrored_guids.get(mirror_key):
+            mirror_outputs.append(cosmos_mirrored_guids[mirror_key])
+
+    if mirror_inputs and mirror_outputs:
+        manager.create_process_lineage(
+            name="Cosmos DB Mirroring to Fabric",
+            qualified_name="lineage-cosmos-to-fabric-mirror@insurance",
+            description="Near real-time Cosmos DB mirroring replicates agent-executions, token-tracking, and evaluations to Fabric Delta Tables",
+            input_guids=mirror_inputs,
+            output_guids=mirror_outputs
+        )
+        print("  Created: Cosmos DB → Fabric Mirrored Tables")
 
 
 def create_fabric_agent_lineage(
@@ -547,6 +709,7 @@ def create_foundry_agent_lineage(
     fabric_agent_guid: str,
     foundry_agent_guids: Dict[str, str],
     ai_service_guids: Dict[str, str],
+    ai_search_guid: Optional[str],
     storage_guids: Dict[str, str],
     cosmos_guids: Dict[str, str],
     lakehouse_guids: Dict[str, str]
@@ -594,16 +757,25 @@ def create_foundry_agent_lineage(
         )
         print("  Created: Lakehouse (fraud_indicators) → Risk Analyst")
     
-    # Storage (policies) → Policy Checker (via AI Search)
-    if foundry_agent_guids.get("policy_checker") and storage_guids.get("insurance_documents"):
-        manager.create_process_lineage(
-            name="Policy Files to Policy Checker",
-            qualified_name="lineage-policies-to-policy-checker@insurance",
-            description="Policy Checker searches policy documents via Azure AI Search",
-            input_guids=[storage_guids["insurance_documents"]],
-            output_guids=[foundry_agent_guids["policy_checker"]]
-        )
-        print("  Created: Storage → Policy Checker")
+    # AI Search (vectorized data) → Policy Checker
+    # This replaces the old direct Storage → Policy Checker link
+    if foundry_agent_guids.get("policy_checker"):
+        inputs = []
+        if ai_search_guid:
+            inputs.append(ai_search_guid)
+        elif storage_guids.get("insurance_documents"):
+            # Fallback if AI Search entity wasn't created
+            inputs.append(storage_guids["insurance_documents"])
+
+        if inputs:
+            manager.create_process_lineage(
+                name="AI Search to Policy Checker",
+                qualified_name="lineage-ai-search-to-policy-checker@insurance",
+                description="Policy Checker queries vectorized policy documents via Azure AI Search",
+                input_guids=inputs,
+                output_guids=[foundry_agent_guids["policy_checker"]]
+            )
+            print("  Created: AI Search → Policy Checker")
     
     # Specialist Agents → Supervisor
     specialist_agents = [
@@ -627,13 +799,24 @@ def create_foundry_agent_lineage(
     # Supervisor → Cosmos DB (agent-executions)
     if foundry_agent_guids.get("supervisor") and cosmos_guids.get("agent-executions"):
         manager.create_process_lineage(
-            name="Supervisor to Cosmos DB",
+            name="Supervisor to Cosmos DB (Executions)",
             qualified_name="lineage-supervisor-to-cosmos@insurance",
             description="Agent execution results stored in Cosmos DB",
             input_guids=[foundry_agent_guids["supervisor"]],
             output_guids=[cosmos_guids["agent-executions"]]
         )
         print("  Created: Supervisor → Cosmos DB (agent-executions)")
+
+    # Supervisor → Cosmos DB (token-tracking)
+    if foundry_agent_guids.get("supervisor") and cosmos_guids.get("token-usage"):
+        manager.create_process_lineage(
+            name="Supervisor to Cosmos DB (Token Tracking)",
+            qualified_name="lineage-supervisor-to-cosmos-tokens@insurance",
+            description="Token usage and scale metrics written to Cosmos DB by agent orchestrator",
+            input_guids=[foundry_agent_guids["supervisor"]],
+            output_guids=[cosmos_guids["token-usage"]]
+        )
+        print("  Created: Supervisor → Cosmos DB (token-tracking)")
     
     # Agent Executions → Evaluations
     if cosmos_guids.get("agent-executions") and cosmos_guids.get("evaluations"):
@@ -645,6 +828,53 @@ def create_foundry_agent_lineage(
             output_guids=[cosmos_guids["evaluations"]]
         )
         print("  Created: agent-executions → evaluations")
+
+
+def create_fabric_analytics_lineage(
+    manager: PurviewLineageManager,
+    lakehouse_guids: Dict[str, str],
+    semantic_model_guids: Dict[str, str],
+    powerbi_guids: Dict[str, str]
+):
+    """Create lineage for Fabric analytics chain: Lakehouse → Semantic Model → Power BI.
+    
+    These assets are typically auto-discovered by Purview's Fabric scan.
+    This function creates the Process entities linking them if not already connected.
+    """
+    print("\nCreating Fabric analytics lineage (Lakehouse → Semantic Model → Power BI)...")
+
+    # Lakehouse → Semantic Model
+    if lakehouse_guids and semantic_model_guids.get("semantic_model"):
+        lakehouse_inputs = [
+            lakehouse_guids.get("claims_history"),
+            lakehouse_guids.get("claimant_profiles"),
+            lakehouse_guids.get("fraud_indicators"),
+            lakehouse_guids.get("policy_claims_summary"),
+            lakehouse_guids.get("regional_statistics")
+        ]
+        manager.create_process_lineage(
+            name="Lakehouse to Semantic Model",
+            qualified_name="lineage-lakehouse-to-semantic-model@insurance",
+            description="Lakehouse Delta Tables feed the Fabric Semantic Model for claims analytics",
+            input_guids=lakehouse_inputs,
+            output_guids=[semantic_model_guids["semantic_model"]]
+        )
+        print("  Created: Lakehouse Tables → Semantic Model")
+    else:
+        print("  Skipped: Semantic Model not found in Purview catalog (run Fabric scan first)")
+
+    # Semantic Model → Power BI Report
+    if semantic_model_guids.get("semantic_model") and powerbi_guids.get("powerbi_report"):
+        manager.create_process_lineage(
+            name="Semantic Model to Power BI Report",
+            qualified_name="lineage-semantic-model-to-powerbi@insurance",
+            description="Power BI Claims Dashboard built on top of Fabric Semantic Model",
+            input_guids=[semantic_model_guids["semantic_model"]],
+            output_guids=[powerbi_guids["powerbi_report"]]
+        )
+        print("  Created: Semantic Model → Power BI Report")
+    else:
+        print("  Skipped: Semantic Model or Power BI Report not found (run Fabric scan first)")
 
 
 def main():
@@ -686,6 +916,11 @@ def main():
         default=os.environ.get("PURVIEW_COLLECTION", ""),
         help="Purview collection name for agent entities (or set PURVIEW_COLLECTION env var)"
     )
+    parser.add_argument(
+        "--search-service-name",
+        default=os.environ.get("AZURE_SEARCH_SERVICE_NAME", ""),
+        help="Azure AI Search service name (or set AZURE_SEARCH_SERVICE_NAME env var)"
+    )
     args = parser.parse_args()
     
     # Validate required arguments
@@ -712,7 +947,8 @@ def main():
     
     config = {
         "project_name": args.project_name,
-        "collection": args.collection
+        "collection": args.collection,
+        "search_service_name": args.search_service_name
     }
     
     print(f"Purview Lineage Creation for Insurance Multi-Agent Application")
@@ -742,6 +978,7 @@ def main():
                 ("azure_foundry_agent", "foundry-communication-agent@insurance-multi-agent"),
                 ("azure_ai_service", "azure-content-understanding@insurance-multi-agent"),
                 ("azure_ai_service", "azure-document-intelligence@insurance-multi-agent"),
+                ("azure_ai_search_index", "azure-ai-search-policies-index@insurance-multi-agent"),
             ]
             for type_name, qualified_name in cleanup_entities:
                 guid = manager.get_entity_by_qualified_name(type_name, qualified_name)
@@ -752,37 +989,47 @@ def main():
             # Also delete type definitions if --reset-types is specified
             if args.reset_types:
                 print("\n  Deleting type definitions...")
-                for type_name in ["fabric_data_agent", "azure_foundry_agent", "azure_ai_service"]:
+                for type_name in ["fabric_data_agent", "azure_foundry_agent", "azure_ai_service", "azure_ai_search_index"]:
                     manager.delete_type_definition(type_name)
         
         # Step 1: Create custom type definitions
         print("\nStep 1: Creating custom type definitions...")
         manager.create_type_definitions()
         
-        # Step 2: Find existing assets
+        # Step 2: Find existing assets (scanned by Purview)
         storage_guids = find_storage_assets(manager)
         lakehouse_guids = find_lakehouse_assets(manager)
         cosmos_guids = find_cosmos_assets(manager)
+        cosmos_mirrored_guids = find_cosmos_mirrored_tables(manager)
+        semantic_model_guids = find_semantic_model_assets(manager)
+        powerbi_guids = find_powerbi_report_assets(manager)
         
-        # Step 3: Create Fabric Data Agent entity
+        # Step 3: Create custom entities (not auto-discovered)
         fabric_agent_guid = create_fabric_data_agent(manager, config)
-        
-        # Step 4: Create Foundry Agent entities
         foundry_agent_guids = create_foundry_agent_entities(manager, config)
-        
-        # Step 5: Create AI Service entities
         ai_service_guids = create_ai_service_entities(manager, config)
+        ai_search_guid = create_ai_search_entity(manager, config)
         
-        # Step 6: Create data ingestion lineage (Storage/Cosmos → Lakehouse)
-        create_data_ingestion_lineage(manager, storage_guids, lakehouse_guids, cosmos_guids)
+        # Step 4: Create data ingestion lineage
+        #   Storage → Lakehouse, Excel → Lakehouse, Storage → AI Search, Cosmos → Mirrors
+        create_data_ingestion_lineage(
+            manager, storage_guids, lakehouse_guids, cosmos_guids,
+            cosmos_mirrored_guids, ai_search_guid, ai_service_guids
+        )
         
-        # Step 7: Create Fabric Data Agent lineage (Lakehouse → Fabric Agent)
+        # Step 5: Create Fabric analytics lineage
+        #   Lakehouse → Semantic Model → Power BI
+        create_fabric_analytics_lineage(
+            manager, lakehouse_guids, semantic_model_guids, powerbi_guids
+        )
+        
+        # Step 6: Create Fabric Data Agent lineage (Lakehouse → Fabric Agent)
         create_fabric_agent_lineage(manager, lakehouse_guids, fabric_agent_guid)
         
-        # Step 8: Create Foundry Agent lineage (Fabric Agent → Foundry → Cosmos)
+        # Step 7: Create Foundry Agent lineage (Fabric Agent → Foundry → Cosmos)
         create_foundry_agent_lineage(
             manager, fabric_agent_guid, foundry_agent_guids,
-            ai_service_guids, storage_guids, cosmos_guids, lakehouse_guids
+            ai_service_guids, ai_search_guid, storage_guids, cosmos_guids, lakehouse_guids
         )
         
         # Summary
@@ -791,9 +1038,13 @@ def main():
         print(f"  Storage assets found: {len(storage_guids)}")
         print(f"  Lakehouse assets found: {len(lakehouse_guids)}")
         print(f"  Cosmos assets found: {len(cosmos_guids)}")
+        print(f"  Cosmos mirrored tables found: {len(cosmos_mirrored_guids)}")
+        print(f"  Semantic Model found: {'Yes' if semantic_model_guids else 'No'}")
+        print(f"  Power BI Report found: {'Yes' if powerbi_guids else 'No'}")
         print(f"  Fabric Data Agent created: {'Yes' if fabric_agent_guid else 'No'}")
         print(f"  Foundry Agents created: {len(foundry_agent_guids)}")
         print(f"  AI Services created: {len(ai_service_guids)}")
+        print(f"  AI Search Index created: {'Yes' if ai_search_guid else 'No'}")
         
     except Exception as e:
         print(f"\nError: {e}")
