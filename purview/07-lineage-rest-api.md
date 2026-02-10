@@ -73,8 +73,8 @@ While Purview auto-captures lineage for many Azure services, you need custom lin
 │  [Fabric Data Agent]          [Foundry Supervisor]          [Foundry Specialist Agents]         │
 │  Claims Data Analyst  ──────► Supervisor Agent    ◄──────── Claim Assessor Agent                │
 │                                     │             ◄──────── Policy Checker Agent ◄── AI Search  │
-│  [Lakehouse]                        │             ◄──────── Risk Analyst Agent ◄── fraud_ind    │
-│  fraud_indicators ─────────────────►│             ◄──────── Claims Data Analyst Agent           │
+│                                     │             ◄──────── Risk Analyst Agent                  │
+│                                     │             ◄──────── Claims Data Analyst Agent           │
 │                                     │             ◄──────── Communication Agent                 │
 │  [Azure AI Services]                │                                                           │
 │  Content Understanding ─────────────┤                                                           │
@@ -192,7 +192,6 @@ Creates entities for:
 | Fabric Agent → Foundry Agent | Claims Data Analyst queries via Fabric Data Agent |
 | AI Search → Policy Checker | Policy verification via vectorized search |
 | AI Services → Claim Assessor | Content Understanding extracts document data |
-| Fraud Data → Risk Analyst | Risk scoring uses fraud indicators from Lakehouse |
 | Specialist Agents → Supervisor | Orchestration flow |
 | Supervisor → Cosmos DB (agent-executions) | Execution results stored |
 | Supervisor → Cosmos DB (token-tracking) | Token usage and scale metrics stored |
@@ -231,7 +230,6 @@ python scripts/verify_lineage.py --purview-account purview-prod
 | Fabric Data Agent | Fabric Agent to Foundry | Foundry Claims Data Analyst | Natural language data queries |
 | AI Search (Policies Index) | AI Search to Policy Checker | Foundry Policy Checker | Vectorized policy search |
 | Storage + Content Understanding | Content Understanding to Assessor | Foundry Claim Assessor | Document extraction |
-| Lakehouse (fraud_indicators) | Fraud Data to Risk Analyst | Foundry Risk Analyst | Risk scoring |
 | All Specialist Agents | Agents to Supervisor | Foundry Supervisor | Orchestration flow |
 | Foundry Supervisor | Supervisor to Cosmos (Executions) | Cosmos DB (agent-executions) | Execution logging |
 | Foundry Supervisor | Supervisor to Cosmos (Tokens) | Cosmos DB (token-usage) | Token tracking |

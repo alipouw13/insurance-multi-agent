@@ -746,16 +746,10 @@ def create_foundry_agent_lineage(
             )
             print("  Created: Content Understanding + Storage → Claim Assessor")
     
-    # Lakehouse (fraud_indicators) → Risk Analyst
-    if foundry_agent_guids.get("risk_analyst") and lakehouse_guids.get("fraud_indicators"):
-        manager.create_process_lineage(
-            name="Fraud Data to Risk Analyst",
-            qualified_name="lineage-fraud-to-risk-analyst@insurance",
-            description="Risk Analyst accesses fraud indicators from Lakehouse for risk scoring",
-            input_guids=[lakehouse_guids["fraud_indicators"]],
-            output_guids=[foundry_agent_guids["risk_analyst"]]
-        )
-        print("  Created: Lakehouse (fraud_indicators) → Risk Analyst")
+    # NOTE: fraud_indicators does NOT connect directly to Risk Analyst.
+    # Fraud data is only accessed via the Fabric Data Agent → Claims Data Analyst path.
+    # The Risk Analyst agent uses its own tools (calculate_risk_score, check_fraud_indicators)
+    # which operate on data passed through the supervisor orchestration, not Lakehouse directly.
     
     # AI Search (vectorized data) → Policy Checker
     # This replaces the old direct Storage → Policy Checker link
@@ -980,6 +974,18 @@ def main():
                 ("azure_ai_service", "azure-document-intelligence@insurance-multi-agent"),
                 ("azure_ai_search_index", "azure-ai-search-policies-index@insurance-multi-agent"),
             ]
+            # Also clean up old/stale Process entities from previous runs
+            cleanup_processes = [
+                "lineage-fraud-to-risk-analyst@insurance",
+                "lineage-policies-to-policy-checker@insurance",
+                "lineage-cosmos-to-lakehouse@insurance",
+            ]
+            for qualified_name in cleanup_processes:
+                guid = manager.get_entity_by_qualified_name("Process", qualified_name)
+                if guid and not guid.startswith("dry-run"):
+                    manager.delete_entity(guid)
+                    print(f"  Deleted process: {qualified_name}")
+
             for type_name, qualified_name in cleanup_entities:
                 guid = manager.get_entity_by_qualified_name(type_name, qualified_name)
                 if guid and not guid.startswith("dry-run"):
