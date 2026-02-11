@@ -1,11 +1,6 @@
-# 07 - Sensitivity Labels and DLP Policies
+# 06 - Sensitivity Labels and Label Publishing Policies
 
-This document covers configuring Microsoft Purview sensitivity labels and Data Loss Prevention (DLP) policies for the Insurance Claims Multi-Agent application, with specific guidance for Fabric and Power BI.
-
-> **References**: 
-> - [Configure DLP policies for Fabric](https://learn.microsoft.com/en-us/fabric/governance/data-loss-prevention-configure)
-> - [Enable sensitivity labels in Fabric and Power BI](https://learn.microsoft.com/en-us/fabric/enterprise/powerbi/service-security-enable-data-sensitivity-labels)
-> - [Information protection in Microsoft Fabric](https://learn.microsoft.com/en-us/fabric/governance/information-protection)
+This document covers configuring Microsoft Purview sensitivity labels for the Insurance Claims Multi-Agent application, with specific guidance for Fabric and Power BI. We will go over configuring the [mandatory label publishing](https://learn.microsoft.com/en-us/fabric/governance/mandatory-label-policy) policy and [default label publishing](https://learn.microsoft.com/en-us/fabric/governance/sensitivity-label-default-label-policy) policy.
 
 ---
 
@@ -23,38 +18,17 @@ We use the default Microsoft sensitivity labels that are pre-configured in your 
 | Confidential | 5 | Files, Email | Business-sensitive data requiring controlled access |
 | Highly Confidential | 9 | Files, Email | Most sensitive data with strictest controls |
 
-### Insurance Data Classifications
-
-| Data Type | Sensitivity Level | Label | DLP Action |
-|-----------|------------------|-------|------------|
-| Policy terms (public) | Low | Public | None |
-| Claim descriptions | Medium | General | Policy tip |
-| Policy numbers | High | Confidential | Audit |
-| Claimant PII (SSN, etc.) | Critical | Highly Confidential | Block external |
-| Fraud indicators | Critical | Highly Confidential | Block + Alert |
-| Agent responses | High | Confidential | Audit |
-
 ---
 
-## Prerequisites
+## Limitations
 
-### Licensing Requirements
+Mandatory labeling in Fabric and Power BI is supported for all item types except:
 
-| Requirement | License |
-|-------------|---------|
-| Sensitivity labels | Azure Information Protection Premium P1 or P2 |
-| Apply labels in Fabric | Power BI Pro or Premium Per User (PPU) |
-| DLP policies for Fabric | Microsoft 365 E5, E5 Compliance, or E5 Information Protection & Governance |
-| Compliance portal access | Compliance Administrator role |
-
-### Role Requirements for DLP
-
-To create DLP policies, you must be a member of one of these role groups:
-- Compliance administrator
-- Compliance data administrator
-- Information Protection
-- Information Protection Admin
-- Security administrator
+- Scorecard
+- Dataflow Gen 1
+- Dataflow Gen 2
+- Streaming semantic model
+- Streaming dataflow
 
 ---
 
@@ -129,16 +103,13 @@ If labels are not published to users:
 
 ---
 
-## Part 2: DLP Policies for Fabric and Power BI
+## Part 2: Default and mandatory sensitivity label policy for Fabric and Power BI
 
-> **Important**: DLP policies for Fabric and Power BI have specific requirements:
-> - Only **Custom policy** template is supported
-> - Only **Fabric and Power BI workspaces** location is supported
-> - DLP actions only work for workspaces hosted in Fabric or Premium capacities
+Review documentation [here](https://learn.microsoft.com/en-us/fabric/governance/sensitivity-label-default-label-policy) and [here](https://learn.microsoft.com/en-us/fabric/governance/mandatory-label-policy) for exact implementation steps
 
-### Step 1: Create DLP Policy for Fabric
+### Step 1: Create a label publishing policy for Fabric / Power BI
 
-1. Open the DLP label publishing policies page
+1. Open the sensitivity label publishing policies page
 2. Click **+ Create policy**
 3. Choose **Custom** category and **Custom policy** template
 4. Click **Next**
@@ -157,7 +128,7 @@ Click **Next** (Skip)
 
 Select all users and groups
 
-### Step 5 - Policy Settings
+### Step 5 - Policy Settings - Mandatory default label
 
 Select _Require users to apply a label to their Fabric and Power BI content_
 
