@@ -33,8 +33,9 @@ Microsoft Purview provides unified data governance for discovering, classifying,
 | 3 | [Scan Cosmos DB](03-scan-cosmos-db.md) | Connect and scan Cosmos DB |
 | 4 | [Scan Fabric Tenant](04-scan-fabric-tenant.md) | Register and scan Microsoft Fabric tenant |
 | 5 | [Governance Domains](05-governance-domains.md) | Create domains and data products |
-| 6 | [Sensitivity Labels & DLP](06-sensitivity-labels-dlp.md) | Classification and protection policies |
-| 7 | [Lineage REST API](07-lineage-rest-api.md) | Custom lineage via Atlas API |
+| 6 | [Sensitivity Labels](06-sensitivity-labels.md) | Sensitivity label configuration and publishing policies |
+| 7 | [DLP Policies](07-dlp-policies.md) | Data Loss Prevention policies for Fabric and Power BI |
+| 8 | [Lineage REST API](08-lineage-rest-api.md) | Custom lineage via Atlas API |
 
 
 ---
