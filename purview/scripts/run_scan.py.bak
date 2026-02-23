@@ -1,0 +1,228 @@
+#!/usr/bin/env python3
+"""
+run_scan.py – Main orchestrator for the Fabric Scanner + Purview Classifier.
+
+Scans a Microsoft Fabric workspace (lakehouses/warehouses), discovers tables
+and columns, applies sensitivity classification rules, and registers
+everything in Microsoft Purview with column-level Atlas classifications.
+
+Usage:
+    # Full run (scan + register + classify)
+    python run_scan.py
+
+    # Dry run (no API writes, logs what would happen)
+    python run_scan.py --dry-run
+
+    # Override workspace / purview from CLI
+    python run_scan.py --workspace-id <guid> --purview-account <name>
+
+    # Skip Fabric API calls, use known schemas only (offline mode)
+    python run_scan.py --offline
+
+    # Verbose logging
+    python run_scan.py --dry-run --verbose
+
+Environment:
+    All configuration can also be set via .env file (purview/scripts/.env)
+    or environment variables.  See fabric_scanner/config.py for details.
+"""
+from __future__ import annotations
+
+import argparse
+import json
+import logging
+import sys
+import time
+from pathlib import Path
+
+# Ensure the scripts directory is on the path
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+
+from fabric_scanner.config import Config, get_purview_client, logger
+from fabric_scanner.scanner import scan_workspace, FabricItem, TableInfo
+from fabric_scanner.mip_labels import (
+    classify_columns_for_table,
+    fetch_sensitivity_labels,
+)
+from fabric_scanner.classifier import (
+    incremental_scan_and_classify,
+    get_classification_typedef_payload,
+    get_entity_typedef_payload,
+)
+
+
+# ---------------------------------------------------------------------------
+# Offline / fallback scanning using known schemas
+# ---------------------------------------------------------------------------
+
+def offline_scan() -> list[FabricItem]:
+    """Build FabricItems from the known table schemas without calling Fabric
+    REST APIs.  Useful for local testing or when the Fabric workspace is not
+    accessible."""
+
+    from fabric_scanner.scanner import _KNOWN_SCHEMAS, ColumnInfo
+
+    logger.info("OFFLINE MODE – using hardcoded table schemas")
+
+    tables = []
+    for tbl_name, schema in _KNOWN_SCHEMAS.items():
+        columns = [
+            ColumnInfo(
+                name=col["name"],
+                data_type=col["data_type"],
+                ordinal_position=col.get("ordinal", i + 1),
+            )
+            for i, col in enumerate(schema)
+        ]
+        tables.append(
+            TableInfo(
+                name=tbl_name,
+                table_type="Managed",
+                format="delta",
+                location=None,
+                item_id=None,
+                columns=columns,
+            )
+        )
+
+    return [
+        FabricItem(
+            id="offline",
+            display_name="InsuranceLakehouse",
+            item_type="Lakehouse",
+            tables=tables,
+        )
+    ]
+
+
+# ---------------------------------------------------------------------------
+# Main flow
+# ---------------------------------------------------------------------------
+
+def main() -> int:
+    parser = argparse.ArgumentParser(
+        description="Scan Fabric workspace and register entities in Purview with sensitivity classifications",
+    )
+    parser.add_argument("--workspace-id", help="Fabric workspace GUID (overrides .env)")
+    parser.add_argument("--purview-account", help="Purview account name (overrides .env)")
+    parser.add_argument("--collection", help="Purview collection name (overrides .env)")
+    parser.add_argument("--dry-run", action="store_true", help="Log actions without writing to APIs")
+    parser.add_argument("--offline", action="store_true", help="Skip Fabric API calls; use known schemas")
+    parser.add_argument("--verbose", "-v", action="store_true", help="Enable DEBUG logging")
+    parser.add_argument("--dump-payloads", action="store_true",
+                        help="Dump raw Atlas v2 API payloads to JSON files and exit")
+    parser.add_argument("--output-dir", default=".", help="Directory for report/payload output files")
+
+    args = parser.parse_args()
+
+    # --- Logging ---
+    level = logging.DEBUG if args.verbose else logging.INFO
+    logging.basicConfig(
+        level=level,
+        format="%(asctime)s  %(name)-28s  %(levelname)-7s  %(message)s",
+        datefmt="%H:%M:%S",
+    )
+
+    # --- Config overrides ---
+    Config.reload()
+    if args.workspace_id:
+        Config.fabric_workspace_id = args.workspace_id
+    if args.purview_account:
+        Config.purview_account = args.purview_account
+    if args.collection:
+        Config.purview_collection = args.collection
+    Config.dry_run = args.dry_run
+
+    logger.info("=" * 60)
+    logger.info("Fabric Scanner – Purview Classification Pipeline")
+    logger.info("=" * 60)
+    logger.info("  Purview account : %s", Config.purview_account)
+    logger.info("  Workspace ID    : %s", Config.fabric_workspace_id)
+    logger.info("  Collection      : %s", Config.purview_collection or "(default)")
+    logger.info("  Dry run         : %s", Config.dry_run)
+    logger.info("  Offline mode    : %s", args.offline)
+    logger.info("=" * 60)
+
+    Config.validate()
+
+    # --- (B) Dump raw API payloads if requested ---
+    if args.dump_payloads:
+        out = Path(args.output_dir)
+        out.mkdir(parents=True, exist_ok=True)
+
+        with open(out / "classification_typedefs.json", "w") as f:
+            json.dump(get_classification_typedef_payload(), f, indent=2)
+        with open(out / "entity_typedefs.json", "w") as f:
+            json.dump(get_entity_typedef_payload(), f, indent=2)
+
+        logger.info("Payloads written to %s/", out)
+        return 0
+
+    t0 = time.time()
+
+    # 1. SCAN WORKSPACE ─────────────────────────────────────────────────
+    logger.info("")
+    logger.info("STEP 1: Discover Fabric workspace items")
+    logger.info("-" * 50)
+
+    if args.offline:
+        items = offline_scan()
+    else:
+        items = scan_workspace()
+
+    total_tables = sum(len(it.tables) for it in items)
+    total_cols = sum(len(c) for it in items for t in it.tables for c in [t.columns])
+    logger.info("  Found %d items, %d tables, %d columns", len(items), total_tables, total_cols)
+
+    # 2. CLASSIFY COLUMNS ──────────────────────────────────────────────
+    logger.info("")
+    logger.info("STEP 2: Apply sensitivity classification rules")
+    logger.info("-" * 50)
+
+    # Try to fetch MIP labels from Graph API (graceful fallback)
+    try:
+        labels = fetch_sensitivity_labels()
+        logger.info("  MIP labels available: %d", len(labels))
+    except Exception as exc:
+        logger.warning("  Could not fetch MIP labels: %s (using defaults)", exc)
+
+    for item in items:
+        for table in item.tables:
+            classify_columns_for_table(table.name, table.columns)
+            classified = sum(1 for c in table.columns if c.sensitivity_label)
+            logger.info("  %-30s  %d/%d columns classified", table.name, classified, len(table.columns))
+
+    # 3. REGISTER & CLASSIFY IN PURVIEW ────────────────────────────────
+    logger.info("")
+    logger.info("STEP 3: Register entities and apply classifications in Purview")
+    logger.info("-" * 50)
+
+    client = get_purview_client()
+    summary = incremental_scan_and_classify(client, items)
+
+    # 4. REPORT ────────────────────────────────────────────────────────
+    elapsed = time.time() - t0
+    logger.info("")
+    logger.info("=" * 60)
+    logger.info("SCAN COMPLETE  (%.1fs)", elapsed)
+    logger.info("  Entities registered        : %d", summary["entities_registered"])
+    logger.info("  Classifications applied     : %d", summary["classifications_applied"])
+    logger.info("  Classification errors       : %d", summary["classification_errors"])
+    logger.info("=" * 60)
+
+    # Write report file
+    out = Path(args.output_dir)
+    out.mkdir(parents=True, exist_ok=True)
+    report_path = out / "scan_report.json"
+    with open(report_path, "w") as f:
+        # Filter out non-serializable items from guid_map
+        safe_summary = {k: v for k, v in summary.items() if k != "guid_map"}
+        safe_summary["guid_map_count"] = len(summary.get("guid_map", {}))
+        json.dump(safe_summary, f, indent=2, default=str)
+    logger.info("Report written to %s", report_path)
+
+    return 1 if summary["classification_errors"] > 0 else 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())

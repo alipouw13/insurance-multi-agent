@@ -1,0 +1,848 @@
+{
+  "entities_registered": 135,
+  "classifications_applied": 51,
+  "classification_errors": 69,
+  "classification_details": [
+    {
+      "column": "claim_id",
+      "table": "claims_history",
+      "classification": "MIP_Confidential",
+      "guid": "c36ceccb-f8f9-4b17-821b-b9f0d9207d7f",
+      "status": "applied"
+    },
+    {
+      "column": "claimant_id",
+      "table": "claims_history",
+      "classification": "MIP_Confidential",
+      "guid": "528f651d-abd4-4e67-9e18-b066303ba4a6",
+      "status": "applied"
+    },
+    {
+      "column": "claimant_name",
+      "table": "claims_history",
+      "classification": "MIP_Highly_Confidential",
+      "guid": "7b9fe2c2-6587-4d85-9a95-cf056799cf69",
+      "status": "applied"
+    },
+    {
+      "column": "claim_type",
+      "table": "claims_history",
+      "classification": "MIP_General",
+      "guid": "7ae74464-bb65-409f-94a5-2e2ddf194f38",
+      "status": "applied"
+    },
+    {
+      "column": "estimated_damage",
+      "table": "claims_history",
+      "classification": "MIP_Confidential",
+      "guid": "c8167529-b719-4dc0-afd5-a37a9d2dac33",
+      "status": "applied"
+    },
+    {
+      "column": "amount_paid",
+      "table": "claims_history",
+      "classification": "MIP_Confidential",
+      "guid": "52442ddc-a815-4127-8486-85782b53c037",
+      "status": "applied"
+    },
+    {
+      "column": "status",
+      "table": "claims_history",
+      "classification": "MIP_General",
+      "guid": "71ac2500-be5a-4ba8-962c-c1aa9901f42a",
+      "status": "applied"
+    },
+    {
+      "column": "claim_date",
+      "table": "claims_history",
+      "classification": "MIP_General",
+      "guid": "008909c5-237d-4b16-9ca2-f41221edc655",
+      "status": "applied"
+    },
+    {
+      "column": "incident_date",
+      "table": "claims_history",
+      "classification": "MIP_General",
+      "guid": "af6d3619-a678-4853-9e5d-1efd01c2892a",
+      "status": "applied"
+    },
+    {
+      "column": "location",
+      "table": "claims_history",
+      "classification": "MIP_General",
+      "guid": "97a302cf-bd52-4395-b00e-7622b166672c",
+      "status": "applied"
+    },
+    {
+      "column": "state",
+      "table": "claims_history",
+      "classification": "MIP_General",
+      "guid": "0585084a-38d6-406f-be7e-620c8af72ed6",
+      "status": "applied"
+    },
+    {
+      "column": "fraud_flag",
+      "table": "claims_history",
+      "classification": "MIP_Highly_Confidential",
+      "guid": "cdeb3ce4-7d72-43af-9f31-022c75270073",
+      "status": "applied"
+    },
+    {
+      "column": "police_report",
+      "table": "claims_history",
+      "classification": "MIP_General",
+      "guid": "015acb32-0b37-46c3-8005-f1d0b28200e3",
+      "status": "applied"
+    },
+    {
+      "column": "photos_provided",
+      "table": "claims_history",
+      "classification": "MIP_General",
+      "guid": "5497cba4-a19f-4b95-a274-ff0ad72868f8",
+      "status": "applied"
+    },
+    {
+      "column": "witness_statements",
+      "table": "claims_history",
+      "classification": "MIP_General",
+      "guid": "32f32c9f-3fac-49dc-b309-9c747f85e67d",
+      "status": "applied"
+    },
+    {
+      "column": "license_plate",
+      "table": "claims_history",
+      "classification": "MIP_Highly_Confidential",
+      "guid": "6065fa9f-14ed-4d9f-ba00-4ef49093f38b",
+      "status": "applied"
+    },
+    {
+      "column": "vehicle_info",
+      "table": "claims_history",
+      "classification": "MIP_Confidential",
+      "guid": "b14ec051-d7b9-43e5-b6cd-faf87f232bab",
+      "status": "applied"
+    },
+    {
+      "column": "description",
+      "table": "claims_history",
+      "classification": "MIP_General",
+      "guid": "86ea1cc5-b388-4b4b-a05f-e7cf8aa70dea",
+      "status": "applied"
+    },
+    {
+      "column": "claimant_id",
+      "table": "claimant_profiles",
+      "classification": "MIP_Confidential",
+      "guid": "42d0bdd5-6e00-43da-9193-c885aed75bae",
+      "status": "applied"
+    },
+    {
+      "column": "name",
+      "table": "claimant_profiles",
+      "classification": "MIP_Highly_Confidential",
+      "guid": "7ba4997f-a967-469f-a2d4-425da2865e14",
+      "status": "applied"
+    },
+    {
+      "column": "age",
+      "table": "claimant_profiles",
+      "classification": "MIP_Highly_Confidential",
+      "guid": "45260326-984b-4ac9-832a-340aff9da950",
+      "status": "applied"
+    },
+    {
+      "column": "location",
+      "table": "claimant_profiles",
+      "classification": "MIP_General",
+      "guid": "e61baded-67af-4149-970d-a6dfe6d74d50",
+      "status": "applied"
+    },
+    {
+      "column": "risk_score",
+      "table": "claimant_profiles",
+      "classification": "MIP_Highly_Confidential",
+      "guid": "e46f4c88-c00f-4678-8bdf-d8f1d8fd12ab",
+      "status": "applied"
+    },
+    {
+      "column": "policy_number",
+      "table": "claimant_profiles",
+      "classification": "MIP_Confidential",
+      "guid": "8558c43b-4e4b-4280-855b-9c8eaab8d9d5",
+      "status": "applied"
+    },
+    {
+      "column": "indicator_id",
+      "table": "fraud_indicators",
+      "classification": "MIP_Highly_Confidential",
+      "guid": "1fa7274e-17c7-40ee-817a-feb4914c69b9",
+      "status": "applied"
+    },
+    {
+      "column": "claim_id",
+      "table": "fraud_indicators",
+      "classification": "MIP_Confidential",
+      "guid": "0d729a87-75d1-4992-86cd-8ed0b495b7de",
+      "status": "applied"
+    },
+    {
+      "column": "indicator_type",
+      "table": "fraud_indicators",
+      "classification": "MIP_Highly_Confidential",
+      "guid": "c26cc125-8761-42f6-8f10-820f3fd8b1d0",
+      "status": "applied"
+    },
+    {
+      "column": "severity",
+      "table": "fraud_indicators",
+      "classification": "MIP_Confidential",
+      "guid": "d3ce6511-845f-479e-9da3-3ae843f134b4",
+      "status": "applied"
+    },
+    {
+      "column": "description",
+      "table": "fraud_indicators",
+      "classification": "MIP_General",
+      "guid": "620f27b8-6c2f-410d-a9d6-13368744ecf4",
+      "status": "applied"
+    },
+    {
+      "column": "flagged_date",
+      "table": "fraud_indicators",
+      "classification": "MIP_General",
+      "guid": "934e3566-4cdf-41b5-af33-c6f46866e4e6",
+      "status": "applied"
+    },
+    {
+      "column": "policy_number",
+      "table": "policy_claims_summary",
+      "classification": "MIP_Confidential",
+      "guid": "a188f8ec-728f-49a4-b2c9-334f882a2a5f",
+      "status": "applied"
+    },
+    {
+      "column": "total_claims",
+      "table": "policy_claims_summary",
+      "classification": "MIP_Confidential",
+      "guid": "e96b0068-bab4-4e36-be75-e14bda4ac425",
+      "status": "applied"
+    },
+    {
+      "column": "total_amount",
+      "table": "policy_claims_summary",
+      "classification": "MIP_Confidential",
+      "guid": "7f2afafe-97a5-4a74-a42c-3d6d2b87ee48",
+      "status": "applied"
+    },
+    {
+      "column": "avg_amount",
+      "table": "policy_claims_summary",
+      "classification": "MIP_Confidential",
+      "guid": "8aa634a8-d479-4221-9a9d-5eeaf6a64a8d",
+      "status": "applied"
+    },
+    {
+      "column": "last_claim_date",
+      "table": "policy_claims_summary",
+      "classification": "MIP_General",
+      "guid": "e3a97cd4-53ff-4d80-8289-20f9f5feef95",
+      "status": "applied"
+    },
+    {
+      "column": "region",
+      "table": "regional_statistics",
+      "classification": "MIP_General",
+      "guid": "b0b173a0-2e3a-45bf-825b-40f79553afdd",
+      "status": "applied"
+    },
+    {
+      "column": "state",
+      "table": "regional_statistics",
+      "classification": "MIP_General",
+      "guid": "a359f244-23c7-442b-a0db-7d5e1c1c486d",
+      "status": "applied"
+    },
+    {
+      "column": "total_claims",
+      "table": "regional_statistics",
+      "classification": "MIP_General",
+      "guid": "80bf4371-500e-405f-9ea1-0251c8e617be",
+      "status": "applied"
+    },
+    {
+      "column": "fraud_rate",
+      "table": "regional_statistics",
+      "classification": "MIP_Highly_Confidential",
+      "guid": "38389511-fdf3-481c-9035-0446291dbb8c",
+      "status": "applied"
+    },
+    {
+      "column": "avg_claim_amount",
+      "table": "regional_statistics",
+      "classification": "MIP_Confidential",
+      "guid": "b5f8cb79-1b46-409f-9083-a1835520e382",
+      "status": "applied"
+    },
+    {
+      "column": "claim_id",
+      "table": "claims_history",
+      "classification": "MIP_Confidential",
+      "guid": "ccf64454-7950-4343-be98-d1b536392997",
+      "status": "applied"
+    },
+    {
+      "column": "claimant_id",
+      "table": "claims_history",
+      "classification": "MIP_Confidential",
+      "guid": "81d39018-9cce-45f3-84ca-c80b28b336c9",
+      "status": "applied"
+    },
+    {
+      "column": "claimant_name",
+      "table": "claims_history",
+      "classification": "MIP_Highly_Confidential",
+      "guid": "12ee1801-57be-4622-86cb-789747a9bb86",
+      "status": "applied"
+    },
+    {
+      "column": "claim_type",
+      "table": "claims_history",
+      "classification": "MIP_General",
+      "guid": "d82da585-e62b-44e3-bcad-03e38e87b58e",
+      "status": "applied"
+    },
+    {
+      "column": "estimated_damage",
+      "table": "claims_history",
+      "classification": "MIP_Confidential",
+      "guid": "beec2e6b-f62c-4607-b2d6-aacec2ff3f25",
+      "status": "applied"
+    },
+    {
+      "column": "amount_paid",
+      "table": "claims_history",
+      "classification": "MIP_Confidential",
+      "guid": "957fc0a8-79c8-410e-8f35-6977140590a2",
+      "status": "applied"
+    },
+    {
+      "column": "status",
+      "table": "claims_history",
+      "classification": "MIP_General",
+      "guid": "34090368-5280-4b51-902f-f00463f2e34a",
+      "status": "applied"
+    },
+    {
+      "column": "claim_date",
+      "table": "claims_history",
+      "classification": "MIP_General",
+      "guid": "585375df-933e-4f4c-93a4-7b32e53aee22",
+      "status": "applied"
+    },
+    {
+      "column": "incident_date",
+      "table": "claims_history",
+      "classification": "MIP_General",
+      "guid": "f76f92a5-2d5e-4545-a74f-e39eb0e3cf07",
+      "status": "applied"
+    },
+    {
+      "column": "location",
+      "table": "claims_history",
+      "classification": "MIP_General",
+      "guid": "75526141-bcba-474c-95a4-4a630c06a66d",
+      "status": "applied"
+    },
+    {
+      "column": "state",
+      "table": "claims_history",
+      "classification": "MIP_General",
+      "guid": "4714c36d-6d4c-483e-9d9e-2c720b902469",
+      "status": "applied"
+    },
+    {
+      "column": "fraud_flag",
+      "table": "claims_history",
+      "classification": "MIP_Highly_Confidential",
+      "guid": "6a233bc6-49d9-4785-8022-5d282e4c348b",
+      "status": "error: ('Connection aborted.', RemoteDisconnected('Remote end closed connection without response'))"
+    },
+    {
+      "column": "police_report",
+      "table": "claims_history",
+      "classification": "MIP_General",
+      "guid": "b00144d3-43aa-4f25-969f-abc3747da20c",
+      "status": "error: HTTPSConnectionPool(host='pview-apfsipurviewdemo.purview.azure.com', port=443): Max retries exceeded with url: /catalog/api/atlas/v2/entity/guid/b00144d3-43aa-4f25-969f-abc3747da20c/classifications (Caused by NameResolutionError(\"HTTPSConnection(host='pview-apfsipurviewdemo.purview.azure.com', port=443): Failed to resolve 'pview-apfsipurviewdemo.purview.azure.com' ([Errno 11001] getaddrinfo failed)\"))"
+    },
+    {
+      "column": "photos_provided",
+      "table": "claims_history",
+      "classification": "MIP_General",
+      "guid": "54b7a4f0-3d9a-4d59-8c81-a37352313c8a",
+      "status": "error: HTTPSConnectionPool(host='pview-apfsipurviewdemo.purview.azure.com', port=443): Max retries exceeded with url: /catalog/api/atlas/v2/entity/guid/54b7a4f0-3d9a-4d59-8c81-a37352313c8a/classifications (Caused by NameResolutionError(\"HTTPSConnection(host='pview-apfsipurviewdemo.purview.azure.com', port=443): Failed to resolve 'pview-apfsipurviewdemo.purview.azure.com' ([Errno 11001] getaddrinfo failed)\"))"
+    },
+    {
+      "column": "witness_statements",
+      "table": "claims_history",
+      "classification": "MIP_General",
+      "guid": "a5c6cdbc-33af-4658-bae0-4ce775d7fa77",
+      "status": "error: HTTPSConnectionPool(host='pview-apfsipurviewdemo.purview.azure.com', port=443): Max retries exceeded with url: /catalog/api/atlas/v2/entity/guid/a5c6cdbc-33af-4658-bae0-4ce775d7fa77/classifications (Caused by NameResolutionError(\"HTTPSConnection(host='pview-apfsipurviewdemo.purview.azure.com', port=443): Failed to resolve 'pview-apfsipurviewdemo.purview.azure.com' ([Errno 11001] getaddrinfo failed)\"))"
+    },
+    {
+      "column": "license_plate",
+      "table": "claims_history",
+      "classification": "MIP_Highly_Confidential",
+      "guid": "c981a270-c87d-4214-b85c-6fce116d957d",
+      "status": "error: HTTPSConnectionPool(host='pview-apfsipurviewdemo.purview.azure.com', port=443): Max retries exceeded with url: /catalog/api/atlas/v2/entity/guid/c981a270-c87d-4214-b85c-6fce116d957d/classifications (Caused by NameResolutionError(\"HTTPSConnection(host='pview-apfsipurviewdemo.purview.azure.com', port=443): Failed to resolve 'pview-apfsipurviewdemo.purview.azure.com' ([Errno 11001] getaddrinfo failed)\"))"
+    },
+    {
+      "column": "vehicle_info",
+      "table": "claims_history",
+      "classification": "MIP_Confidential",
+      "guid": "fda52073-4585-4341-8aa2-d5d40bbd1eaa",
+      "status": "error: HTTPSConnectionPool(host='pview-apfsipurviewdemo.purview.azure.com', port=443): Max retries exceeded with url: /catalog/api/atlas/v2/entity/guid/fda52073-4585-4341-8aa2-d5d40bbd1eaa/classifications (Caused by NameResolutionError(\"HTTPSConnection(host='pview-apfsipurviewdemo.purview.azure.com', port=443): Failed to resolve 'pview-apfsipurviewdemo.purview.azure.com' ([Errno 11001] getaddrinfo failed)\"))"
+    },
+    {
+      "column": "description",
+      "table": "claims_history",
+      "classification": "MIP_General",
+      "guid": "b3fcb7bb-feae-408d-a0d2-4d9405034802",
+      "status": "error: HTTPSConnectionPool(host='pview-apfsipurviewdemo.purview.azure.com', port=443): Max retries exceeded with url: /catalog/api/atlas/v2/entity/guid/b3fcb7bb-feae-408d-a0d2-4d9405034802/classifications (Caused by NameResolutionError(\"HTTPSConnection(host='pview-apfsipurviewdemo.purview.azure.com', port=443): Failed to resolve 'pview-apfsipurviewdemo.purview.azure.com' ([Errno 11001] getaddrinfo failed)\"))"
+    },
+    {
+      "column": "claimant_id",
+      "table": "claimant_profiles",
+      "classification": "MIP_Confidential",
+      "guid": "dfff04d9-bbaf-4d51-89f6-25d2cf36ab6c",
+      "status": "error: HTTPSConnectionPool(host='pview-apfsipurviewdemo.purview.azure.com', port=443): Max retries exceeded with url: /catalog/api/atlas/v2/entity/guid/dfff04d9-bbaf-4d51-89f6-25d2cf36ab6c/classifications (Caused by NameResolutionError(\"HTTPSConnection(host='pview-apfsipurviewdemo.purview.azure.com', port=443): Failed to resolve 'pview-apfsipurviewdemo.purview.azure.com' ([Errno 11001] getaddrinfo failed)\"))"
+    },
+    {
+      "column": "name",
+      "table": "claimant_profiles",
+      "classification": "MIP_Highly_Confidential",
+      "guid": "7ac5e9ed-2fd2-459f-8a31-1b9392fef7ef",
+      "status": "error: HTTPSConnectionPool(host='pview-apfsipurviewdemo.purview.azure.com', port=443): Max retries exceeded with url: /catalog/api/atlas/v2/entity/guid/7ac5e9ed-2fd2-459f-8a31-1b9392fef7ef/classifications (Caused by NameResolutionError(\"HTTPSConnection(host='pview-apfsipurviewdemo.purview.azure.com', port=443): Failed to resolve 'pview-apfsipurviewdemo.purview.azure.com' ([Errno 11001] getaddrinfo failed)\"))"
+    },
+    {
+      "column": "age",
+      "table": "claimant_profiles",
+      "classification": "MIP_Highly_Confidential",
+      "guid": "8185670a-4390-43bd-bada-6c87f09a4fbf",
+      "status": "error: HTTPSConnectionPool(host='pview-apfsipurviewdemo.purview.azure.com', port=443): Max retries exceeded with url: /catalog/api/atlas/v2/entity/guid/8185670a-4390-43bd-bada-6c87f09a4fbf/classifications (Caused by NameResolutionError(\"HTTPSConnection(host='pview-apfsipurviewdemo.purview.azure.com', port=443): Failed to resolve 'pview-apfsipurviewdemo.purview.azure.com' ([Errno 11001] getaddrinfo failed)\"))"
+    },
+    {
+      "column": "location",
+      "table": "claimant_profiles",
+      "classification": "MIP_General",
+      "guid": "1516def8-005e-402c-85ae-5834cf576186",
+      "status": "error: HTTPSConnectionPool(host='pview-apfsipurviewdemo.purview.azure.com', port=443): Max retries exceeded with url: /catalog/api/atlas/v2/entity/guid/1516def8-005e-402c-85ae-5834cf576186/classifications (Caused by NameResolutionError(\"HTTPSConnection(host='pview-apfsipurviewdemo.purview.azure.com', port=443): Failed to resolve 'pview-apfsipurviewdemo.purview.azure.com' ([Errno 11001] getaddrinfo failed)\"))"
+    },
+    {
+      "column": "risk_score",
+      "table": "claimant_profiles",
+      "classification": "MIP_Highly_Confidential",
+      "guid": "af23e233-7852-400d-a250-a6101a352e66",
+      "status": "error: HTTPSConnectionPool(host='pview-apfsipurviewdemo.purview.azure.com', port=443): Max retries exceeded with url: /catalog/api/atlas/v2/entity/guid/af23e233-7852-400d-a250-a6101a352e66/classifications (Caused by NameResolutionError(\"HTTPSConnection(host='pview-apfsipurviewdemo.purview.azure.com', port=443): Failed to resolve 'pview-apfsipurviewdemo.purview.azure.com' ([Errno 11001] getaddrinfo failed)\"))"
+    },
+    {
+      "column": "policy_number",
+      "table": "claimant_profiles",
+      "classification": "MIP_Confidential",
+      "guid": "df4a27b6-1c55-42e8-a806-df8166786f43",
+      "status": "error: HTTPSConnectionPool(host='pview-apfsipurviewdemo.purview.azure.com', port=443): Max retries exceeded with url: /catalog/api/atlas/v2/entity/guid/df4a27b6-1c55-42e8-a806-df8166786f43/classifications (Caused by NameResolutionError(\"HTTPSConnection(host='pview-apfsipurviewdemo.purview.azure.com', port=443): Failed to resolve 'pview-apfsipurviewdemo.purview.azure.com' ([Errno 11001] getaddrinfo failed)\"))"
+    },
+    {
+      "column": "indicator_id",
+      "table": "fraud_indicators",
+      "classification": "MIP_Highly_Confidential",
+      "guid": "8a0fc2b1-d8ac-474f-ad03-86e8e1d60342",
+      "status": "error: HTTPSConnectionPool(host='pview-apfsipurviewdemo.purview.azure.com', port=443): Max retries exceeded with url: /catalog/api/atlas/v2/entity/guid/8a0fc2b1-d8ac-474f-ad03-86e8e1d60342/classifications (Caused by NameResolutionError(\"HTTPSConnection(host='pview-apfsipurviewdemo.purview.azure.com', port=443): Failed to resolve 'pview-apfsipurviewdemo.purview.azure.com' ([Errno 11001] getaddrinfo failed)\"))"
+    },
+    {
+      "column": "claim_id",
+      "table": "fraud_indicators",
+      "classification": "MIP_Confidential",
+      "guid": "d9e17cfa-d20d-430e-839c-9c6f4ddb95b5",
+      "status": "error: HTTPSConnectionPool(host='pview-apfsipurviewdemo.purview.azure.com', port=443): Max retries exceeded with url: /catalog/api/atlas/v2/entity/guid/d9e17cfa-d20d-430e-839c-9c6f4ddb95b5/classifications (Caused by NameResolutionError(\"HTTPSConnection(host='pview-apfsipurviewdemo.purview.azure.com', port=443): Failed to resolve 'pview-apfsipurviewdemo.purview.azure.com' ([Errno 11001] getaddrinfo failed)\"))"
+    },
+    {
+      "column": "indicator_type",
+      "table": "fraud_indicators",
+      "classification": "MIP_Highly_Confidential",
+      "guid": "0b8e19ca-12b6-4caa-baa2-803908df9349",
+      "status": "error: HTTPSConnectionPool(host='pview-apfsipurviewdemo.purview.azure.com', port=443): Max retries exceeded with url: /catalog/api/atlas/v2/entity/guid/0b8e19ca-12b6-4caa-baa2-803908df9349/classifications (Caused by NameResolutionError(\"HTTPSConnection(host='pview-apfsipurviewdemo.purview.azure.com', port=443): Failed to resolve 'pview-apfsipurviewdemo.purview.azure.com' ([Errno 11001] getaddrinfo failed)\"))"
+    },
+    {
+      "column": "severity",
+      "table": "fraud_indicators",
+      "classification": "MIP_Confidential",
+      "guid": "a543538b-b916-4a5f-9bb4-0be97ef951e9",
+      "status": "error: HTTPSConnectionPool(host='pview-apfsipurviewdemo.purview.azure.com', port=443): Max retries exceeded with url: /catalog/api/atlas/v2/entity/guid/a543538b-b916-4a5f-9bb4-0be97ef951e9/classifications (Caused by NameResolutionError(\"HTTPSConnection(host='pview-apfsipurviewdemo.purview.azure.com', port=443): Failed to resolve 'pview-apfsipurviewdemo.purview.azure.com' ([Errno 11001] getaddrinfo failed)\"))"
+    },
+    {
+      "column": "description",
+      "table": "fraud_indicators",
+      "classification": "MIP_General",
+      "guid": "bad737e5-d3db-4bf2-b630-2fcc7dc8e035",
+      "status": "error: HTTPSConnectionPool(host='pview-apfsipurviewdemo.purview.azure.com', port=443): Max retries exceeded with url: /catalog/api/atlas/v2/entity/guid/bad737e5-d3db-4bf2-b630-2fcc7dc8e035/classifications (Caused by NameResolutionError(\"HTTPSConnection(host='pview-apfsipurviewdemo.purview.azure.com', port=443): Failed to resolve 'pview-apfsipurviewdemo.purview.azure.com' ([Errno 11001] getaddrinfo failed)\"))"
+    },
+    {
+      "column": "flagged_date",
+      "table": "fraud_indicators",
+      "classification": "MIP_General",
+      "guid": "d71201c8-6a06-4dde-880a-11b45764fc36",
+      "status": "error: HTTPSConnectionPool(host='pview-apfsipurviewdemo.purview.azure.com', port=443): Max retries exceeded with url: /catalog/api/atlas/v2/entity/guid/d71201c8-6a06-4dde-880a-11b45764fc36/classifications (Caused by NameResolutionError(\"HTTPSConnection(host='pview-apfsipurviewdemo.purview.azure.com', port=443): Failed to resolve 'pview-apfsipurviewdemo.purview.azure.com' ([Errno 11001] getaddrinfo failed)\"))"
+    },
+    {
+      "column": "policy_number",
+      "table": "policy_claims_summary",
+      "classification": "MIP_Confidential",
+      "guid": "7fcf56ed-a07c-47dd-bbad-1612e206cbd6",
+      "status": "error: HTTPSConnectionPool(host='pview-apfsipurviewdemo.purview.azure.com', port=443): Max retries exceeded with url: /catalog/api/atlas/v2/entity/guid/7fcf56ed-a07c-47dd-bbad-1612e206cbd6/classifications (Caused by NameResolutionError(\"HTTPSConnection(host='pview-apfsipurviewdemo.purview.azure.com', port=443): Failed to resolve 'pview-apfsipurviewdemo.purview.azure.com' ([Errno 11001] getaddrinfo failed)\"))"
+    },
+    {
+      "column": "total_claims",
+      "table": "policy_claims_summary",
+      "classification": "MIP_Confidential",
+      "guid": "13e0e18d-35c0-49cf-857d-2d274c2d47b1",
+      "status": "error: HTTPSConnectionPool(host='pview-apfsipurviewdemo.purview.azure.com', port=443): Max retries exceeded with url: /catalog/api/atlas/v2/entity/guid/13e0e18d-35c0-49cf-857d-2d274c2d47b1/classifications (Caused by NameResolutionError(\"HTTPSConnection(host='pview-apfsipurviewdemo.purview.azure.com', port=443): Failed to resolve 'pview-apfsipurviewdemo.purview.azure.com' ([Errno 11001] getaddrinfo failed)\"))"
+    },
+    {
+      "column": "total_amount",
+      "table": "policy_claims_summary",
+      "classification": "MIP_Confidential",
+      "guid": "1a9d767b-f6c2-4e14-9f63-489cb6689c73",
+      "status": "error: HTTPSConnectionPool(host='pview-apfsipurviewdemo.purview.azure.com', port=443): Max retries exceeded with url: /catalog/api/atlas/v2/entity/guid/1a9d767b-f6c2-4e14-9f63-489cb6689c73/classifications (Caused by NameResolutionError(\"HTTPSConnection(host='pview-apfsipurviewdemo.purview.azure.com', port=443): Failed to resolve 'pview-apfsipurviewdemo.purview.azure.com' ([Errno 11001] getaddrinfo failed)\"))"
+    },
+    {
+      "column": "avg_amount",
+      "table": "policy_claims_summary",
+      "classification": "MIP_Confidential",
+      "guid": "d4b14e9a-ee9a-436e-b36d-d259a9e8ad6a",
+      "status": "error: HTTPSConnectionPool(host='pview-apfsipurviewdemo.purview.azure.com', port=443): Max retries exceeded with url: /catalog/api/atlas/v2/entity/guid/d4b14e9a-ee9a-436e-b36d-d259a9e8ad6a/classifications (Caused by NameResolutionError(\"HTTPSConnection(host='pview-apfsipurviewdemo.purview.azure.com', port=443): Failed to resolve 'pview-apfsipurviewdemo.purview.azure.com' ([Errno 11001] getaddrinfo failed)\"))"
+    },
+    {
+      "column": "last_claim_date",
+      "table": "policy_claims_summary",
+      "classification": "MIP_General",
+      "guid": "94c8ddba-1f66-471f-839a-0bf791c886ea",
+      "status": "error: HTTPSConnectionPool(host='pview-apfsipurviewdemo.purview.azure.com', port=443): Max retries exceeded with url: /catalog/api/atlas/v2/entity/guid/94c8ddba-1f66-471f-839a-0bf791c886ea/classifications (Caused by NameResolutionError(\"HTTPSConnection(host='pview-apfsipurviewdemo.purview.azure.com', port=443): Failed to resolve 'pview-apfsipurviewdemo.purview.azure.com' ([Errno 11001] getaddrinfo failed)\"))"
+    },
+    {
+      "column": "region",
+      "table": "regional_statistics",
+      "classification": "MIP_General",
+      "guid": "9363b601-9dec-4864-8d40-f8f932267a11",
+      "status": "error: HTTPSConnectionPool(host='pview-apfsipurviewdemo.purview.azure.com', port=443): Max retries exceeded with url: /catalog/api/atlas/v2/entity/guid/9363b601-9dec-4864-8d40-f8f932267a11/classifications (Caused by NameResolutionError(\"HTTPSConnection(host='pview-apfsipurviewdemo.purview.azure.com', port=443): Failed to resolve 'pview-apfsipurviewdemo.purview.azure.com' ([Errno 11001] getaddrinfo failed)\"))"
+    },
+    {
+      "column": "state",
+      "table": "regional_statistics",
+      "classification": "MIP_General",
+      "guid": "359cc16a-eb5b-49bb-9994-cce4b10f7655",
+      "status": "error: HTTPSConnectionPool(host='pview-apfsipurviewdemo.purview.azure.com', port=443): Max retries exceeded with url: /catalog/api/atlas/v2/entity/guid/359cc16a-eb5b-49bb-9994-cce4b10f7655/classifications (Caused by NameResolutionError(\"HTTPSConnection(host='pview-apfsipurviewdemo.purview.azure.com', port=443): Failed to resolve 'pview-apfsipurviewdemo.purview.azure.com' ([Errno 11001] getaddrinfo failed)\"))"
+    },
+    {
+      "column": "total_claims",
+      "table": "regional_statistics",
+      "classification": "MIP_General",
+      "guid": "11d4c95f-08ab-4a88-9773-2eda0b173572",
+      "status": "error: HTTPSConnectionPool(host='pview-apfsipurviewdemo.purview.azure.com', port=443): Max retries exceeded with url: /catalog/api/atlas/v2/entity/guid/11d4c95f-08ab-4a88-9773-2eda0b173572/classifications (Caused by NameResolutionError(\"HTTPSConnection(host='pview-apfsipurviewdemo.purview.azure.com', port=443): Failed to resolve 'pview-apfsipurviewdemo.purview.azure.com' ([Errno 11001] getaddrinfo failed)\"))"
+    },
+    {
+      "column": "fraud_rate",
+      "table": "regional_statistics",
+      "classification": "MIP_Highly_Confidential",
+      "guid": "6f87f668-c5eb-43e4-a55f-984622b5e93c",
+      "status": "error: HTTPSConnectionPool(host='pview-apfsipurviewdemo.purview.azure.com', port=443): Max retries exceeded with url: /catalog/api/atlas/v2/entity/guid/6f87f668-c5eb-43e4-a55f-984622b5e93c/classifications (Caused by NameResolutionError(\"HTTPSConnection(host='pview-apfsipurviewdemo.purview.azure.com', port=443): Failed to resolve 'pview-apfsipurviewdemo.purview.azure.com' ([Errno 11001] getaddrinfo failed)\"))"
+    },
+    {
+      "column": "avg_claim_amount",
+      "table": "regional_statistics",
+      "classification": "MIP_Confidential",
+      "guid": "4b5400fd-ec41-429a-a85d-2138adcc6d43",
+      "status": "error: HTTPSConnectionPool(host='pview-apfsipurviewdemo.purview.azure.com', port=443): Max retries exceeded with url: /catalog/api/atlas/v2/entity/guid/4b5400fd-ec41-429a-a85d-2138adcc6d43/classifications (Caused by NameResolutionError(\"HTTPSConnection(host='pview-apfsipurviewdemo.purview.azure.com', port=443): Failed to resolve 'pview-apfsipurviewdemo.purview.azure.com' ([Errno 11001] getaddrinfo failed)\"))"
+    },
+    {
+      "column": "claim_id",
+      "table": "claims_history",
+      "classification": "MIP_Confidential",
+      "guid": "0f2a52c6-ea80-4140-9a58-115fde0795cf",
+      "status": "error: HTTPSConnectionPool(host='pview-apfsipurviewdemo.purview.azure.com', port=443): Max retries exceeded with url: /catalog/api/atlas/v2/entity/guid/0f2a52c6-ea80-4140-9a58-115fde0795cf/classifications (Caused by NameResolutionError(\"HTTPSConnection(host='pview-apfsipurviewdemo.purview.azure.com', port=443): Failed to resolve 'pview-apfsipurviewdemo.purview.azure.com' ([Errno 11001] getaddrinfo failed)\"))"
+    },
+    {
+      "column": "claimant_id",
+      "table": "claims_history",
+      "classification": "MIP_Confidential",
+      "guid": "2263491b-c626-4fb1-a243-cdc326323d60",
+      "status": "error: HTTPSConnectionPool(host='pview-apfsipurviewdemo.purview.azure.com', port=443): Max retries exceeded with url: /catalog/api/atlas/v2/entity/guid/2263491b-c626-4fb1-a243-cdc326323d60/classifications (Caused by NameResolutionError(\"HTTPSConnection(host='pview-apfsipurviewdemo.purview.azure.com', port=443): Failed to resolve 'pview-apfsipurviewdemo.purview.azure.com' ([Errno 11001] getaddrinfo failed)\"))"
+    },
+    {
+      "column": "claimant_name",
+      "table": "claims_history",
+      "classification": "MIP_Highly_Confidential",
+      "guid": "e9ca54e0-2944-4461-9ad4-30568260a115",
+      "status": "error: HTTPSConnectionPool(host='pview-apfsipurviewdemo.purview.azure.com', port=443): Max retries exceeded with url: /catalog/api/atlas/v2/entity/guid/e9ca54e0-2944-4461-9ad4-30568260a115/classifications (Caused by NameResolutionError(\"HTTPSConnection(host='pview-apfsipurviewdemo.purview.azure.com', port=443): Failed to resolve 'pview-apfsipurviewdemo.purview.azure.com' ([Errno 11001] getaddrinfo failed)\"))"
+    },
+    {
+      "column": "claim_type",
+      "table": "claims_history",
+      "classification": "MIP_General",
+      "guid": "57f580c3-187e-4365-a1f9-12a7179eef30",
+      "status": "error: HTTPSConnectionPool(host='pview-apfsipurviewdemo.purview.azure.com', port=443): Max retries exceeded with url: /catalog/api/atlas/v2/entity/guid/57f580c3-187e-4365-a1f9-12a7179eef30/classifications (Caused by NameResolutionError(\"HTTPSConnection(host='pview-apfsipurviewdemo.purview.azure.com', port=443): Failed to resolve 'pview-apfsipurviewdemo.purview.azure.com' ([Errno 11001] getaddrinfo failed)\"))"
+    },
+    {
+      "column": "estimated_damage",
+      "table": "claims_history",
+      "classification": "MIP_Confidential",
+      "guid": "b2291360-f041-4cce-bbda-ddeee1efd867",
+      "status": "error: HTTPSConnectionPool(host='pview-apfsipurviewdemo.purview.azure.com', port=443): Max retries exceeded with url: /catalog/api/atlas/v2/entity/guid/b2291360-f041-4cce-bbda-ddeee1efd867/classifications (Caused by NameResolutionError(\"HTTPSConnection(host='pview-apfsipurviewdemo.purview.azure.com', port=443): Failed to resolve 'pview-apfsipurviewdemo.purview.azure.com' ([Errno 11001] getaddrinfo failed)\"))"
+    },
+    {
+      "column": "amount_paid",
+      "table": "claims_history",
+      "classification": "MIP_Confidential",
+      "guid": "49680a43-21f0-4055-a773-a4aa7ef1f82d",
+      "status": "error: HTTPSConnectionPool(host='pview-apfsipurviewdemo.purview.azure.com', port=443): Max retries exceeded with url: /catalog/api/atlas/v2/entity/guid/49680a43-21f0-4055-a773-a4aa7ef1f82d/classifications (Caused by NameResolutionError(\"HTTPSConnection(host='pview-apfsipurviewdemo.purview.azure.com', port=443): Failed to resolve 'pview-apfsipurviewdemo.purview.azure.com' ([Errno 11001] getaddrinfo failed)\"))"
+    },
+    {
+      "column": "status",
+      "table": "claims_history",
+      "classification": "MIP_General",
+      "guid": "8e505acc-8a34-406e-9bc6-c4119119319b",
+      "status": "error: HTTPSConnectionPool(host='pview-apfsipurviewdemo.purview.azure.com', port=443): Max retries exceeded with url: /catalog/api/atlas/v2/entity/guid/8e505acc-8a34-406e-9bc6-c4119119319b/classifications (Caused by NameResolutionError(\"HTTPSConnection(host='pview-apfsipurviewdemo.purview.azure.com', port=443): Failed to resolve 'pview-apfsipurviewdemo.purview.azure.com' ([Errno 11001] getaddrinfo failed)\"))"
+    },
+    {
+      "column": "claim_date",
+      "table": "claims_history",
+      "classification": "MIP_General",
+      "guid": "e7283dfc-6b2b-4024-ab43-86d94ea08a54",
+      "status": "error: HTTPSConnectionPool(host='pview-apfsipurviewdemo.purview.azure.com', port=443): Max retries exceeded with url: /catalog/api/atlas/v2/entity/guid/e7283dfc-6b2b-4024-ab43-86d94ea08a54/classifications (Caused by NameResolutionError(\"HTTPSConnection(host='pview-apfsipurviewdemo.purview.azure.com', port=443): Failed to resolve 'pview-apfsipurviewdemo.purview.azure.com' ([Errno 11001] getaddrinfo failed)\"))"
+    },
+    {
+      "column": "incident_date",
+      "table": "claims_history",
+      "classification": "MIP_General",
+      "guid": "0f2a4df7-6ef1-4192-af84-c555e28e2fb5",
+      "status": "error: HTTPSConnectionPool(host='pview-apfsipurviewdemo.purview.azure.com', port=443): Max retries exceeded with url: /catalog/api/atlas/v2/entity/guid/0f2a4df7-6ef1-4192-af84-c555e28e2fb5/classifications (Caused by NameResolutionError(\"HTTPSConnection(host='pview-apfsipurviewdemo.purview.azure.com', port=443): Failed to resolve 'pview-apfsipurviewdemo.purview.azure.com' ([Errno 11001] getaddrinfo failed)\"))"
+    },
+    {
+      "column": "location",
+      "table": "claims_history",
+      "classification": "MIP_General",
+      "guid": "d819a1f8-b454-41ec-8bc6-f39fa5d4d040",
+      "status": "error: HTTPSConnectionPool(host='pview-apfsipurviewdemo.purview.azure.com', port=443): Max retries exceeded with url: /catalog/api/atlas/v2/entity/guid/d819a1f8-b454-41ec-8bc6-f39fa5d4d040/classifications (Caused by NameResolutionError(\"HTTPSConnection(host='pview-apfsipurviewdemo.purview.azure.com', port=443): Failed to resolve 'pview-apfsipurviewdemo.purview.azure.com' ([Errno 11001] getaddrinfo failed)\"))"
+    },
+    {
+      "column": "state",
+      "table": "claims_history",
+      "classification": "MIP_General",
+      "guid": "878afa01-898c-4566-8b29-681ad055b41e",
+      "status": "error: HTTPSConnectionPool(host='pview-apfsipurviewdemo.purview.azure.com', port=443): Max retries exceeded with url: /catalog/api/atlas/v2/entity/guid/878afa01-898c-4566-8b29-681ad055b41e/classifications (Caused by NameResolutionError(\"HTTPSConnection(host='pview-apfsipurviewdemo.purview.azure.com', port=443): Failed to resolve 'pview-apfsipurviewdemo.purview.azure.com' ([Errno 11001] getaddrinfo failed)\"))"
+    },
+    {
+      "column": "fraud_flag",
+      "table": "claims_history",
+      "classification": "MIP_Highly_Confidential",
+      "guid": "95cc8496-ebe9-4d59-8791-ae9381c392a6",
+      "status": "error: HTTPSConnectionPool(host='pview-apfsipurviewdemo.purview.azure.com', port=443): Max retries exceeded with url: /catalog/api/atlas/v2/entity/guid/95cc8496-ebe9-4d59-8791-ae9381c392a6/classifications (Caused by NameResolutionError(\"HTTPSConnection(host='pview-apfsipurviewdemo.purview.azure.com', port=443): Failed to resolve 'pview-apfsipurviewdemo.purview.azure.com' ([Errno 11001] getaddrinfo failed)\"))"
+    },
+    {
+      "column": "police_report",
+      "table": "claims_history",
+      "classification": "MIP_General",
+      "guid": "f6bd4f5f-edea-47df-83d1-ceac0deef6ad",
+      "status": "error: HTTPSConnectionPool(host='pview-apfsipurviewdemo.purview.azure.com', port=443): Max retries exceeded with url: /catalog/api/atlas/v2/entity/guid/f6bd4f5f-edea-47df-83d1-ceac0deef6ad/classifications (Caused by NameResolutionError(\"HTTPSConnection(host='pview-apfsipurviewdemo.purview.azure.com', port=443): Failed to resolve 'pview-apfsipurviewdemo.purview.azure.com' ([Errno 11001] getaddrinfo failed)\"))"
+    },
+    {
+      "column": "photos_provided",
+      "table": "claims_history",
+      "classification": "MIP_General",
+      "guid": "91073585-d1d3-4031-a8a4-f4377c7e0010",
+      "status": "error: HTTPSConnectionPool(host='pview-apfsipurviewdemo.purview.azure.com', port=443): Max retries exceeded with url: /catalog/api/atlas/v2/entity/guid/91073585-d1d3-4031-a8a4-f4377c7e0010/classifications (Caused by NameResolutionError(\"HTTPSConnection(host='pview-apfsipurviewdemo.purview.azure.com', port=443): Failed to resolve 'pview-apfsipurviewdemo.purview.azure.com' ([Errno 11001] getaddrinfo failed)\"))"
+    },
+    {
+      "column": "witness_statements",
+      "table": "claims_history",
+      "classification": "MIP_General",
+      "guid": "35c8f8b8-6522-4a0c-a00e-881485b46ffa",
+      "status": "error: HTTPSConnectionPool(host='pview-apfsipurviewdemo.purview.azure.com', port=443): Max retries exceeded with url: /catalog/api/atlas/v2/entity/guid/35c8f8b8-6522-4a0c-a00e-881485b46ffa/classifications (Caused by NameResolutionError(\"HTTPSConnection(host='pview-apfsipurviewdemo.purview.azure.com', port=443): Failed to resolve 'pview-apfsipurviewdemo.purview.azure.com' ([Errno 11001] getaddrinfo failed)\"))"
+    },
+    {
+      "column": "license_plate",
+      "table": "claims_history",
+      "classification": "MIP_Highly_Confidential",
+      "guid": "44ef0ae5-2312-4898-8cee-ce7b65889774",
+      "status": "error: HTTPSConnectionPool(host='pview-apfsipurviewdemo.purview.azure.com', port=443): Max retries exceeded with url: /catalog/api/atlas/v2/entity/guid/44ef0ae5-2312-4898-8cee-ce7b65889774/classifications (Caused by NameResolutionError(\"HTTPSConnection(host='pview-apfsipurviewdemo.purview.azure.com', port=443): Failed to resolve 'pview-apfsipurviewdemo.purview.azure.com' ([Errno 11001] getaddrinfo failed)\"))"
+    },
+    {
+      "column": "vehicle_info",
+      "table": "claims_history",
+      "classification": "MIP_Confidential",
+      "guid": "1110867a-4061-46a1-87fd-9ade0a049a15",
+      "status": "error: HTTPSConnectionPool(host='pview-apfsipurviewdemo.purview.azure.com', port=443): Max retries exceeded with url: /catalog/api/atlas/v2/entity/guid/1110867a-4061-46a1-87fd-9ade0a049a15/classifications (Caused by NameResolutionError(\"HTTPSConnection(host='pview-apfsipurviewdemo.purview.azure.com', port=443): Failed to resolve 'pview-apfsipurviewdemo.purview.azure.com' ([Errno 11001] getaddrinfo failed)\"))"
+    },
+    {
+      "column": "description",
+      "table": "claims_history",
+      "classification": "MIP_General",
+      "guid": "11495b3e-32e0-45d5-902e-0f40819cbf65",
+      "status": "error: HTTPSConnectionPool(host='pview-apfsipurviewdemo.purview.azure.com', port=443): Max retries exceeded with url: /catalog/api/atlas/v2/entity/guid/11495b3e-32e0-45d5-902e-0f40819cbf65/classifications (Caused by NameResolutionError(\"HTTPSConnection(host='pview-apfsipurviewdemo.purview.azure.com', port=443): Failed to resolve 'pview-apfsipurviewdemo.purview.azure.com' ([Errno 11001] getaddrinfo failed)\"))"
+    },
+    {
+      "column": "claimant_id",
+      "table": "claimant_profiles",
+      "classification": "MIP_Confidential",
+      "guid": "22391820-0a15-473c-a4a0-725e8fdaa145",
+      "status": "error: HTTPSConnectionPool(host='pview-apfsipurviewdemo.purview.azure.com', port=443): Max retries exceeded with url: /catalog/api/atlas/v2/entity/guid/22391820-0a15-473c-a4a0-725e8fdaa145/classifications (Caused by NameResolutionError(\"HTTPSConnection(host='pview-apfsipurviewdemo.purview.azure.com', port=443): Failed to resolve 'pview-apfsipurviewdemo.purview.azure.com' ([Errno 11001] getaddrinfo failed)\"))"
+    },
+    {
+      "column": "name",
+      "table": "claimant_profiles",
+      "classification": "MIP_Highly_Confidential",
+      "guid": "f4e8b457-abee-463a-a08e-46a7d6a1ad3f",
+      "status": "error: HTTPSConnectionPool(host='pview-apfsipurviewdemo.purview.azure.com', port=443): Max retries exceeded with url: /catalog/api/atlas/v2/entity/guid/f4e8b457-abee-463a-a08e-46a7d6a1ad3f/classifications (Caused by NameResolutionError(\"HTTPSConnection(host='pview-apfsipurviewdemo.purview.azure.com', port=443): Failed to resolve 'pview-apfsipurviewdemo.purview.azure.com' ([Errno 11001] getaddrinfo failed)\"))"
+    },
+    {
+      "column": "age",
+      "table": "claimant_profiles",
+      "classification": "MIP_Highly_Confidential",
+      "guid": "5b1ca038-7654-4737-9628-042507f80c34",
+      "status": "error: HTTPSConnectionPool(host='pview-apfsipurviewdemo.purview.azure.com', port=443): Max retries exceeded with url: /catalog/api/atlas/v2/entity/guid/5b1ca038-7654-4737-9628-042507f80c34/classifications (Caused by NameResolutionError(\"HTTPSConnection(host='pview-apfsipurviewdemo.purview.azure.com', port=443): Failed to resolve 'pview-apfsipurviewdemo.purview.azure.com' ([Errno 11001] getaddrinfo failed)\"))"
+    },
+    {
+      "column": "location",
+      "table": "claimant_profiles",
+      "classification": "MIP_General",
+      "guid": "415c3998-1a00-4868-b39b-954999227a64",
+      "status": "error: HTTPSConnectionPool(host='pview-apfsipurviewdemo.purview.azure.com', port=443): Max retries exceeded with url: /catalog/api/atlas/v2/entity/guid/415c3998-1a00-4868-b39b-954999227a64/classifications (Caused by NameResolutionError(\"HTTPSConnection(host='pview-apfsipurviewdemo.purview.azure.com', port=443): Failed to resolve 'pview-apfsipurviewdemo.purview.azure.com' ([Errno 11001] getaddrinfo failed)\"))"
+    },
+    {
+      "column": "risk_score",
+      "table": "claimant_profiles",
+      "classification": "MIP_Highly_Confidential",
+      "guid": "9474b854-6c79-462c-8562-9dbd23c49b9b",
+      "status": "error: HTTPSConnectionPool(host='pview-apfsipurviewdemo.purview.azure.com', port=443): Max retries exceeded with url: /catalog/api/atlas/v2/entity/guid/9474b854-6c79-462c-8562-9dbd23c49b9b/classifications (Caused by NameResolutionError(\"HTTPSConnection(host='pview-apfsipurviewdemo.purview.azure.com', port=443): Failed to resolve 'pview-apfsipurviewdemo.purview.azure.com' ([Errno 11001] getaddrinfo failed)\"))"
+    },
+    {
+      "column": "policy_number",
+      "table": "claimant_profiles",
+      "classification": "MIP_Confidential",
+      "guid": "46b97d6e-d9df-4e58-8594-0874577c4779",
+      "status": "error: HTTPSConnectionPool(host='pview-apfsipurviewdemo.purview.azure.com', port=443): Max retries exceeded with url: /catalog/api/atlas/v2/entity/guid/46b97d6e-d9df-4e58-8594-0874577c4779/classifications (Caused by NameResolutionError(\"HTTPSConnection(host='pview-apfsipurviewdemo.purview.azure.com', port=443): Failed to resolve 'pview-apfsipurviewdemo.purview.azure.com' ([Errno 11001] getaddrinfo failed)\"))"
+    },
+    {
+      "column": "indicator_id",
+      "table": "fraud_indicators",
+      "classification": "MIP_Highly_Confidential",
+      "guid": "4b6a98fd-86d2-40e7-8617-e1955081ef3e",
+      "status": "error: HTTPSConnectionPool(host='pview-apfsipurviewdemo.purview.azure.com', port=443): Max retries exceeded with url: /catalog/api/atlas/v2/entity/guid/4b6a98fd-86d2-40e7-8617-e1955081ef3e/classifications (Caused by NameResolutionError(\"HTTPSConnection(host='pview-apfsipurviewdemo.purview.azure.com', port=443): Failed to resolve 'pview-apfsipurviewdemo.purview.azure.com' ([Errno 11001] getaddrinfo failed)\"))"
+    },
+    {
+      "column": "claim_id",
+      "table": "fraud_indicators",
+      "classification": "MIP_Confidential",
+      "guid": "ac11b578-eab6-4a7e-825d-8e4d945bf39e",
+      "status": "error: HTTPSConnectionPool(host='pview-apfsipurviewdemo.purview.azure.com', port=443): Max retries exceeded with url: /catalog/api/atlas/v2/entity/guid/ac11b578-eab6-4a7e-825d-8e4d945bf39e/classifications (Caused by NameResolutionError(\"HTTPSConnection(host='pview-apfsipurviewdemo.purview.azure.com', port=443): Failed to resolve 'pview-apfsipurviewdemo.purview.azure.com' ([Errno 11001] getaddrinfo failed)\"))"
+    },
+    {
+      "column": "indicator_type",
+      "table": "fraud_indicators",
+      "classification": "MIP_Highly_Confidential",
+      "guid": "2bfadc5e-42de-4fc1-bbbf-0fd84f8125ce",
+      "status": "error: HTTPSConnectionPool(host='pview-apfsipurviewdemo.purview.azure.com', port=443): Max retries exceeded with url: /catalog/api/atlas/v2/entity/guid/2bfadc5e-42de-4fc1-bbbf-0fd84f8125ce/classifications (Caused by NameResolutionError(\"HTTPSConnection(host='pview-apfsipurviewdemo.purview.azure.com', port=443): Failed to resolve 'pview-apfsipurviewdemo.purview.azure.com' ([Errno 11001] getaddrinfo failed)\"))"
+    },
+    {
+      "column": "severity",
+      "table": "fraud_indicators",
+      "classification": "MIP_Confidential",
+      "guid": "6c19b371-752c-4610-a49a-6de899e350c7",
+      "status": "error: HTTPSConnectionPool(host='pview-apfsipurviewdemo.purview.azure.com', port=443): Max retries exceeded with url: /catalog/api/atlas/v2/entity/guid/6c19b371-752c-4610-a49a-6de899e350c7/classifications (Caused by NameResolutionError(\"HTTPSConnection(host='pview-apfsipurviewdemo.purview.azure.com', port=443): Failed to resolve 'pview-apfsipurviewdemo.purview.azure.com' ([Errno 11001] getaddrinfo failed)\"))"
+    },
+    {
+      "column": "description",
+      "table": "fraud_indicators",
+      "classification": "MIP_General",
+      "guid": "50d586ac-77ce-4737-b11e-bbfe9388e46e",
+      "status": "error: HTTPSConnectionPool(host='pview-apfsipurviewdemo.purview.azure.com', port=443): Max retries exceeded with url: /catalog/api/atlas/v2/entity/guid/50d586ac-77ce-4737-b11e-bbfe9388e46e/classifications (Caused by NameResolutionError(\"HTTPSConnection(host='pview-apfsipurviewdemo.purview.azure.com', port=443): Failed to resolve 'pview-apfsipurviewdemo.purview.azure.com' ([Errno 11001] getaddrinfo failed)\"))"
+    },
+    {
+      "column": "flagged_date",
+      "table": "fraud_indicators",
+      "classification": "MIP_General",
+      "guid": "8fb4cdf1-3772-4d47-8bae-3c7531717a44",
+      "status": "error: HTTPSConnectionPool(host='pview-apfsipurviewdemo.purview.azure.com', port=443): Max retries exceeded with url: /catalog/api/atlas/v2/entity/guid/8fb4cdf1-3772-4d47-8bae-3c7531717a44/classifications (Caused by NameResolutionError(\"HTTPSConnection(host='pview-apfsipurviewdemo.purview.azure.com', port=443): Failed to resolve 'pview-apfsipurviewdemo.purview.azure.com' ([Errno 11001] getaddrinfo failed)\"))"
+    },
+    {
+      "column": "policy_number",
+      "table": "policy_claims_summary",
+      "classification": "MIP_Confidential",
+      "guid": "ef028b73-fd63-4cff-8c1c-57cbbde486be",
+      "status": "error: HTTPSConnectionPool(host='pview-apfsipurviewdemo.purview.azure.com', port=443): Max retries exceeded with url: /catalog/api/atlas/v2/entity/guid/ef028b73-fd63-4cff-8c1c-57cbbde486be/classifications (Caused by NameResolutionError(\"HTTPSConnection(host='pview-apfsipurviewdemo.purview.azure.com', port=443): Failed to resolve 'pview-apfsipurviewdemo.purview.azure.com' ([Errno 11001] getaddrinfo failed)\"))"
+    },
+    {
+      "column": "total_claims",
+      "table": "policy_claims_summary",
+      "classification": "MIP_Confidential",
+      "guid": "eb6db0fb-c0b3-4bb7-a05e-e8e7f6d45b35",
+      "status": "error: HTTPSConnectionPool(host='pview-apfsipurviewdemo.purview.azure.com', port=443): Max retries exceeded with url: /catalog/api/atlas/v2/entity/guid/eb6db0fb-c0b3-4bb7-a05e-e8e7f6d45b35/classifications (Caused by NameResolutionError(\"HTTPSConnection(host='pview-apfsipurviewdemo.purview.azure.com', port=443): Failed to resolve 'pview-apfsipurviewdemo.purview.azure.com' ([Errno 11001] getaddrinfo failed)\"))"
+    },
+    {
+      "column": "total_amount",
+      "table": "policy_claims_summary",
+      "classification": "MIP_Confidential",
+      "guid": "b61fcfa2-0c21-4e28-b986-b6aea0442f63",
+      "status": "error: HTTPSConnectionPool(host='pview-apfsipurviewdemo.purview.azure.com', port=443): Max retries exceeded with url: /catalog/api/atlas/v2/entity/guid/b61fcfa2-0c21-4e28-b986-b6aea0442f63/classifications (Caused by NameResolutionError(\"HTTPSConnection(host='pview-apfsipurviewdemo.purview.azure.com', port=443): Failed to resolve 'pview-apfsipurviewdemo.purview.azure.com' ([Errno 11001] getaddrinfo failed)\"))"
+    },
+    {
+      "column": "avg_amount",
+      "table": "policy_claims_summary",
+      "classification": "MIP_Confidential",
+      "guid": "90cf5e9f-7651-44be-805f-0b08066f0270",
+      "status": "error: HTTPSConnectionPool(host='pview-apfsipurviewdemo.purview.azure.com', port=443): Max retries exceeded with url: /catalog/api/atlas/v2/entity/guid/90cf5e9f-7651-44be-805f-0b08066f0270/classifications (Caused by NameResolutionError(\"HTTPSConnection(host='pview-apfsipurviewdemo.purview.azure.com', port=443): Failed to resolve 'pview-apfsipurviewdemo.purview.azure.com' ([Errno 11001] getaddrinfo failed)\"))"
+    },
+    {
+      "column": "last_claim_date",
+      "table": "policy_claims_summary",
+      "classification": "MIP_General",
+      "guid": "1e6c8936-a82e-4308-8d76-d9128b2d05b0",
+      "status": "error: HTTPSConnectionPool(host='pview-apfsipurviewdemo.purview.azure.com', port=443): Max retries exceeded with url: /catalog/api/atlas/v2/entity/guid/1e6c8936-a82e-4308-8d76-d9128b2d05b0/classifications (Caused by NameResolutionError(\"HTTPSConnection(host='pview-apfsipurviewdemo.purview.azure.com', port=443): Failed to resolve 'pview-apfsipurviewdemo.purview.azure.com' ([Errno 11001] getaddrinfo failed)\"))"
+    },
+    {
+      "column": "region",
+      "table": "regional_statistics",
+      "classification": "MIP_General",
+      "guid": "f561a86a-8303-4b4e-bc6b-ea2b0f979287",
+      "status": "error: HTTPSConnectionPool(host='pview-apfsipurviewdemo.purview.azure.com', port=443): Max retries exceeded with url: /catalog/api/atlas/v2/entity/guid/f561a86a-8303-4b4e-bc6b-ea2b0f979287/classifications (Caused by NameResolutionError(\"HTTPSConnection(host='pview-apfsipurviewdemo.purview.azure.com', port=443): Failed to resolve 'pview-apfsipurviewdemo.purview.azure.com' ([Errno 11001] getaddrinfo failed)\"))"
+    },
+    {
+      "column": "state",
+      "table": "regional_statistics",
+      "classification": "MIP_General",
+      "guid": "7d9d9765-21cd-4a69-ac75-f999ec731bc9",
+      "status": "error: HTTPSConnectionPool(host='pview-apfsipurviewdemo.purview.azure.com', port=443): Max retries exceeded with url: /catalog/api/atlas/v2/entity/guid/7d9d9765-21cd-4a69-ac75-f999ec731bc9/classifications (Caused by NameResolutionError(\"HTTPSConnection(host='pview-apfsipurviewdemo.purview.azure.com', port=443): Failed to resolve 'pview-apfsipurviewdemo.purview.azure.com' ([Errno 11001] getaddrinfo failed)\"))"
+    },
+    {
+      "column": "total_claims",
+      "table": "regional_statistics",
+      "classification": "MIP_General",
+      "guid": "5d788062-aab4-4e1e-9e99-9b4af7c39a5a",
+      "status": "error: HTTPSConnectionPool(host='pview-apfsipurviewdemo.purview.azure.com', port=443): Max retries exceeded with url: /catalog/api/atlas/v2/entity/guid/5d788062-aab4-4e1e-9e99-9b4af7c39a5a/classifications (Caused by NameResolutionError(\"HTTPSConnection(host='pview-apfsipurviewdemo.purview.azure.com', port=443): Failed to resolve 'pview-apfsipurviewdemo.purview.azure.com' ([Errno 11001] getaddrinfo failed)\"))"
+    },
+    {
+      "column": "fraud_rate",
+      "table": "regional_statistics",
+      "classification": "MIP_Highly_Confidential",
+      "guid": "f1872599-feeb-4f99-ba35-1a699ccac86b",
+      "status": "error: HTTPSConnectionPool(host='pview-apfsipurviewdemo.purview.azure.com', port=443): Max retries exceeded with url: /catalog/api/atlas/v2/entity/guid/f1872599-feeb-4f99-ba35-1a699ccac86b/classifications (Caused by NameResolutionError(\"HTTPSConnection(host='pview-apfsipurviewdemo.purview.azure.com', port=443): Failed to resolve 'pview-apfsipurviewdemo.purview.azure.com' ([Errno 11001] getaddrinfo failed)\"))"
+    },
+    {
+      "column": "avg_claim_amount",
+      "table": "regional_statistics",
+      "classification": "MIP_Confidential",
+      "guid": "b13ab03d-9e07-4f0f-a564-2a595f44c283",
+      "status": "error: HTTPSConnectionPool(host='pview-apfsipurviewdemo.purview.azure.com', port=443): Max retries exceeded with url: /catalog/api/atlas/v2/entity/guid/b13ab03d-9e07-4f0f-a564-2a595f44c283/classifications (Caused by NameResolutionError(\"HTTPSConnection(host='pview-apfsipurviewdemo.purview.azure.com', port=443): Failed to resolve 'pview-apfsipurviewdemo.purview.azure.com' ([Errno 11001] getaddrinfo failed)\"))"
+    }
+  ],
+  "guid_map_count": 135
+}

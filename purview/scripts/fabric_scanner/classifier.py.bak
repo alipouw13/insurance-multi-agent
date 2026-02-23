@@ -1,0 +1,4 @@
+# Backup of original classifier.py - see classifier.py for the rewritten version
+# Original approach used Atlas v2 API to create entities and classifications directly.
+# New approach uses the Purview Scanning Data Plane API for classification rules,
+# scan rule sets, and scan triggers to classify existing assets.

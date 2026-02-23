@@ -1,0 +1,21 @@
+{
+  "classification_rules_created": [
+    "Contoso-Insurance-Claimant-Name",
+    "Contoso-Insurance-License-Plate",
+    "Contoso-Insurance-Vehicle-Info",
+    "Contoso-Insurance-Risk-Score",
+    "Contoso-Insurance-Fraud-Indicator",
+    "Contoso-Insurance-Fraud-Severity",
+    "Contoso-Insurance-Financial-Amount",
+    "Contoso-Insurance-Claim-Id",
+    "Contoso-Insurance-Claimant-Id",
+    "Contoso-Insurance-Policy-Number",
+    "Contoso-Insurance-Claim-Metadata",
+    "Contoso-Insurance-Evidence-Flags"
+  ],
+  "scan_rule_set_created": true,
+  "scan_updated": true,
+  "scan_triggered": true,
+  "scan_run_id": "dry-run-id",
+  "scan_status": null
+}

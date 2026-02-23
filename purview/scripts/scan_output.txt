@@ -1,0 +1,628 @@
+2026-02-19 07:31:02,437 [INFO   ] fabric_scanner: Loaded environment from C:\temp\AI\insurance-multi-agent\purview\scripts\.env
+2026-02-19 07:31:02,437 [INFO   ] fabric_scanner: ============================================================
+2026-02-19 07:31:02,437 [INFO   ] fabric_scanner: Fabric Scanner û Purview Classification Pipeline
+2026-02-19 07:31:02,437 [INFO   ] fabric_scanner: ============================================================
+2026-02-19 07:31:02,437 [INFO   ] fabric_scanner:   Purview account : pview-apfsipurviewdemo
+2026-02-19 07:31:02,440 [INFO   ] fabric_scanner:   Workspace ID    : 786131ec-b3e4-4136-80c5-c1ce0bfb88da
+2026-02-19 07:31:02,440 [INFO   ] fabric_scanner:   Collection      : 8idoto
+2026-02-19 07:31:02,440 [INFO   ] fabric_scanner:   Dry run         : False
+2026-02-19 07:31:02,440 [INFO   ] fabric_scanner:   Offline mode    : False
+2026-02-19 07:31:02,440 [INFO   ] fabric_scanner: ============================================================
+2026-02-19 07:31:02,440 [INFO   ] fabric_scanner: 
+2026-02-19 07:31:02,440 [INFO   ] fabric_scanner: STEP 1: Discover Fabric workspace items
+2026-02-19 07:31:02,440 [INFO   ] fabric_scanner: --------------------------------------------------
+2026-02-19 07:31:02,440 [INFO   ] fabric_scanner.scanner: === Scanning Fabric workspace 786131ec-b3e4-4136-80c5-c1ce0bfb88da ===
+2026-02-19 07:31:02,440 [INFO   ] fabric_scanner.scanner: --- Discovering lakehouses ---
+2026-02-19 07:31:02,443 [INFO   ] azure.core.pipeline.policies.http_logging_policy: Request URL: 'https://login.microsoftonline.com/840a80c0-e4a5-47be-8a1d-7ecfa61e839c/v2.0/.well-known/openid-configuration'
+Request method: 'GET'
+Request headers:
+    'User-Agent': 'azsdk-python-identity/1.25.2 Python/3.11.8 (Windows-10-10.0.26200-SP0)'
+No body was attached to the request
+2026-02-19 07:31:03,393 [INFO   ] azure.core.pipeline.policies.http_logging_policy: Response status: 200
+Response headers:
+    'Date': 'Thu, 19 Feb 2026 12:31:03 GMT'
+    'Content-Type': 'application/json; charset=utf-8'
+    'Content-Length': '1964'
+    'Connection': 'keep-alive'
+    'Cache-Control': 'max-age=86400, private'
+    'Strict-Transport-Security': 'REDACTED'
+    'X-Content-Type-Options': 'REDACTED'
+    'Access-Control-Allow-Origin': 'REDACTED'
+    'Access-Control-Allow-Methods': 'REDACTED'
+    'P3P': 'REDACTED'
+    'x-ms-request-id': 'b3bf98bb-90d2-40d8-b055-f815ffa93700'
+    'x-ms-ests-server': 'REDACTED'
+    'x-ms-srs': 'REDACTED'
+    'Content-Security-Policy-Report-Only': 'REDACTED'
+    'X-XSS-Protection': 'REDACTED'
+    'Set-Cookie': 'REDACTED'
+    'X-Cache': 'REDACTED'
+2026-02-19 07:31:03,401 [INFO   ] azure.core.pipeline.policies.http_logging_policy: Request URL: 'https://login.microsoftonline.com/840a80c0-e4a5-47be-8a1d-7ecfa61e839c/oauth2/v2.0/token'
+Request method: 'POST'
+Request headers:
+    'Content-Type': 'application/x-www-form-urlencoded'
+    'Accept': 'application/json'
+    'x-client-sku': 'REDACTED'
+    'x-client-ver': 'REDACTED'
+    'x-client-os': 'REDACTED'
+    'x-ms-lib-capability': 'REDACTED'
+    'client-request-id': 'REDACTED'
+    'x-client-current-telemetry': 'REDACTED'
+    'x-client-last-telemetry': 'REDACTED'
+    'User-Agent': 'azsdk-python-identity/1.25.2 Python/3.11.8 (Windows-10-10.0.26200-SP0)'
+A body is sent with the request
+2026-02-19 07:31:03,657 [INFO   ] azure.core.pipeline.policies.http_logging_policy: Response status: 200
+Response headers:
+    'Date': 'Thu, 19 Feb 2026 12:31:03 GMT'
+    'Content-Type': 'application/json; charset=utf-8'
+    'Content-Length': '1697'
+    'Connection': 'keep-alive'
+    'Cache-Control': 'no-store, no-cache'
+    'Pragma': 'no-cache'
+    'Expires': '-1'
+    'Strict-Transport-Security': 'REDACTED'
+    'X-Content-Type-Options': 'REDACTED'
+    'P3P': 'REDACTED'
+    'client-request-id': 'REDACTED'
+    'x-ms-request-id': '14830b83-df7d-4076-bb88-c7642a783c00'
+    'x-ms-ests-server': 'REDACTED'
+    'x-ms-clitelem': 'REDACTED'
+    'x-ms-srs': 'REDACTED'
+    'Content-Security-Policy-Report-Only': 'REDACTED'
+    'X-XSS-Protection': 'REDACTED'
+    'Set-Cookie': 'REDACTED'
+    'X-Cache': 'REDACTED'
+2026-02-19 07:31:03,658 [INFO   ] azure.identity._internal.get_token_mixin: ClientSecretCredential.get_token succeeded
+2026-02-19 07:31:05,969 [INFO   ] fabric_scanner.scanner:   Lakehouse: LH_fsidemoInsurance (98087a1f-bcf5-4346-bf6e-114a535d0a3c)
+2026-02-19 07:31:05,970 [INFO   ] azure.core.pipeline.policies.http_logging_policy: Request URL: 'https://login.microsoftonline.com/840a80c0-e4a5-47be-8a1d-7ecfa61e839c/v2.0/.well-known/openid-configuration'
+Request method: 'GET'
+Request headers:
+    'User-Agent': 'azsdk-python-identity/1.25.2 Python/3.11.8 (Windows-10-10.0.26200-SP0)'
+No body was attached to the request
+2026-02-19 07:31:06,889 [INFO   ] azure.core.pipeline.policies.http_logging_policy: Response status: 200
+Response headers:
+    'Date': 'Thu, 19 Feb 2026 12:31:06 GMT'
+    'Content-Type': 'application/json; charset=utf-8'
+    'Content-Length': '1964'
+    'Connection': 'keep-alive'
+    'Cache-Control': 'max-age=86400, private'
+    'Strict-Transport-Security': 'REDACTED'
+    'X-Content-Type-Options': 'REDACTED'
+    'Access-Control-Allow-Origin': 'REDACTED'
+    'Access-Control-Allow-Methods': 'REDACTED'
+    'P3P': 'REDACTED'
+    'x-ms-request-id': '773793bd-2193-4201-8353-b371bcc24800'
+    'x-ms-ests-server': 'REDACTED'
+    'x-ms-srs': 'REDACTED'
+    'Content-Security-Policy-Report-Only': 'REDACTED'
+    'X-XSS-Protection': 'REDACTED'
+    'Set-Cookie': 'REDACTED'
+    'X-Cache': 'REDACTED'
+2026-02-19 07:31:06,891 [INFO   ] azure.core.pipeline.policies.http_logging_policy: Request URL: 'https://login.microsoftonline.com/840a80c0-e4a5-47be-8a1d-7ecfa61e839c/oauth2/v2.0/token'
+Request method: 'POST'
+Request headers:
+    'Content-Type': 'application/x-www-form-urlencoded'
+    'Accept': 'application/json'
+    'x-client-sku': 'REDACTED'
+    'x-client-ver': 'REDACTED'
+    'x-client-os': 'REDACTED'
+    'x-ms-lib-capability': 'REDACTED'
+    'client-request-id': 'REDACTED'
+    'x-client-current-telemetry': 'REDACTED'
+    'x-client-last-telemetry': 'REDACTED'
+    'User-Agent': 'azsdk-python-identity/1.25.2 Python/3.11.8 (Windows-10-10.0.26200-SP0)'
+A body is sent with the request
+2026-02-19 07:31:07,188 [INFO   ] azure.core.pipeline.policies.http_logging_policy: Response status: 200
+Response headers:
+    'Date': 'Thu, 19 Feb 2026 12:31:06 GMT'
+    'Content-Type': 'application/json; charset=utf-8'
+    'Content-Length': '1697'
+    'Connection': 'keep-alive'
+    'Cache-Control': 'no-store, no-cache'
+    'Pragma': 'no-cache'
+    'Expires': '-1'
+    'Strict-Transport-Security': 'REDACTED'
+    'X-Content-Type-Options': 'REDACTED'
+    'P3P': 'REDACTED'
+    'client-request-id': 'REDACTED'
+    'x-ms-request-id': 'bb0c192d-3a5b-49a6-9198-64f6d54a3c00'
+    'x-ms-ests-server': 'REDACTED'
+    'x-ms-clitelem': 'REDACTED'
+    'x-ms-srs': 'REDACTED'
+    'Content-Security-Policy-Report-Only': 'REDACTED'
+    'X-XSS-Protection': 'REDACTED'
+    'Set-Cookie': 'REDACTED'
+    'X-Cache': 'REDACTED'
+2026-02-19 07:31:07,188 [INFO   ] azure.identity._internal.get_token_mixin: ClientSecretCredential.get_token succeeded
+2026-02-19 07:31:11,468 [WARNING] fabric_scanner.scanner:   Lakehouse 98087a1f-bcf5-4346-bf6e-114a535d0a3c has schemas enabled û /tables REST endpoint not supported. Falling back to known table schemas. For production, use the SQL analytics endpoint.
+2026-02-19 07:31:11,470 [INFO   ] fabric_scanner.scanner:   Lakehouse 98087a1f-bcf5-4346-bf6e-114a535d0a3c: loaded 5 tables from known schemas
+2026-02-19 07:31:11,472 [INFO   ] fabric_scanner.scanner:     Table claims_history                  18 columns
+2026-02-19 07:31:11,472 [INFO   ] fabric_scanner.scanner:     Table claimant_profiles               6 columns
+2026-02-19 07:31:11,472 [INFO   ] fabric_scanner.scanner:     Table fraud_indicators                6 columns
+2026-02-19 07:31:11,472 [INFO   ] fabric_scanner.scanner:     Table policy_claims_summary           5 columns
+2026-02-19 07:31:11,472 [INFO   ] fabric_scanner.scanner:     Table regional_statistics             5 columns
+2026-02-19 07:31:11,472 [INFO   ] fabric_scanner.scanner:   Lakehouse: LH_fsidemoInsurance_Silver (d07aad7d-5551-4060-a750-d5b7a30aa7a4)
+2026-02-19 07:31:11,474 [INFO   ] azure.core.pipeline.policies.http_logging_policy: Request URL: 'https://login.microsoftonline.com/840a80c0-e4a5-47be-8a1d-7ecfa61e839c/v2.0/.well-known/openid-configuration'
+Request method: 'GET'
+Request headers:
+    'User-Agent': 'azsdk-python-identity/1.25.2 Python/3.11.8 (Windows-10-10.0.26200-SP0)'
+No body was attached to the request
+2026-02-19 07:31:12,415 [INFO   ] azure.core.pipeline.policies.http_logging_policy: Response status: 200
+Response headers:
+    'Date': 'Thu, 19 Feb 2026 12:31:12 GMT'
+    'Content-Type': 'application/json; charset=utf-8'
+    'Content-Length': '1964'
+    'Connection': 'keep-alive'
+    'Cache-Control': 'max-age=86400, private'
+    'Strict-Transport-Security': 'REDACTED'
+    'X-Content-Type-Options': 'REDACTED'
+    'Access-Control-Allow-Origin': 'REDACTED'
+    'Access-Control-Allow-Methods': 'REDACTED'
+    'P3P': 'REDACTED'
+    'x-ms-request-id': 'd0d60974-e91b-4696-b05c-49850f7b7d00'
+    'x-ms-ests-server': 'REDACTED'
+    'x-ms-srs': 'REDACTED'
+    'Content-Security-Policy-Report-Only': 'REDACTED'
+    'X-XSS-Protection': 'REDACTED'
+    'Set-Cookie': 'REDACTED'
+    'X-Cache': 'REDACTED'
+2026-02-19 07:31:12,417 [INFO   ] azure.core.pipeline.policies.http_logging_policy: Request URL: 'https://login.microsoftonline.com/840a80c0-e4a5-47be-8a1d-7ecfa61e839c/oauth2/v2.0/token'
+Request method: 'POST'
+Request headers:
+    'Content-Type': 'application/x-www-form-urlencoded'
+    'Accept': 'application/json'
+    'x-client-sku': 'REDACTED'
+    'x-client-ver': 'REDACTED'
+    'x-client-os': 'REDACTED'
+    'x-ms-lib-capability': 'REDACTED'
+    'client-request-id': 'REDACTED'
+    'x-client-current-telemetry': 'REDACTED'
+    'x-client-last-telemetry': 'REDACTED'
+    'User-Agent': 'azsdk-python-identity/1.25.2 Python/3.11.8 (Windows-10-10.0.26200-SP0)'
+A body is sent with the request
+2026-02-19 07:31:12,731 [INFO   ] azure.core.pipeline.policies.http_logging_policy: Response status: 200
+Response headers:
+    'Date': 'Thu, 19 Feb 2026 12:31:12 GMT'
+    'Content-Type': 'application/json; charset=utf-8'
+    'Content-Length': '1697'
+    'Connection': 'keep-alive'
+    'Cache-Control': 'no-store, no-cache'
+    'Pragma': 'no-cache'
+    'Expires': '-1'
+    'Strict-Transport-Security': 'REDACTED'
+    'X-Content-Type-Options': 'REDACTED'
+    'P3P': 'REDACTED'
+    'client-request-id': 'REDACTED'
+    'x-ms-request-id': '3d4427f9-938e-4056-b12a-51127636aa00'
+    'x-ms-ests-server': 'REDACTED'
+    'x-ms-clitelem': 'REDACTED'
+    'x-ms-srs': 'REDACTED'
+    'Content-Security-Policy-Report-Only': 'REDACTED'
+    'X-XSS-Protection': 'REDACTED'
+    'Set-Cookie': 'REDACTED'
+    'X-Cache': 'REDACTED'
+2026-02-19 07:31:12,733 [INFO   ] azure.identity._internal.get_token_mixin: ClientSecretCredential.get_token succeeded
+2026-02-19 07:31:14,878 [WARNING] fabric_scanner.scanner:   Lakehouse d07aad7d-5551-4060-a750-d5b7a30aa7a4 has schemas enabled û /tables REST endpoint not supported. Falling back to known table schemas. For production, use the SQL analytics endpoint.
+2026-02-19 07:31:14,878 [INFO   ] fabric_scanner.scanner:   Lakehouse d07aad7d-5551-4060-a750-d5b7a30aa7a4: loaded 5 tables from known schemas
+2026-02-19 07:31:14,878 [INFO   ] fabric_scanner.scanner:     Table claims_history                  18 columns
+2026-02-19 07:31:14,878 [INFO   ] fabric_scanner.scanner:     Table claimant_profiles               6 columns
+2026-02-19 07:31:14,878 [INFO   ] fabric_scanner.scanner:     Table fraud_indicators                6 columns
+2026-02-19 07:31:14,878 [INFO   ] fabric_scanner.scanner:     Table policy_claims_summary           5 columns
+2026-02-19 07:31:14,878 [INFO   ] fabric_scanner.scanner:     Table regional_statistics             5 columns
+2026-02-19 07:31:14,878 [INFO   ] fabric_scanner.scanner:   Lakehouse: LH_fsidemoInsurance_Gold (8e863016-65ea-4df2-bc32-95b823517055)
+2026-02-19 07:31:14,878 [INFO   ] azure.core.pipeline.policies.http_logging_policy: Request URL: 'https://login.microsoftonline.com/840a80c0-e4a5-47be-8a1d-7ecfa61e839c/v2.0/.well-known/openid-configuration'
+Request method: 'GET'
+Request headers:
+    'User-Agent': 'azsdk-python-identity/1.25.2 Python/3.11.8 (Windows-10-10.0.26200-SP0)'
+No body was attached to the request
+2026-02-19 07:31:15,940 [INFO   ] azure.core.pipeline.policies.http_logging_policy: Response status: 200
+Response headers:
+    'Date': 'Thu, 19 Feb 2026 12:31:15 GMT'
+    'Content-Type': 'application/json; charset=utf-8'
+    'Content-Length': '1964'
+    'Connection': 'keep-alive'
+    'Cache-Control': 'max-age=86400, private'
+    'Strict-Transport-Security': 'REDACTED'
+    'X-Content-Type-Options': 'REDACTED'
+    'Access-Control-Allow-Origin': 'REDACTED'
+    'Access-Control-Allow-Methods': 'REDACTED'
+    'P3P': 'REDACTED'
+    'x-ms-request-id': '59655d62-4b77-4951-ae4b-e26bd2138700'
+    'x-ms-ests-server': 'REDACTED'
+    'x-ms-srs': 'REDACTED'
+    'Content-Security-Policy-Report-Only': 'REDACTED'
+    'X-XSS-Protection': 'REDACTED'
+    'Set-Cookie': 'REDACTED'
+    'X-Cache': 'REDACTED'
+2026-02-19 07:31:15,941 [INFO   ] azure.core.pipeline.policies.http_logging_policy: Request URL: 'https://login.microsoftonline.com/840a80c0-e4a5-47be-8a1d-7ecfa61e839c/oauth2/v2.0/token'
+Request method: 'POST'
+Request headers:
+    'Content-Type': 'application/x-www-form-urlencoded'
+    'Accept': 'application/json'
+    'x-client-sku': 'REDACTED'
+    'x-client-ver': 'REDACTED'
+    'x-client-os': 'REDACTED'
+    'x-ms-lib-capability': 'REDACTED'
+    'client-request-id': 'REDACTED'
+    'x-client-current-telemetry': 'REDACTED'
+    'x-client-last-telemetry': 'REDACTED'
+    'User-Agent': 'azsdk-python-identity/1.25.2 Python/3.11.8 (Windows-10-10.0.26200-SP0)'
+A body is sent with the request
+2026-02-19 07:31:16,177 [INFO   ] azure.core.pipeline.policies.http_logging_policy: Response status: 200
+Response headers:
+    'Date': 'Thu, 19 Feb 2026 12:31:15 GMT'
+    'Content-Type': 'application/json; charset=utf-8'
+    'Content-Length': '1696'
+    'Connection': 'keep-alive'
+    'Cache-Control': 'no-store, no-cache'
+    'Pragma': 'no-cache'
+    'Expires': '-1'
+    'Strict-Transport-Security': 'REDACTED'
+    'X-Content-Type-Options': 'REDACTED'
+    'P3P': 'REDACTED'
+    'client-request-id': 'REDACTED'
+    'x-ms-request-id': '773793bd-2193-4201-8353-b37167c44800'
+    'x-ms-ests-server': 'REDACTED'
+    'x-ms-clitelem': 'REDACTED'
+    'x-ms-srs': 'REDACTED'
+    'Content-Security-Policy-Report-Only': 'REDACTED'
+    'X-XSS-Protection': 'REDACTED'
+    'Set-Cookie': 'REDACTED'
+    'X-Cache': 'REDACTED'
+2026-02-19 07:31:16,179 [INFO   ] azure.identity._internal.get_token_mixin: ClientSecretCredential.get_token succeeded
+2026-02-19 07:31:18,560 [WARNING] fabric_scanner.scanner:   Lakehouse 8e863016-65ea-4df2-bc32-95b823517055 has schemas enabled û /tables REST endpoint not supported. Falling back to known table schemas. For production, use the SQL analytics endpoint.
+2026-02-19 07:31:18,560 [INFO   ] fabric_scanner.scanner:   Lakehouse 8e863016-65ea-4df2-bc32-95b823517055: loaded 5 tables from known schemas
+2026-02-19 07:31:18,566 [INFO   ] fabric_scanner.scanner:     Table claims_history                  18 columns
+2026-02-19 07:31:18,566 [INFO   ] fabric_scanner.scanner:     Table claimant_profiles               6 columns
+2026-02-19 07:31:18,566 [INFO   ] fabric_scanner.scanner:     Table fraud_indicators                6 columns
+2026-02-19 07:31:18,566 [INFO   ] fabric_scanner.scanner:     Table policy_claims_summary           5 columns
+2026-02-19 07:31:18,566 [INFO   ] fabric_scanner.scanner:     Table regional_statistics             5 columns
+2026-02-19 07:31:18,567 [INFO   ] fabric_scanner.scanner: --- Discovering warehouses ---
+2026-02-19 07:31:18,567 [INFO   ] azure.core.pipeline.policies.http_logging_policy: Request URL: 'https://login.microsoftonline.com/840a80c0-e4a5-47be-8a1d-7ecfa61e839c/v2.0/.well-known/openid-configuration'
+Request method: 'GET'
+Request headers:
+    'User-Agent': 'azsdk-python-identity/1.25.2 Python/3.11.8 (Windows-10-10.0.26200-SP0)'
+No body was attached to the request
+2026-02-19 07:31:19,534 [INFO   ] azure.core.pipeline.policies.http_logging_policy: Response status: 200
+Response headers:
+    'Date': 'Thu, 19 Feb 2026 12:31:19 GMT'
+    'Content-Type': 'application/json; charset=utf-8'
+    'Content-Length': '1964'
+    'Connection': 'keep-alive'
+    'Cache-Control': 'max-age=86400, private'
+    'Strict-Transport-Security': 'REDACTED'
+    'X-Content-Type-Options': 'REDACTED'
+    'Access-Control-Allow-Origin': 'REDACTED'
+    'Access-Control-Allow-Methods': 'REDACTED'
+    'P3P': 'REDACTED'
+    'x-ms-request-id': '2e241143-7311-418a-80b5-e6999e666900'
+    'x-ms-ests-server': 'REDACTED'
+    'x-ms-srs': 'REDACTED'
+    'Content-Security-Policy-Report-Only': 'REDACTED'
+    'X-XSS-Protection': 'REDACTED'
+    'Set-Cookie': 'REDACTED'
+    'X-Cache': 'REDACTED'
+2026-02-19 07:31:19,536 [INFO   ] azure.core.pipeline.policies.http_logging_policy: Request URL: 'https://login.microsoftonline.com/840a80c0-e4a5-47be-8a1d-7ecfa61e839c/oauth2/v2.0/token'
+Request method: 'POST'
+Request headers:
+    'Content-Type': 'application/x-www-form-urlencoded'
+    'Accept': 'application/json'
+    'x-client-sku': 'REDACTED'
+    'x-client-ver': 'REDACTED'
+    'x-client-os': 'REDACTED'
+    'x-ms-lib-capability': 'REDACTED'
+    'client-request-id': 'REDACTED'
+    'x-client-current-telemetry': 'REDACTED'
+    'x-client-last-telemetry': 'REDACTED'
+    'User-Agent': 'azsdk-python-identity/1.25.2 Python/3.11.8 (Windows-10-10.0.26200-SP0)'
+A body is sent with the request
+2026-02-19 07:31:19,895 [INFO   ] azure.core.pipeline.policies.http_logging_policy: Response status: 200
+Response headers:
+    'Date': 'Thu, 19 Feb 2026 12:31:19 GMT'
+    'Content-Type': 'application/json; charset=utf-8'
+    'Content-Length': '1697'
+    'Connection': 'keep-alive'
+    'Cache-Control': 'no-store, no-cache'
+    'Pragma': 'no-cache'
+    'Expires': '-1'
+    'Strict-Transport-Security': 'REDACTED'
+    'X-Content-Type-Options': 'REDACTED'
+    'P3P': 'REDACTED'
+    'client-request-id': 'REDACTED'
+    'x-ms-request-id': 'b3bf98bb-90d2-40d8-b055-f815c7ac3700'
+    'x-ms-ests-server': 'REDACTED'
+    'x-ms-clitelem': 'REDACTED'
+    'x-ms-srs': 'REDACTED'
+    'Content-Security-Policy-Report-Only': 'REDACTED'
+    'X-XSS-Protection': 'REDACTED'
+    'Set-Cookie': 'REDACTED'
+    'X-Cache': 'REDACTED'
+2026-02-19 07:31:19,895 [INFO   ] azure.identity._internal.get_token_mixin: ClientSecretCredential.get_token succeeded
+2026-02-19 07:31:21,327 [INFO   ] fabric_scanner.scanner: === Scan complete: 3 items, 15 tables, 120 columns ===
+2026-02-19 07:31:21,327 [INFO   ] fabric_scanner:   Found 3 items, 15 tables, 120 columns
+2026-02-19 07:31:21,327 [INFO   ] fabric_scanner: 
+2026-02-19 07:31:21,327 [INFO   ] fabric_scanner: STEP 2: Apply sensitivity classification rules
+2026-02-19 07:31:21,327 [INFO   ] fabric_scanner: --------------------------------------------------
+2026-02-19 07:31:21,327 [INFO   ] azure.core.pipeline.policies.http_logging_policy: Request URL: 'https://login.microsoftonline.com/840a80c0-e4a5-47be-8a1d-7ecfa61e839c/v2.0/.well-known/openid-configuration'
+Request method: 'GET'
+Request headers:
+    'User-Agent': 'azsdk-python-identity/1.25.2 Python/3.11.8 (Windows-10-10.0.26200-SP0)'
+No body was attached to the request
+2026-02-19 07:31:22,311 [INFO   ] azure.core.pipeline.policies.http_logging_policy: Response status: 200
+Response headers:
+    'Date': 'Thu, 19 Feb 2026 12:31:22 GMT'
+    'Content-Type': 'application/json; charset=utf-8'
+    'Content-Length': '1964'
+    'Connection': 'keep-alive'
+    'Cache-Control': 'max-age=86400, private'
+    'Strict-Transport-Security': 'REDACTED'
+    'X-Content-Type-Options': 'REDACTED'
+    'Access-Control-Allow-Origin': 'REDACTED'
+    'Access-Control-Allow-Methods': 'REDACTED'
+    'P3P': 'REDACTED'
+    'x-ms-request-id': '84b8927d-adf8-4d20-a614-6572b1727800'
+    'x-ms-ests-server': 'REDACTED'
+    'x-ms-srs': 'REDACTED'
+    'Content-Security-Policy-Report-Only': 'REDACTED'
+    'X-XSS-Protection': 'REDACTED'
+    'Set-Cookie': 'REDACTED'
+    'X-Cache': 'REDACTED'
+2026-02-19 07:31:22,311 [INFO   ] azure.core.pipeline.policies.http_logging_policy: Request URL: 'https://login.microsoftonline.com/840a80c0-e4a5-47be-8a1d-7ecfa61e839c/oauth2/v2.0/token'
+Request method: 'POST'
+Request headers:
+    'Content-Type': 'application/x-www-form-urlencoded'
+    'Accept': 'application/json'
+    'x-client-sku': 'REDACTED'
+    'x-client-ver': 'REDACTED'
+    'x-client-os': 'REDACTED'
+    'x-ms-lib-capability': 'REDACTED'
+    'client-request-id': 'REDACTED'
+    'x-client-current-telemetry': 'REDACTED'
+    'x-client-last-telemetry': 'REDACTED'
+    'User-Agent': 'azsdk-python-identity/1.25.2 Python/3.11.8 (Windows-10-10.0.26200-SP0)'
+A body is sent with the request
+2026-02-19 07:31:22,776 [INFO   ] azure.core.pipeline.policies.http_logging_policy: Response status: 200
+Response headers:
+    'Date': 'Thu, 19 Feb 2026 12:31:22 GMT'
+    'Content-Type': 'application/json; charset=utf-8'
+    'Content-Length': '2097'
+    'Connection': 'keep-alive'
+    'Cache-Control': 'no-store, no-cache'
+    'Pragma': 'no-cache'
+    'Expires': '-1'
+    'Strict-Transport-Security': 'REDACTED'
+    'X-Content-Type-Options': 'REDACTED'
+    'P3P': 'REDACTED'
+    'client-request-id': 'REDACTED'
+    'x-ms-request-id': '66ece215-b55e-471e-b4df-5628811e5500'
+    'x-ms-ests-server': 'REDACTED'
+    'x-ms-clitelem': 'REDACTED'
+    'x-ms-srs': 'REDACTED'
+    'Content-Security-Policy-Report-Only': 'REDACTED'
+    'X-XSS-Protection': 'REDACTED'
+    'Set-Cookie': 'REDACTED'
+    'X-Cache': 'REDACTED'
+2026-02-19 07:31:22,777 [INFO   ] azure.identity._internal.get_token_mixin: ClientSecretCredential.get_token succeeded
+2026-02-19 07:31:24,979 [INFO   ] fabric_scanner.mip_labels: Fetched 5 sensitivity labels from https://graph.microsoft.com/v1.0/security/dataSecurityAndGovernance/sensitivityLabels
+2026-02-19 07:31:24,981 [INFO   ] fabric_scanner:   MIP labels available: 5
+2026-02-19 07:31:24,982 [INFO   ] fabric_scanner:   claims_history                  18/18 columns classified
+2026-02-19 07:31:24,982 [INFO   ] fabric_scanner:   claimant_profiles               6/6 columns classified
+2026-02-19 07:31:24,982 [INFO   ] fabric_scanner:   fraud_indicators                6/6 columns classified
+2026-02-19 07:31:24,984 [INFO   ] fabric_scanner:   policy_claims_summary           5/5 columns classified
+2026-02-19 07:31:24,984 [INFO   ] fabric_scanner:   regional_statistics             5/5 columns classified
+2026-02-19 07:31:24,984 [INFO   ] fabric_scanner:   claims_history                  18/18 columns classified
+2026-02-19 07:31:24,984 [INFO   ] fabric_scanner:   claimant_profiles               6/6 columns classified
+2026-02-19 07:31:24,984 [INFO   ] fabric_scanner:   fraud_indicators                6/6 columns classified
+2026-02-19 07:31:24,984 [INFO   ] fabric_scanner:   policy_claims_summary           5/5 columns classified
+2026-02-19 07:31:24,984 [INFO   ] fabric_scanner:   regional_statistics             5/5 columns classified
+2026-02-19 07:31:24,984 [INFO   ] fabric_scanner:   claims_history                  18/18 columns classified
+2026-02-19 07:31:24,984 [INFO   ] fabric_scanner:   claimant_profiles               6/6 columns classified
+2026-02-19 07:31:24,984 [INFO   ] fabric_scanner:   fraud_indicators                6/6 columns classified
+2026-02-19 07:31:24,984 [INFO   ] fabric_scanner:   policy_claims_summary           5/5 columns classified
+2026-02-19 07:31:24,984 [INFO   ] fabric_scanner:   regional_statistics             5/5 columns classified
+2026-02-19 07:31:24,984 [INFO   ] fabric_scanner: 
+2026-02-19 07:31:24,984 [INFO   ] fabric_scanner: STEP 3: Register entities and apply classifications in Purview
+2026-02-19 07:31:24,984 [INFO   ] fabric_scanner: --------------------------------------------------
+2026-02-19 07:31:24,985 [INFO   ] fabric_scanner.classifier: Creating MIP classification type definitions...
+2026-02-19 07:31:31,340 [INFO   ] fabric_scanner.classifier: Classification type definitions created/updated: ['MIP_Personal', 'MIP_Public', 'MIP_General', 'MIP_Confidential', 'MIP_Highly_Confidential']
+2026-02-19 07:31:31,340 [INFO   ] fabric_scanner.classifier: Creating Fabric entity type definitions...
+2026-02-19 07:31:38,956 [INFO   ] fabric_scanner.classifier: Skipping 'fabric_lakehouse_table' û Microsoft built-in type
+2026-02-19 07:31:43,140 [INFO   ] fabric_scanner.classifier: Entity type definitions created/updated: ['fabric_column', 'fabric_warehouse_table']
+2026-02-19 07:31:43,140 [INFO   ] fabric_scanner.classifier: Entity types already built-in (skipped): ['fabric_lakehouse_table']
+2026-02-19 07:31:43,141 [INFO   ] azure.core.pipeline.policies.http_logging_policy: Request URL: 'https://login.microsoftonline.com/840a80c0-e4a5-47be-8a1d-7ecfa61e839c/v2.0/.well-known/openid-configuration'
+Request method: 'GET'
+Request headers:
+    'User-Agent': 'azsdk-python-identity/1.25.2 Python/3.11.8 (Windows-10-10.0.26200-SP0)'
+No body was attached to the request
+2026-02-19 07:31:44,112 [INFO   ] azure.core.pipeline.policies.http_logging_policy: Response status: 200
+Response headers:
+    'Date': 'Thu, 19 Feb 2026 12:31:43 GMT'
+    'Content-Type': 'application/json; charset=utf-8'
+    'Content-Length': '1964'
+    'Connection': 'keep-alive'
+    'Cache-Control': 'max-age=86400, private'
+    'Strict-Transport-Security': 'REDACTED'
+    'X-Content-Type-Options': 'REDACTED'
+    'Access-Control-Allow-Origin': 'REDACTED'
+    'Access-Control-Allow-Methods': 'REDACTED'
+    'P3P': 'REDACTED'
+    'x-ms-request-id': '047486ee-fab4-45d3-8c84-676b19db4800'
+    'x-ms-ests-server': 'REDACTED'
+    'x-ms-srs': 'REDACTED'
+    'Content-Security-Policy-Report-Only': 'REDACTED'
+    'X-XSS-Protection': 'REDACTED'
+    'Set-Cookie': 'REDACTED'
+    'X-Cache': 'REDACTED'
+2026-02-19 07:31:44,113 [INFO   ] azure.core.pipeline.policies.http_logging_policy: Request URL: 'https://login.microsoftonline.com/840a80c0-e4a5-47be-8a1d-7ecfa61e839c/oauth2/v2.0/token'
+Request method: 'POST'
+Request headers:
+    'Content-Type': 'application/x-www-form-urlencoded'
+    'Accept': 'application/json'
+    'x-client-sku': 'REDACTED'
+    'x-client-ver': 'REDACTED'
+    'x-client-os': 'REDACTED'
+    'x-ms-lib-capability': 'REDACTED'
+    'client-request-id': 'REDACTED'
+    'x-client-current-telemetry': 'REDACTED'
+    'x-client-last-telemetry': 'REDACTED'
+    'User-Agent': 'azsdk-python-identity/1.25.2 Python/3.11.8 (Windows-10-10.0.26200-SP0)'
+A body is sent with the request
+2026-02-19 07:31:44,475 [INFO   ] azure.core.pipeline.policies.http_logging_policy: Response status: 200
+Response headers:
+    'Date': 'Thu, 19 Feb 2026 12:31:44 GMT'
+    'Content-Type': 'application/json; charset=utf-8'
+    'Content-Length': '1843'
+    'Connection': 'keep-alive'
+    'Cache-Control': 'no-store, no-cache'
+    'Pragma': 'no-cache'
+    'Expires': '-1'
+    'Strict-Transport-Security': 'REDACTED'
+    'X-Content-Type-Options': 'REDACTED'
+    'P3P': 'REDACTED'
+    'client-request-id': 'REDACTED'
+    'x-ms-request-id': '8b8f00f4-6fc9-4a19-84d1-c5f445099c00'
+    'x-ms-ests-server': 'REDACTED'
+    'x-ms-clitelem': 'REDACTED'
+    'x-ms-srs': 'REDACTED'
+    'Content-Security-Policy-Report-Only': 'REDACTED'
+    'X-XSS-Protection': 'REDACTED'
+    'Set-Cookie': 'REDACTED'
+    'X-Cache': 'REDACTED'
+2026-02-19 07:31:44,475 [INFO   ] azure.identity._internal.get_token_mixin: ClientSecretCredential.get_token succeeded
+2026-02-19 07:31:46,253 [WARNING] fabric_scanner.classifier: Relationship type creation returned 400: {"requestId":"f4a03d40-0a5b-4cdc-8b65-a2c6a045b9b8","errorCode":"ATLAS-400-00-09D","errorMessage":"Invalid attribute name:\n - fabric_lakehouse_table has defined an attribute \"columns\" which is already taken by its super type or relationship type: fabric_table_columns(relationship type), fabric_la
+2026-02-19 07:31:46,254 [INFO   ] fabric_scanner.classifier: === Registering entities in Purview ===
+2026-02-19 07:31:46,256 [INFO   ] fabric_scanner.classifier: Prepared 135 entities for upload
+2026-02-19 07:32:00,310 [INFO   ] fabric_scanner.classifier: Uploaded 135 entities successfully (19 GUIDs resolved, 116 unresolved)
+2026-02-19 07:32:00,310 [INFO   ] fabric_scanner.classifier: Resolving 116 remaining GUIDs by qualifiedName...
+2026-02-19 07:34:56,302 [INFO   ] fabric_scanner.classifier: === Applying column-level classifications ===
+C:\temp\AI\insurance-multi-agent\purview\scripts\.venv\Lib\site-packages\pyapacheatlas\core\util.py:218: RuntimeWarning: You're using a feature that Purview does not implement fully.
+  warnings.warn(
+2026-02-19 07:34:59,802 [INFO   ] fabric_scanner.classifier:   \u2713 claims_history.claim_id                  \u2192 MIP_Confidential (guid=c36ceccb-f8f9-4b17-821b-b9f0d9207d7f)
+2026-02-19 07:35:03,545 [INFO   ] fabric_scanner.classifier:   \u2713 claims_history.claimant_id               \u2192 MIP_Confidential (guid=528f651d-abd4-4e67-9e18-b066303ba4a6)
+2026-02-19 07:35:06,546 [INFO   ] fabric_scanner.classifier:   \u2713 claims_history.claimant_name             \u2192 MIP_Highly_Confidential (guid=7b9fe2c2-6587-4d85-9a95-cf056799cf69)
+2026-02-19 07:35:09,531 [INFO   ] fabric_scanner.classifier:   \u2713 claims_history.claim_type                \u2192 MIP_General (guid=7ae74464-bb65-409f-94a5-2e2ddf194f38)
+2026-02-19 07:35:12,640 [INFO   ] fabric_scanner.classifier:   \u2713 claims_history.estimated_damage          \u2192 MIP_Confidential (guid=c8167529-b719-4dc0-afd5-a37a9d2dac33)
+2026-02-19 07:35:16,184 [INFO   ] fabric_scanner.classifier:   \u2713 claims_history.amount_paid               \u2192 MIP_Confidential (guid=52442ddc-a815-4127-8486-85782b53c037)
+2026-02-19 07:35:19,619 [INFO   ] fabric_scanner.classifier:   \u2713 claims_history.status                    \u2192 MIP_General (guid=71ac2500-be5a-4ba8-962c-c1aa9901f42a)
+2026-02-19 07:35:22,428 [INFO   ] fabric_scanner.classifier:   \u2713 claims_history.claim_date                \u2192 MIP_General (guid=008909c5-237d-4b16-9ca2-f41221edc655)
+2026-02-19 07:35:25,870 [INFO   ] fabric_scanner.classifier:   \u2713 claims_history.incident_date             \u2192 MIP_General (guid=af6d3619-a678-4853-9e5d-1efd01c2892a)
+2026-02-19 07:35:28,986 [INFO   ] fabric_scanner.classifier:   \u2713 claims_history.location                  \u2192 MIP_General (guid=97a302cf-bd52-4395-b00e-7622b166672c)
+2026-02-19 07:35:32,426 [INFO   ] fabric_scanner.classifier:   \u2713 claims_history.state                     \u2192 MIP_General (guid=0585084a-38d6-406f-be7e-620c8af72ed6)
+2026-02-19 07:35:36,553 [INFO   ] fabric_scanner.classifier:   \u2713 claims_history.fraud_flag                \u2192 MIP_Highly_Confidential (guid=cdeb3ce4-7d72-43af-9f31-022c75270073)
+2026-02-19 07:35:40,268 [INFO   ] fabric_scanner.classifier:   \u2713 claims_history.police_report             \u2192 MIP_General (guid=015acb32-0b37-46c3-8005-f1d0b28200e3)
+2026-02-19 07:35:43,904 [INFO   ] fabric_scanner.classifier:   \u2713 claims_history.photos_provided           \u2192 MIP_General (guid=5497cba4-a19f-4b95-a274-ff0ad72868f8)
+2026-02-19 07:35:49,423 [INFO   ] fabric_scanner.classifier:   \u2713 claims_history.witness_statements        \u2192 MIP_General (guid=32f32c9f-3fac-49dc-b309-9c747f85e67d)
+2026-02-19 07:35:54,666 [INFO   ] fabric_scanner.classifier:   \u2713 claims_history.license_plate             \u2192 MIP_Highly_Confidential (guid=6065fa9f-14ed-4d9f-ba00-4ef49093f38b)
+2026-02-19 07:35:58,198 [INFO   ] fabric_scanner.classifier:   \u2713 claims_history.vehicle_info              \u2192 MIP_Confidential (guid=b14ec051-d7b9-43e5-b6cd-faf87f232bab)
+2026-02-19 07:36:02,355 [INFO   ] fabric_scanner.classifier:   \u2713 claims_history.description               \u2192 MIP_General (guid=86ea1cc5-b388-4b4b-a05f-e7cf8aa70dea)
+2026-02-19 07:36:05,839 [INFO   ] fabric_scanner.classifier:   \u2713 claimant_profiles.claimant_id               \u2192 MIP_Confidential (guid=42d0bdd5-6e00-43da-9193-c885aed75bae)
+2026-02-19 07:36:09,219 [INFO   ] fabric_scanner.classifier:   \u2713 claimant_profiles.name                      \u2192 MIP_Highly_Confidential (guid=7ba4997f-a967-469f-a2d4-425da2865e14)
+2026-02-19 07:36:12,624 [INFO   ] fabric_scanner.classifier:   \u2713 claimant_profiles.age                       \u2192 MIP_Highly_Confidential (guid=45260326-984b-4ac9-832a-340aff9da950)
+2026-02-19 07:36:16,408 [INFO   ] fabric_scanner.classifier:   \u2713 claimant_profiles.location                  \u2192 MIP_General (guid=e61baded-67af-4149-970d-a6dfe6d74d50)
+2026-02-19 07:36:20,315 [INFO   ] fabric_scanner.classifier:   \u2713 claimant_profiles.risk_score                \u2192 MIP_Highly_Confidential (guid=e46f4c88-c00f-4678-8bdf-d8f1d8fd12ab)
+2026-02-19 07:36:23,425 [INFO   ] fabric_scanner.classifier:   \u2713 claimant_profiles.policy_number             \u2192 MIP_Confidential (guid=8558c43b-4e4b-4280-855b-9c8eaab8d9d5)
+2026-02-19 07:36:27,089 [INFO   ] fabric_scanner.classifier:   \u2713 fraud_indicators.indicator_id              \u2192 MIP_Highly_Confidential (guid=1fa7274e-17c7-40ee-817a-feb4914c69b9)
+2026-02-19 07:36:30,669 [INFO   ] fabric_scanner.classifier:   \u2713 fraud_indicators.claim_id                  \u2192 MIP_Confidential (guid=0d729a87-75d1-4992-86cd-8ed0b495b7de)
+2026-02-19 07:36:35,394 [INFO   ] fabric_scanner.classifier:   \u2713 fraud_indicators.indicator_type            \u2192 MIP_Highly_Confidential (guid=c26cc125-8761-42f6-8f10-820f3fd8b1d0)
+2026-02-19 07:36:40,102 [INFO   ] fabric_scanner.classifier:   \u2713 fraud_indicators.severity                  \u2192 MIP_Confidential (guid=d3ce6511-845f-479e-9da3-3ae843f134b4)
+2026-02-19 07:36:43,500 [INFO   ] fabric_scanner.classifier:   \u2713 fraud_indicators.description               \u2192 MIP_General (guid=620f27b8-6c2f-410d-a9d6-13368744ecf4)
+2026-02-19 07:36:47,149 [INFO   ] fabric_scanner.classifier:   \u2713 fraud_indicators.flagged_date              \u2192 MIP_General (guid=934e3566-4cdf-41b5-af33-c6f46866e4e6)
+2026-02-19 07:36:54,240 [INFO   ] fabric_scanner.classifier:   \u2713 policy_claims_summary.policy_number             \u2192 MIP_Confidential (guid=a188f8ec-728f-49a4-b2c9-334f882a2a5f)
+2026-02-19 07:36:59,742 [INFO   ] fabric_scanner.classifier:   \u2713 policy_claims_summary.total_claims              \u2192 MIP_Confidential (guid=e96b0068-bab4-4e36-be75-e14bda4ac425)
+2026-02-19 07:37:04,950 [INFO   ] fabric_scanner.classifier:   \u2713 policy_claims_summary.total_amount              \u2192 MIP_Confidential (guid=7f2afafe-97a5-4a74-a42c-3d6d2b87ee48)
+2026-02-19 07:37:10,506 [INFO   ] fabric_scanner.classifier:   \u2713 policy_claims_summary.avg_amount                \u2192 MIP_Confidential (guid=8aa634a8-d479-4221-9a9d-5eeaf6a64a8d)
+2026-02-19 07:37:15,555 [INFO   ] fabric_scanner.classifier:   \u2713 policy_claims_summary.last_claim_date           \u2192 MIP_General (guid=e3a97cd4-53ff-4d80-8289-20f9f5feef95)
+2026-02-19 07:37:21,953 [INFO   ] fabric_scanner.classifier:   \u2713 regional_statistics.region                    \u2192 MIP_General (guid=b0b173a0-2e3a-45bf-825b-40f79553afdd)
+2026-02-19 07:37:27,673 [INFO   ] fabric_scanner.classifier:   \u2713 regional_statistics.state                     \u2192 MIP_General (guid=a359f244-23c7-442b-a0db-7d5e1c1c486d)
+2026-02-19 07:37:33,419 [INFO   ] fabric_scanner.classifier:   \u2713 regional_statistics.total_claims              \u2192 MIP_General (guid=80bf4371-500e-405f-9ea1-0251c8e617be)
+2026-02-19 07:37:42,059 [INFO   ] fabric_scanner.classifier:   \u2713 regional_statistics.fraud_rate                \u2192 MIP_Highly_Confidential (guid=38389511-fdf3-481c-9035-0446291dbb8c)
+2026-02-19 07:37:48,729 [INFO   ] fabric_scanner.classifier:   \u2713 regional_statistics.avg_claim_amount          \u2192 MIP_Confidential (guid=b5f8cb79-1b46-409f-9083-a1835520e382)
+2026-02-19 07:37:54,754 [INFO   ] fabric_scanner.classifier:   \u2713 claims_history.claim_id                  \u2192 MIP_Confidential (guid=ccf64454-7950-4343-be98-d1b536392997)
+2026-02-19 07:38:00,361 [INFO   ] fabric_scanner.classifier:   \u2713 claims_history.claimant_id               \u2192 MIP_Confidential (guid=81d39018-9cce-45f3-84ca-c80b28b336c9)
+2026-02-19 07:38:06,524 [INFO   ] fabric_scanner.classifier:   \u2713 claims_history.claimant_name             \u2192 MIP_Highly_Confidential (guid=12ee1801-57be-4622-86cb-789747a9bb86)
+2026-02-19 07:38:13,375 [INFO   ] fabric_scanner.classifier:   \u2713 claims_history.claim_type                \u2192 MIP_General (guid=d82da585-e62b-44e3-bcad-03e38e87b58e)
+2026-02-19 07:38:19,415 [INFO   ] fabric_scanner.classifier:   \u2713 claims_history.estimated_damage          \u2192 MIP_Confidential (guid=beec2e6b-f62c-4607-b2d6-aacec2ff3f25)
+2026-02-19 07:38:25,807 [INFO   ] fabric_scanner.classifier:   \u2713 claims_history.amount_paid               \u2192 MIP_Confidential (guid=957fc0a8-79c8-410e-8f35-6977140590a2)
+2026-02-19 07:38:32,544 [INFO   ] fabric_scanner.classifier:   \u2713 claims_history.status                    \u2192 MIP_General (guid=34090368-5280-4b51-902f-f00463f2e34a)
+2026-02-19 07:38:37,889 [INFO   ] fabric_scanner.classifier:   \u2713 claims_history.claim_date                \u2192 MIP_General (guid=585375df-933e-4f4c-93a4-7b32e53aee22)
+2026-02-19 07:38:43,894 [INFO   ] fabric_scanner.classifier:   \u2713 claims_history.incident_date             \u2192 MIP_General (guid=f76f92a5-2d5e-4545-a74f-e39eb0e3cf07)
+2026-02-19 07:38:49,543 [INFO   ] fabric_scanner.classifier:   \u2713 claims_history.location                  \u2192 MIP_General (guid=75526141-bcba-474c-95a4-4a630c06a66d)
+2026-02-19 07:38:53,626 [INFO   ] fabric_scanner.classifier:   \u2713 claims_history.state                     \u2192 MIP_General (guid=4714c36d-6d4c-483e-9d9e-2c720b902469)
+2026-02-19 07:43:20,199 [ERROR  ] fabric_scanner.classifier:   \u2717 Failed to classify claims_history.fraud_flag: ('Connection aborted.', RemoteDisconnected('Remote end closed connection without response'))
+2026-02-19 07:43:20,203 [ERROR  ] fabric_scanner.classifier:   \u2717 Failed to classify claims_history.police_report: HTTPSConnectionPool(host='pview-apfsipurviewdemo.purview.azure.com', port=443): Max retries exceeded with url: /catalog/api/atlas/v2/entity/guid/b00144d3-43aa-4f25-969f-abc3747da20c/classifications (Caused by NameResolutionError("HTTPSConnection(host='pview-apfsipurviewdemo.purview.azure.com', port=443): Failed to resolve 'pview-apfsipurviewdemo.purview.azure.com' ([Errno 11001] getaddrinfo failed)"))
+2026-02-19 07:43:20,205 [ERROR  ] fabric_scanner.classifier:   \u2717 Failed to classify claims_history.photos_provided: HTTPSConnectionPool(host='pview-apfsipurviewdemo.purview.azure.com', port=443): Max retries exceeded with url: /catalog/api/atlas/v2/entity/guid/54b7a4f0-3d9a-4d59-8c81-a37352313c8a/classifications (Caused by NameResolutionError("HTTPSConnection(host='pview-apfsipurviewdemo.purview.azure.com', port=443): Failed to resolve 'pview-apfsipurviewdemo.purview.azure.com' ([Errno 11001] getaddrinfo failed)"))
+2026-02-19 07:43:20,207 [ERROR  ] fabric_scanner.classifier:   \u2717 Failed to classify claims_history.witness_statements: HTTPSConnectionPool(host='pview-apfsipurviewdemo.purview.azure.com', port=443): Max retries exceeded with url: /catalog/api/atlas/v2/entity/guid/a5c6cdbc-33af-4658-bae0-4ce775d7fa77/classifications (Caused by NameResolutionError("HTTPSConnection(host='pview-apfsipurviewdemo.purview.azure.com', port=443): Failed to resolve 'pview-apfsipurviewdemo.purview.azure.com' ([Errno 11001] getaddrinfo failed)"))
+2026-02-19 07:43:20,211 [ERROR  ] fabric_scanner.classifier:   \u2717 Failed to classify claims_history.license_plate: HTTPSConnectionPool(host='pview-apfsipurviewdemo.purview.azure.com', port=443): Max retries exceeded with url: /catalog/api/atlas/v2/entity/guid/c981a270-c87d-4214-b85c-6fce116d957d/classifications (Caused by NameResolutionError("HTTPSConnection(host='pview-apfsipurviewdemo.purview.azure.com', port=443): Failed to resolve 'pview-apfsipurviewdemo.purview.azure.com' ([Errno 11001] getaddrinfo failed)"))
+2026-02-19 07:43:20,215 [ERROR  ] fabric_scanner.classifier:   \u2717 Failed to classify claims_history.vehicle_info: HTTPSConnectionPool(host='pview-apfsipurviewdemo.purview.azure.com', port=443): Max retries exceeded with url: /catalog/api/atlas/v2/entity/guid/fda52073-4585-4341-8aa2-d5d40bbd1eaa/classifications (Caused by NameResolutionError("HTTPSConnection(host='pview-apfsipurviewdemo.purview.azure.com', port=443): Failed to resolve 'pview-apfsipurviewdemo.purview.azure.com' ([Errno 11001] getaddrinfo failed)"))
+2026-02-19 07:43:20,221 [ERROR  ] fabric_scanner.classifier:   \u2717 Failed to classify claims_history.description: HTTPSConnectionPool(host='pview-apfsipurviewdemo.purview.azure.com', port=443): Max retries exceeded with url: /catalog/api/atlas/v2/entity/guid/b3fcb7bb-feae-408d-a0d2-4d9405034802/classifications (Caused by NameResolutionError("HTTPSConnection(host='pview-apfsipurviewdemo.purview.azure.com', port=443): Failed to resolve 'pview-apfsipurviewdemo.purview.azure.com' ([Errno 11001] getaddrinfo failed)"))
+2026-02-19 07:43:20,330 [ERROR  ] fabric_scanner.classifier:   \u2717 Failed to classify claimant_profiles.claimant_id: HTTPSConnectionPool(host='pview-apfsipurviewdemo.purview.azure.com', port=443): Max retries exceeded with url: /catalog/api/atlas/v2/entity/guid/dfff04d9-bbaf-4d51-89f6-25d2cf36ab6c/classifications (Caused by NameResolutionError("HTTPSConnection(host='pview-apfsipurviewdemo.purview.azure.com', port=443): Failed to resolve 'pview-apfsipurviewdemo.purview.azure.com' ([Errno 11001] getaddrinfo failed)"))
+2026-02-19 07:43:20,599 [ERROR  ] fabric_scanner.classifier:   \u2717 Failed to classify claimant_profiles.name: HTTPSConnectionPool(host='pview-apfsipurviewdemo.purview.azure.com', port=443): Max retries exceeded with url: /catalog/api/atlas/v2/entity/guid/7ac5e9ed-2fd2-459f-8a31-1b9392fef7ef/classifications (Caused by NameResolutionError("HTTPSConnection(host='pview-apfsipurviewdemo.purview.azure.com', port=443): Failed to resolve 'pview-apfsipurviewdemo.purview.azure.com' ([Errno 11001] getaddrinfo failed)"))
+2026-02-19 07:43:20,601 [ERROR  ] fabric_scanner.classifier:   \u2717 Failed to classify claimant_profiles.age: HTTPSConnectionPool(host='pview-apfsipurviewdemo.purview.azure.com', port=443): Max retries exceeded with url: /catalog/api/atlas/v2/entity/guid/8185670a-4390-43bd-bada-6c87f09a4fbf/classifications (Caused by NameResolutionError("HTTPSConnection(host='pview-apfsipurviewdemo.purview.azure.com', port=443): Failed to resolve 'pview-apfsipurviewdemo.purview.azure.com' ([Errno 11001] getaddrinfo failed)"))
+2026-02-19 07:43:20,605 [ERROR  ] fabric_scanner.classifier:   \u2717 Failed to classify claimant_profiles.location: HTTPSConnectionPool(host='pview-apfsipurviewdemo.purview.azure.com', port=443): Max retries exceeded with url: /catalog/api/atlas/v2/entity/guid/1516def8-005e-402c-85ae-5834cf576186/classifications (Caused by NameResolutionError("HTTPSConnection(host='pview-apfsipurviewdemo.purview.azure.com', port=443): Failed to resolve 'pview-apfsipurviewdemo.purview.azure.com' ([Errno 11001] getaddrinfo failed)"))
+2026-02-19 07:43:20,608 [ERROR  ] fabric_scanner.classifier:   \u2717 Failed to classify claimant_profiles.risk_score: HTTPSConnectionPool(host='pview-apfsipurviewdemo.purview.azure.com', port=443): Max retries exceeded with url: /catalog/api/atlas/v2/entity/guid/af23e233-7852-400d-a250-a6101a352e66/classifications (Caused by NameResolutionError("HTTPSConnection(host='pview-apfsipurviewdemo.purview.azure.com', port=443): Failed to resolve 'pview-apfsipurviewdemo.purview.azure.com' ([Errno 11001] getaddrinfo failed)"))
+2026-02-19 07:43:20,617 [ERROR  ] fabric_scanner.classifier:   \u2717 Failed to classify claimant_profiles.policy_number: HTTPSConnectionPool(host='pview-apfsipurviewdemo.purview.azure.com', port=443): Max retries exceeded with url: /catalog/api/atlas/v2/entity/guid/df4a27b6-1c55-42e8-a806-df8166786f43/classifications (Caused by NameResolutionError("HTTPSConnection(host='pview-apfsipurviewdemo.purview.azure.com', port=443): Failed to resolve 'pview-apfsipurviewdemo.purview.azure.com' ([Errno 11001] getaddrinfo failed)"))
+2026-02-19 07:43:20,622 [ERROR  ] fabric_scanner.classifier:   \u2717 Failed to classify fraud_indicators.indicator_id: HTTPSConnectionPool(host='pview-apfsipurviewdemo.purview.azure.com', port=443): Max retries exceeded with url: /catalog/api/atlas/v2/entity/guid/8a0fc2b1-d8ac-474f-ad03-86e8e1d60342/classifications (Caused by NameResolutionError("HTTPSConnection(host='pview-apfsipurviewdemo.purview.azure.com', port=443): Failed to resolve 'pview-apfsipurviewdemo.purview.azure.com' ([Errno 11001] getaddrinfo failed)"))
+2026-02-19 07:43:20,639 [ERROR  ] fabric_scanner.classifier:   \u2717 Failed to classify fraud_indicators.claim_id: HTTPSConnectionPool(host='pview-apfsipurviewdemo.purview.azure.com', port=443): Max retries exceeded with url: /catalog/api/atlas/v2/entity/guid/d9e17cfa-d20d-430e-839c-9c6f4ddb95b5/classifications (Caused by NameResolutionError("HTTPSConnection(host='pview-apfsipurviewdemo.purview.azure.com', port=443): Failed to resolve 'pview-apfsipurviewdemo.purview.azure.com' ([Errno 11001] getaddrinfo failed)"))
+2026-02-19 07:43:20,778 [ERROR  ] fabric_scanner.classifier:   \u2717 Failed to classify fraud_indicators.indicator_type: HTTPSConnectionPool(host='pview-apfsipurviewdemo.purview.azure.com', port=443): Max retries exceeded with url: /catalog/api/atlas/v2/entity/guid/0b8e19ca-12b6-4caa-baa2-803908df9349/classifications (Caused by NameResolutionError("HTTPSConnection(host='pview-apfsipurviewdemo.purview.azure.com', port=443): Failed to resolve 'pview-apfsipurviewdemo.purview.azure.com' ([Errno 11001] getaddrinfo failed)"))
+2026-02-19 07:43:20,806 [ERROR  ] fabric_scanner.classifier:   \u2717 Failed to classify fraud_indicators.severity: HTTPSConnectionPool(host='pview-apfsipurviewdemo.purview.azure.com', port=443): Max retries exceeded with url: /catalog/api/atlas/v2/entity/guid/a543538b-b916-4a5f-9bb4-0be97ef951e9/classifications (Caused by NameResolutionError("HTTPSConnection(host='pview-apfsipurviewdemo.purview.azure.com', port=443): Failed to resolve 'pview-apfsipurviewdemo.purview.azure.com' ([Errno 11001] getaddrinfo failed)"))
+2026-02-19 07:43:20,808 [ERROR  ] fabric_scanner.classifier:   \u2717 Failed to classify fraud_indicators.description: HTTPSConnectionPool(host='pview-apfsipurviewdemo.purview.azure.com', port=443): Max retries exceeded with url: /catalog/api/atlas/v2/entity/guid/bad737e5-d3db-4bf2-b630-2fcc7dc8e035/classifications (Caused by NameResolutionError("HTTPSConnection(host='pview-apfsipurviewdemo.purview.azure.com', port=443): Failed to resolve 'pview-apfsipurviewdemo.purview.azure.com' ([Errno 11001] getaddrinfo failed)"))
+2026-02-19 07:43:20,811 [ERROR  ] fabric_scanner.classifier:   \u2717 Failed to classify fraud_indicators.flagged_date: HTTPSConnectionPool(host='pview-apfsipurviewdemo.purview.azure.com', port=443): Max retries exceeded with url: /catalog/api/atlas/v2/entity/guid/d71201c8-6a06-4dde-880a-11b45764fc36/classifications (Caused by NameResolutionError("HTTPSConnection(host='pview-apfsipurviewdemo.purview.azure.com', port=443): Failed to resolve 'pview-apfsipurviewdemo.purview.azure.com' ([Errno 11001] getaddrinfo failed)"))
+2026-02-19 07:43:20,813 [ERROR  ] fabric_scanner.classifier:   \u2717 Failed to classify policy_claims_summary.policy_number: HTTPSConnectionPool(host='pview-apfsipurviewdemo.purview.azure.com', port=443): Max retries exceeded with url: /catalog/api/atlas/v2/entity/guid/7fcf56ed-a07c-47dd-bbad-1612e206cbd6/classifications (Caused by NameResolutionError("HTTPSConnection(host='pview-apfsipurviewdemo.purview.azure.com', port=443): Failed to resolve 'pview-apfsipurviewdemo.purview.azure.com' ([Errno 11001] getaddrinfo failed)"))
+2026-02-19 07:43:20,815 [ERROR  ] fabric_scanner.classifier:   \u2717 Failed to classify policy_claims_summary.total_claims: HTTPSConnectionPool(host='pview-apfsipurviewdemo.purview.azure.com', port=443): Max retries exceeded with url: /catalog/api/atlas/v2/entity/guid/13e0e18d-35c0-49cf-857d-2d274c2d47b1/classifications (Caused by NameResolutionError("HTTPSConnection(host='pview-apfsipurviewdemo.purview.azure.com', port=443): Failed to resolve 'pview-apfsipurviewdemo.purview.azure.com' ([Errno 11001] getaddrinfo failed)"))
+2026-02-19 07:43:20,837 [ERROR  ] fabric_scanner.classifier:   \u2717 Failed to classify policy_claims_summary.total_amount: HTTPSConnectionPool(host='pview-apfsipurviewdemo.purview.azure.com', port=443): Max retries exceeded with url: /catalog/api/atlas/v2/entity/guid/1a9d767b-f6c2-4e14-9f63-489cb6689c73/classifications (Caused by NameResolutionError("HTTPSConnection(host='pview-apfsipurviewdemo.purview.azure.com', port=443): Failed to resolve 'pview-apfsipurviewdemo.purview.azure.com' ([Errno 11001] getaddrinfo failed)"))
+2026-02-19 07:43:20,880 [ERROR  ] fabric_scanner.classifier:   \u2717 Failed to classify policy_claims_summary.avg_amount: HTTPSConnectionPool(host='pview-apfsipurviewdemo.purview.azure.com', port=443): Max retries exceeded with url: /catalog/api/atlas/v2/entity/guid/d4b14e9a-ee9a-436e-b36d-d259a9e8ad6a/classifications (Caused by NameResolutionError("HTTPSConnection(host='pview-apfsipurviewdemo.purview.azure.com', port=443): Failed to resolve 'pview-apfsipurviewdemo.purview.azure.com' ([Errno 11001] getaddrinfo failed)"))
+2026-02-19 07:43:20,900 [ERROR  ] fabric_scanner.classifier:   \u2717 Failed to classify policy_claims_summary.last_claim_date: HTTPSConnectionPool(host='pview-apfsipurviewdemo.purview.azure.com', port=443): Max retries exceeded with url: /catalog/api/atlas/v2/entity/guid/94c8ddba-1f66-471f-839a-0bf791c886ea/classifications (Caused by NameResolutionError("HTTPSConnection(host='pview-apfsipurviewdemo.purview.azure.com', port=443): Failed to resolve 'pview-apfsipurviewdemo.purview.azure.com' ([Errno 11001] getaddrinfo failed)"))
+2026-02-19 07:43:20,963 [ERROR  ] fabric_scanner.classifier:   \u2717 Failed to classify regional_statistics.region: HTTPSConnectionPool(host='pview-apfsipurviewdemo.purview.azure.com', port=443): Max retries exceeded with url: /catalog/api/atlas/v2/entity/guid/9363b601-9dec-4864-8d40-f8f932267a11/classifications (Caused by NameResolutionError("HTTPSConnection(host='pview-apfsipurviewdemo.purview.azure.com', port=443): Failed to resolve 'pview-apfsipurviewdemo.purview.azure.com' ([Errno 11001] getaddrinfo failed)"))
+2026-02-19 07:43:21,009 [ERROR  ] fabric_scanner.classifier:   \u2717 Failed to classify regional_statistics.state: HTTPSConnectionPool(host='pview-apfsipurviewdemo.purview.azure.com', port=443): Max retries exceeded with url: /catalog/api/atlas/v2/entity/guid/359cc16a-eb5b-49bb-9994-cce4b10f7655/classifications (Caused by NameResolutionError("HTTPSConnection(host='pview-apfsipurviewdemo.purview.azure.com', port=443): Failed to resolve 'pview-apfsipurviewdemo.purview.azure.com' ([Errno 11001] getaddrinfo failed)"))
+2026-02-19 07:43:21,017 [ERROR  ] fabric_scanner.classifier:   \u2717 Failed to classify regional_statistics.total_claims: HTTPSConnectionPool(host='pview-apfsipurviewdemo.purview.azure.com', port=443): Max retries exceeded with url: /catalog/api/atlas/v2/entity/guid/11d4c95f-08ab-4a88-9773-2eda0b173572/classifications (Caused by NameResolutionError("HTTPSConnection(host='pview-apfsipurviewdemo.purview.azure.com', port=443): Failed to resolve 'pview-apfsipurviewdemo.purview.azure.com' ([Errno 11001] getaddrinfo failed)"))
+2026-02-19 07:43:21,029 [ERROR  ] fabric_scanner.classifier:   \u2717 Failed to classify regional_statistics.fraud_rate: HTTPSConnectionPool(host='pview-apfsipurviewdemo.purview.azure.com', port=443): Max retries exceeded with url: /catalog/api/atlas/v2/entity/guid/6f87f668-c5eb-43e4-a55f-984622b5e93c/classifications (Caused by NameResolutionError("HTTPSConnection(host='pview-apfsipurviewdemo.purview.azure.com', port=443): Failed to resolve 'pview-apfsipurviewdemo.purview.azure.com' ([Errno 11001] getaddrinfo failed)"))
+2026-02-19 07:43:21,040 [ERROR  ] fabric_scanner.classifier:   \u2717 Failed to classify regional_statistics.avg_claim_amount: HTTPSConnectionPool(host='pview-apfsipurviewdemo.purview.azure.com', port=443): Max retries exceeded with url: /catalog/api/atlas/v2/entity/guid/4b5400fd-ec41-429a-a85d-2138adcc6d43/classifications (Caused by NameResolutionError("HTTPSConnection(host='pview-apfsipurviewdemo.purview.azure.com', port=443): Failed to resolve 'pview-apfsipurviewdemo.purview.azure.com' ([Errno 11001] getaddrinfo failed)"))
+2026-02-19 07:43:21,913 [ERROR  ] fabric_scanner.classifier:   \u2717 Failed to classify claims_history.claim_id: HTTPSConnectionPool(host='pview-apfsipurviewdemo.purview.azure.com', port=443): Max retries exceeded with url: /catalog/api/atlas/v2/entity/guid/0f2a52c6-ea80-4140-9a58-115fde0795cf/classifications (Caused by NameResolutionError("HTTPSConnection(host='pview-apfsipurviewdemo.purview.azure.com', port=443): Failed to resolve 'pview-apfsipurviewdemo.purview.azure.com' ([Errno 11001] getaddrinfo failed)"))
+2026-02-19 07:43:22,469 [ERROR  ] fabric_scanner.classifier:   \u2717 Failed to classify claims_history.claimant_id: HTTPSConnectionPool(host='pview-apfsipurviewdemo.purview.azure.com', port=443): Max retries exceeded with url: /catalog/api/atlas/v2/entity/guid/2263491b-c626-4fb1-a243-cdc326323d60/classifications (Caused by NameResolutionError("HTTPSConnection(host='pview-apfsipurviewdemo.purview.azure.com', port=443): Failed to resolve 'pview-apfsipurviewdemo.purview.azure.com' ([Errno 11001] getaddrinfo failed)"))
+2026-02-19 07:43:22,477 [ERROR  ] fabric_scanner.classifier:   \u2717 Failed to classify claims_history.claimant_name: HTTPSConnectionPool(host='pview-apfsipurviewdemo.purview.azure.com', port=443): Max retries exceeded with url: /catalog/api/atlas/v2/entity/guid/e9ca54e0-2944-4461-9ad4-30568260a115/classifications (Caused by NameResolutionError("HTTPSConnection(host='pview-apfsipurviewdemo.purview.azure.com', port=443): Failed to resolve 'pview-apfsipurviewdemo.purview.azure.com' ([Errno 11001] getaddrinfo failed)"))
+2026-02-19 07:43:22,499 [ERROR  ] fabric_scanner.classifier:   \u2717 Failed to classify claims_history.claim_type: HTTPSConnectionPool(host='pview-apfsipurviewdemo.purview.azure.com', port=443): Max retries exceeded with url: /catalog/api/atlas/v2/entity/guid/57f580c3-187e-4365-a1f9-12a7179eef30/classifications (Caused by NameResolutionError("HTTPSConnection(host='pview-apfsipurviewdemo.purview.azure.com', port=443): Failed to resolve 'pview-apfsipurviewdemo.purview.azure.com' ([Errno 11001] getaddrinfo failed)"))
+2026-02-19 07:43:22,514 [ERROR  ] fabric_scanner.classifier:   \u2717 Failed to classify claims_history.estimated_damage: HTTPSConnectionPool(host='pview-apfsipurviewdemo.purview.azure.com', port=443): Max retries exceeded with url: /catalog/api/atlas/v2/entity/guid/b2291360-f041-4cce-bbda-ddeee1efd867/classifications (Caused by NameResolutionError("HTTPSConnection(host='pview-apfsipurviewdemo.purview.azure.com', port=443): Failed to resolve 'pview-apfsipurviewdemo.purview.azure.com' ([Errno 11001] getaddrinfo failed)"))
+2026-02-19 07:43:22,527 [ERROR  ] fabric_scanner.classifier:   \u2717 Failed to classify claims_history.amount_paid: HTTPSConnectionPool(host='pview-apfsipurviewdemo.purview.azure.com', port=443): Max retries exceeded with url: /catalog/api/atlas/v2/entity/guid/49680a43-21f0-4055-a773-a4aa7ef1f82d/classifications (Caused by NameResolutionError("HTTPSConnection(host='pview-apfsipurviewdemo.purview.azure.com', port=443): Failed to resolve 'pview-apfsipurviewdemo.purview.azure.com' ([Errno 11001] getaddrinfo failed)"))
+2026-02-19 07:43:22,534 [ERROR  ] fabric_scanner.classifier:   \u2717 Failed to classify claims_history.status: HTTPSConnectionPool(host='pview-apfsipurviewdemo.purview.azure.com', port=443): Max retries exceeded with url: /catalog/api/atlas/v2/entity/guid/8e505acc-8a34-406e-9bc6-c4119119319b/classifications (Caused by NameResolutionError("HTTPSConnection(host='pview-apfsipurviewdemo.purview.azure.com', port=443): Failed to resolve 'pview-apfsipurviewdemo.purview.azure.com' ([Errno 11001] getaddrinfo failed)"))
+2026-02-19 07:43:22,544 [ERROR  ] fabric_scanner.classifier:   \u2717 Failed to classify claims_history.claim_date: HTTPSConnectionPool(host='pview-apfsipurviewdemo.purview.azure.com', port=443): Max retries exceeded with url: /catalog/api/atlas/v2/entity/guid/e7283dfc-6b2b-4024-ab43-86d94ea08a54/classifications (Caused by NameResolutionError("HTTPSConnection(host='pview-apfsipurviewdemo.purview.azure.com', port=443): Failed to resolve 'pview-apfsipurviewdemo.purview.azure.com' ([Errno 11001] getaddrinfo failed)"))
+2026-02-19 07:43:22,565 [ERROR  ] fabric_scanner.classifier:   \u2717 Failed to classify claims_history.incident_date: HTTPSConnectionPool(host='pview-apfsipurviewdemo.purview.azure.com', port=443): Max retries exceeded with url: /catalog/api/atlas/v2/entity/guid/0f2a4df7-6ef1-4192-af84-c555e28e2fb5/classifications (Caused by NameResolutionError("HTTPSConnection(host='pview-apfsipurviewdemo.purview.azure.com', port=443): Failed to resolve 'pview-apfsipurviewdemo.purview.azure.com' ([Errno 11001] getaddrinfo failed)"))
+2026-02-19 07:43:22,567 [ERROR  ] fabric_scanner.classifier:   \u2717 Failed to classify claims_history.location: HTTPSConnectionPool(host='pview-apfsipurviewdemo.purview.azure.com', port=443): Max retries exceeded with url: /catalog/api/atlas/v2/entity/guid/d819a1f8-b454-41ec-8bc6-f39fa5d4d040/classifications (Caused by NameResolutionError("HTTPSConnection(host='pview-apfsipurviewdemo.purview.azure.com', port=443): Failed to resolve 'pview-apfsipurviewdemo.purview.azure.com' ([Errno 11001] getaddrinfo failed)"))
+2026-02-19 07:43:22,569 [ERROR  ] fabric_scanner.classifier:   \u2717 Failed to classify claims_history.state: HTTPSConnectionPool(host='pview-apfsipurviewdemo.purview.azure.com', port=443): Max retries exceeded with url: /catalog/api/atlas/v2/entity/guid/878afa01-898c-4566-8b29-681ad055b41e/classifications (Caused by NameResolutionError("HTTPSConnection(host='pview-apfsipurviewdemo.purview.azure.com', port=443): Failed to resolve 'pview-apfsipurviewdemo.purview.azure.com' ([Errno 11001] getaddrinfo failed)"))
+2026-02-19 07:43:22,569 [ERROR  ] fabric_scanner.classifier:   \u2717 Failed to classify claims_history.fraud_flag: HTTPSConnectionPool(host='pview-apfsipurviewdemo.purview.azure.com', port=443): Max retries exceeded with url: /catalog/api/atlas/v2/entity/guid/95cc8496-ebe9-4d59-8791-ae9381c392a6/classifications (Caused by NameResolutionError("HTTPSConnection(host='pview-apfsipurviewdemo.purview.azure.com', port=443): Failed to resolve 'pview-apfsipurviewdemo.purview.azure.com' ([Errno 11001] getaddrinfo failed)"))
+2026-02-19 07:43:22,571 [ERROR  ] fabric_scanner.classifier:   \u2717 Failed to classify claims_history.police_report: HTTPSConnectionPool(host='pview-apfsipurviewdemo.purview.azure.com', port=443): Max retries exceeded with url: /catalog/api/atlas/v2/entity/guid/f6bd4f5f-edea-47df-83d1-ceac0deef6ad/classifications (Caused by NameResolutionError("HTTPSConnection(host='pview-apfsipurviewdemo.purview.azure.com', port=443): Failed to resolve 'pview-apfsipurviewdemo.purview.azure.com' ([Errno 11001] getaddrinfo failed)"))
+2026-02-19 07:43:22,571 [ERROR  ] fabric_scanner.classifier:   \u2717 Failed to classify claims_history.photos_provided: HTTPSConnectionPool(host='pview-apfsipurviewdemo.purview.azure.com', port=443): Max retries exceeded with url: /catalog/api/atlas/v2/entity/guid/91073585-d1d3-4031-a8a4-f4377c7e0010/classifications (Caused by NameResolutionError("HTTPSConnection(host='pview-apfsipurviewdemo.purview.azure.com', port=443): Failed to resolve 'pview-apfsipurviewdemo.purview.azure.com' ([Errno 11001] getaddrinfo failed)"))
+2026-02-19 07:43:22,573 [ERROR  ] fabric_scanner.classifier:   \u2717 Failed to classify claims_history.witness_statements: HTTPSConnectionPool(host='pview-apfsipurviewdemo.purview.azure.com', port=443): Max retries exceeded with url: /catalog/api/atlas/v2/entity/guid/35c8f8b8-6522-4a0c-a00e-881485b46ffa/classifications (Caused by NameResolutionError("HTTPSConnection(host='pview-apfsipurviewdemo.purview.azure.com', port=443): Failed to resolve 'pview-apfsipurviewdemo.purview.azure.com' ([Errno 11001] getaddrinfo failed)"))
+2026-02-19 07:43:22,575 [ERROR  ] fabric_scanner.classifier:   \u2717 Failed to classify claims_history.license_plate: HTTPSConnectionPool(host='pview-apfsipurviewdemo.purview.azure.com', port=443): Max retries exceeded with url: /catalog/api/atlas/v2/entity/guid/44ef0ae5-2312-4898-8cee-ce7b65889774/classifications (Caused by NameResolutionError("HTTPSConnection(host='pview-apfsipurviewdemo.purview.azure.com', port=443): Failed to resolve 'pview-apfsipurviewdemo.purview.azure.com' ([Errno 11001] getaddrinfo failed)"))
+2026-02-19 07:43:22,577 [ERROR  ] fabric_scanner.classifier:   \u2717 Failed to classify claims_history.vehicle_info: HTTPSConnectionPool(host='pview-apfsipurviewdemo.purview.azure.com', port=443): Max retries exceeded with url: /catalog/api/atlas/v2/entity/guid/1110867a-4061-46a1-87fd-9ade0a049a15/classifications (Caused by NameResolutionError("HTTPSConnection(host='pview-apfsipurviewdemo.purview.azure.com', port=443): Failed to resolve 'pview-apfsipurviewdemo.purview.azure.com' ([Errno 11001] getaddrinfo failed)"))
+2026-02-19 07:43:22,577 [ERROR  ] fabric_scanner.classifier:   \u2717 Failed to classify claims_history.description: HTTPSConnectionPool(host='pview-apfsipurviewdemo.purview.azure.com', port=443): Max retries exceeded with url: /catalog/api/atlas/v2/entity/guid/11495b3e-32e0-45d5-902e-0f40819cbf65/classifications (Caused by NameResolutionError("HTTPSConnection(host='pview-apfsipurviewdemo.purview.azure.com', port=443): Failed to resolve 'pview-apfsipurviewdemo.purview.azure.com' ([Errno 11001] getaddrinfo failed)"))
+2026-02-19 07:43:22,580 [ERROR  ] fabric_scanner.classifier:   \u2717 Failed to classify claimant_profiles.claimant_id: HTTPSConnectionPool(host='pview-apfsipurviewdemo.purview.azure.com', port=443): Max retries exceeded with url: /catalog/api/atlas/v2/entity/guid/22391820-0a15-473c-a4a0-725e8fdaa145/classifications (Caused by NameResolutionError("HTTPSConnection(host='pview-apfsipurviewdemo.purview.azure.com', port=443): Failed to resolve 'pview-apfsipurviewdemo.purview.azure.com' ([Errno 11001] getaddrinfo failed)"))
+2026-02-19 07:43:22,582 [ERROR  ] fabric_scanner.classifier:   \u2717 Failed to classify claimant_profiles.name: HTTPSConnectionPool(host='pview-apfsipurviewdemo.purview.azure.com', port=443): Max retries exceeded with url: /catalog/api/atlas/v2/entity/guid/f4e8b457-abee-463a-a08e-46a7d6a1ad3f/classifications (Caused by NameResolutionError("HTTPSConnection(host='pview-apfsipurviewdemo.purview.azure.com', port=443): Failed to resolve 'pview-apfsipurviewdemo.purview.azure.com' ([Errno 11001] getaddrinfo failed)"))
+2026-02-19 07:43:22,584 [ERROR  ] fabric_scanner.classifier:   \u2717 Failed to classify claimant_profiles.age: HTTPSConnectionPool(host='pview-apfsipurviewdemo.purview.azure.com', port=443): Max retries exceeded with url: /catalog/api/atlas/v2/entity/guid/5b1ca038-7654-4737-9628-042507f80c34/classifications (Caused by NameResolutionError("HTTPSConnection(host='pview-apfsipurviewdemo.purview.azure.com', port=443): Failed to resolve 'pview-apfsipurviewdemo.purview.azure.com' ([Errno 11001] getaddrinfo failed)"))
+2026-02-19 07:43:22,587 [ERROR  ] fabric_scanner.classifier:   \u2717 Failed to classify claimant_profiles.location: HTTPSConnectionPool(host='pview-apfsipurviewdemo.purview.azure.com', port=443): Max retries exceeded with url: /catalog/api/atlas/v2/entity/guid/415c3998-1a00-4868-b39b-954999227a64/classifications (Caused by NameResolutionError("HTTPSConnection(host='pview-apfsipurviewdemo.purview.azure.com', port=443): Failed to resolve 'pview-apfsipurviewdemo.purview.azure.com' ([Errno 11001] getaddrinfo failed)"))
+2026-02-19 07:43:22,587 [ERROR  ] fabric_scanner.classifier:   \u2717 Failed to classify claimant_profiles.risk_score: HTTPSConnectionPool(host='pview-apfsipurviewdemo.purview.azure.com', port=443): Max retries exceeded with url: /catalog/api/atlas/v2/entity/guid/9474b854-6c79-462c-8562-9dbd23c49b9b/classifications (Caused by NameResolutionError("HTTPSConnection(host='pview-apfsipurviewdemo.purview.azure.com', port=443): Failed to resolve 'pview-apfsipurviewdemo.purview.azure.com' ([Errno 11001] getaddrinfo failed)"))
+2026-02-19 07:43:22,613 [ERROR  ] fabric_scanner.classifier:   \u2717 Failed to classify claimant_profiles.policy_number: HTTPSConnectionPool(host='pview-apfsipurviewdemo.purview.azure.com', port=443): Max retries exceeded with url: /catalog/api/atlas/v2/entity/guid/46b97d6e-d9df-4e58-8594-0874577c4779/classifications (Caused by NameResolutionError("HTTPSConnection(host='pview-apfsipurviewdemo.purview.azure.com', port=443): Failed to resolve 'pview-apfsipurviewdemo.purview.azure.com' ([Errno 11001] getaddrinfo failed)"))
+2026-02-19 07:43:22,617 [ERROR  ] fabric_scanner.classifier:   \u2717 Failed to classify fraud_indicators.indicator_id: HTTPSConnectionPool(host='pview-apfsipurviewdemo.purview.azure.com', port=443): Max retries exceeded with url: /catalog/api/atlas/v2/entity/guid/4b6a98fd-86d2-40e7-8617-e1955081ef3e/classifications (Caused by NameResolutionError("HTTPSConnection(host='pview-apfsipurviewdemo.purview.azure.com', port=443): Failed to resolve 'pview-apfsipurviewdemo.purview.azure.com' ([Errno 11001] getaddrinfo failed)"))
+2026-02-19 07:43:22,619 [ERROR  ] fabric_scanner.classifier:   \u2717 Failed to classify fraud_indicators.claim_id: HTTPSConnectionPool(host='pview-apfsipurviewdemo.purview.azure.com', port=443): Max retries exceeded with url: /catalog/api/atlas/v2/entity/guid/ac11b578-eab6-4a7e-825d-8e4d945bf39e/classifications (Caused by NameResolutionError("HTTPSConnection(host='pview-apfsipurviewdemo.purview.azure.com', port=443): Failed to resolve 'pview-apfsipurviewdemo.purview.azure.com' ([Errno 11001] getaddrinfo failed)"))
+2026-02-19 07:43:22,621 [ERROR  ] fabric_scanner.classifier:   \u2717 Failed to classify fraud_indicators.indicator_type: HTTPSConnectionPool(host='pview-apfsipurviewdemo.purview.azure.com', port=443): Max retries exceeded with url: /catalog/api/atlas/v2/entity/guid/2bfadc5e-42de-4fc1-bbbf-0fd84f8125ce/classifications (Caused by NameResolutionError("HTTPSConnection(host='pview-apfsipurviewdemo.purview.azure.com', port=443): Failed to resolve 'pview-apfsipurviewdemo.purview.azure.com' ([Errno 11001] getaddrinfo failed)"))
+2026-02-19 07:43:22,623 [ERROR  ] fabric_scanner.classifier:   \u2717 Failed to classify fraud_indicators.severity: HTTPSConnectionPool(host='pview-apfsipurviewdemo.purview.azure.com', port=443): Max retries exceeded with url: /catalog/api/atlas/v2/entity/guid/6c19b371-752c-4610-a49a-6de899e350c7/classifications (Caused by NameResolutionError("HTTPSConnection(host='pview-apfsipurviewdemo.purview.azure.com', port=443): Failed to resolve 'pview-apfsipurviewdemo.purview.azure.com' ([Errno 11001] getaddrinfo failed)"))
+2026-02-19 07:43:22,649 [ERROR  ] fabric_scanner.classifier:   \u2717 Failed to classify fraud_indicators.description: HTTPSConnectionPool(host='pview-apfsipurviewdemo.purview.azure.com', port=443): Max retries exceeded with url: /catalog/api/atlas/v2/entity/guid/50d586ac-77ce-4737-b11e-bbfe9388e46e/classifications (Caused by NameResolutionError("HTTPSConnection(host='pview-apfsipurviewdemo.purview.azure.com', port=443): Failed to resolve 'pview-apfsipurviewdemo.purview.azure.com' ([Errno 11001] getaddrinfo failed)"))
+2026-02-19 07:43:22,665 [ERROR  ] fabric_scanner.classifier:   \u2717 Failed to classify fraud_indicators.flagged_date: HTTPSConnectionPool(host='pview-apfsipurviewdemo.purview.azure.com', port=443): Max retries exceeded with url: /catalog/api/atlas/v2/entity/guid/8fb4cdf1-3772-4d47-8bae-3c7531717a44/classifications (Caused by NameResolutionError("HTTPSConnection(host='pview-apfsipurviewdemo.purview.azure.com', port=443): Failed to resolve 'pview-apfsipurviewdemo.purview.azure.com' ([Errno 11001] getaddrinfo failed)"))
+2026-02-19 07:43:22,689 [ERROR  ] fabric_scanner.classifier:   \u2717 Failed to classify policy_claims_summary.policy_number: HTTPSConnectionPool(host='pview-apfsipurviewdemo.purview.azure.com', port=443): Max retries exceeded with url: /catalog/api/atlas/v2/entity/guid/ef028b73-fd63-4cff-8c1c-57cbbde486be/classifications (Caused by NameResolutionError("HTTPSConnection(host='pview-apfsipurviewdemo.purview.azure.com', port=443): Failed to resolve 'pview-apfsipurviewdemo.purview.azure.com' ([Errno 11001] getaddrinfo failed)"))
+2026-02-19 07:43:22,691 [ERROR  ] fabric_scanner.classifier:   \u2717 Failed to classify policy_claims_summary.total_claims: HTTPSConnectionPool(host='pview-apfsipurviewdemo.purview.azure.com', port=443): Max retries exceeded with url: /catalog/api/atlas/v2/entity/guid/eb6db0fb-c0b3-4bb7-a05e-e8e7f6d45b35/classifications (Caused by NameResolutionError("HTTPSConnection(host='pview-apfsipurviewdemo.purview.azure.com', port=443): Failed to resolve 'pview-apfsipurviewdemo.purview.azure.com' ([Errno 11001] getaddrinfo failed)"))
+2026-02-19 07:43:22,694 [ERROR  ] fabric_scanner.classifier:   \u2717 Failed to classify policy_claims_summary.total_amount: HTTPSConnectionPool(host='pview-apfsipurviewdemo.purview.azure.com', port=443): Max retries exceeded with url: /catalog/api/atlas/v2/entity/guid/b61fcfa2-0c21-4e28-b986-b6aea0442f63/classifications (Caused by NameResolutionError("HTTPSConnection(host='pview-apfsipurviewdemo.purview.azure.com', port=443): Failed to resolve 'pview-apfsipurviewdemo.purview.azure.com' ([Errno 11001] getaddrinfo failed)"))
+2026-02-19 07:43:22,697 [ERROR  ] fabric_scanner.classifier:   \u2717 Failed to classify policy_claims_summary.avg_amount: HTTPSConnectionPool(host='pview-apfsipurviewdemo.purview.azure.com', port=443): Max retries exceeded with url: /catalog/api/atlas/v2/entity/guid/90cf5e9f-7651-44be-805f-0b08066f0270/classifications (Caused by NameResolutionError("HTTPSConnection(host='pview-apfsipurviewdemo.purview.azure.com', port=443): Failed to resolve 'pview-apfsipurviewdemo.purview.azure.com' ([Errno 11001] getaddrinfo failed)"))
+2026-02-19 07:43:22,699 [ERROR  ] fabric_scanner.classifier:   \u2717 Failed to classify policy_claims_summary.last_claim_date: HTTPSConnectionPool(host='pview-apfsipurviewdemo.purview.azure.com', port=443): Max retries exceeded with url: /catalog/api/atlas/v2/entity/guid/1e6c8936-a82e-4308-8d76-d9128b2d05b0/classifications (Caused by NameResolutionError("HTTPSConnection(host='pview-apfsipurviewdemo.purview.azure.com', port=443): Failed to resolve 'pview-apfsipurviewdemo.purview.azure.com' ([Errno 11001] getaddrinfo failed)"))
+2026-02-19 07:43:22,731 [ERROR  ] fabric_scanner.classifier:   \u2717 Failed to classify regional_statistics.region: HTTPSConnectionPool(host='pview-apfsipurviewdemo.purview.azure.com', port=443): Max retries exceeded with url: /catalog/api/atlas/v2/entity/guid/f561a86a-8303-4b4e-bc6b-ea2b0f979287/classifications (Caused by NameResolutionError("HTTPSConnection(host='pview-apfsipurviewdemo.purview.azure.com', port=443): Failed to resolve 'pview-apfsipurviewdemo.purview.azure.com' ([Errno 11001] getaddrinfo failed)"))
+2026-02-19 07:43:22,735 [ERROR  ] fabric_scanner.classifier:   \u2717 Failed to classify regional_statistics.state: HTTPSConnectionPool(host='pview-apfsipurviewdemo.purview.azure.com', port=443): Max retries exceeded with url: /catalog/api/atlas/v2/entity/guid/7d9d9765-21cd-4a69-ac75-f999ec731bc9/classifications (Caused by NameResolutionError("HTTPSConnection(host='pview-apfsipurviewdemo.purview.azure.com', port=443): Failed to resolve 'pview-apfsipurviewdemo.purview.azure.com' ([Errno 11001] getaddrinfo failed)"))
+2026-02-19 07:43:22,737 [ERROR  ] fabric_scanner.classifier:   \u2717 Failed to classify regional_statistics.total_claims: HTTPSConnectionPool(host='pview-apfsipurviewdemo.purview.azure.com', port=443): Max retries exceeded with url: /catalog/api/atlas/v2/entity/guid/5d788062-aab4-4e1e-9e99-9b4af7c39a5a/classifications (Caused by NameResolutionError("HTTPSConnection(host='pview-apfsipurviewdemo.purview.azure.com', port=443): Failed to resolve 'pview-apfsipurviewdemo.purview.azure.com' ([Errno 11001] getaddrinfo failed)"))
+2026-02-19 07:43:22,739 [ERROR  ] fabric_scanner.classifier:   \u2717 Failed to classify regional_statistics.fraud_rate: HTTPSConnectionPool(host='pview-apfsipurviewdemo.purview.azure.com', port=443): Max retries exceeded with url: /catalog/api/atlas/v2/entity/guid/f1872599-feeb-4f99-ba35-1a699ccac86b/classifications (Caused by NameResolutionError("HTTPSConnection(host='pview-apfsipurviewdemo.purview.azure.com', port=443): Failed to resolve 'pview-apfsipurviewdemo.purview.azure.com' ([Errno 11001] getaddrinfo failed)"))
+2026-02-19 07:43:22,741 [ERROR  ] fabric_scanner.classifier:   \u2717 Failed to classify regional_statistics.avg_claim_amount: HTTPSConnectionPool(host='pview-apfsipurviewdemo.purview.azure.com', port=443): Max retries exceeded with url: /catalog/api/atlas/v2/entity/guid/b13ab03d-9e07-4f0f-a564-2a595f44c283/classifications (Caused by NameResolutionError("HTTPSConnection(host='pview-apfsipurviewdemo.purview.azure.com', port=443): Failed to resolve 'pview-apfsipurviewdemo.purview.azure.com' ([Errno 11001] getaddrinfo failed)"))
+2026-02-19 07:43:22,741 [INFO   ] fabric_scanner.classifier: Classification complete: 51 applied, 69 errors, 0 dry-run
+2026-02-19 07:43:22,741 [INFO   ] fabric_scanner: 
+2026-02-19 07:43:22,741 [INFO   ] fabric_scanner: ============================================================
+2026-02-19 07:43:22,741 [INFO   ] fabric_scanner: SCAN COMPLETE  (740.3s)
+2026-02-19 07:43:22,741 [INFO   ] fabric_scanner:   Entities registered        : 135
+2026-02-19 07:43:22,741 [INFO   ] fabric_scanner:   Classifications applied     : 51
+2026-02-19 07:43:22,741 [INFO   ] fabric_scanner:   Classification errors       : 69
+2026-02-19 07:43:22,741 [INFO   ] fabric_scanner: ============================================================
+2026-02-19 07:43:22,754 [INFO   ] fabric_scanner: Report written to scan_report.json
