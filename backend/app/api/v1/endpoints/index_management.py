@@ -70,21 +70,10 @@ def get_index_status() -> IndexStatus:
     try:
         settings = get_settings()
         
-        # Check if Azure AI Search is configured (now using Service Principal auth)
+        # Check if Azure AI Search is configured
         if not settings.azure_search_endpoint:
             return IndexStatus(
-                is_built=False,
-                document_count=0,
-                original_policies_count=0,
-                uploaded_docs_count=0,
-                indexed_uploaded_count=0,
-                status="not_configured",
-                index_size_mb=None
-            )
-        
-        # Check Service Principal credentials
-        if not settings.azure_tenant_id or not settings.azure_client_id or not settings.azure_client_secret:
-            return IndexStatus(
+                index_name=settings.azure_search_index_name or "insurance-policies",
                 is_built=False,
                 document_count=0,
                 original_policies_count=0,

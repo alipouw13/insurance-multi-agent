@@ -23,9 +23,33 @@ router = APIRouter(tags=["workflow"])
 # Initialize logger
 logger = logging.getLogger(__name__)
 
-# Regex compiled once
+# Regex compiled once.
+# The supervisor prompt asks for APPROVE/DENY/INVESTIGATE, while the API contract
+# exposes APPROVED/DENIED/REQUIRES_INVESTIGATION, so both forms are matched.
 DECISION_PATTERN = re.compile(
-    r"\b(APPROVED|DENIED|REQUIRES_INVESTIGATION)\b", re.IGNORECASE)
+    r"\b(APPROVED|APPROVE|DENIED|DENY|REQUIRES_INVESTIGATION|INVESTIGATE)\b", re.IGNORECASE)
+
+# Preferred match: the supervisor's explicit recommendation line
+RECOMMENDATION_PATTERN = re.compile(
+    r"PRIMARY RECOMMENDATION:\s*\**\s*(APPROVED|APPROVE|DENIED|DENY|REQUIRES_INVESTIGATION|INVESTIGATE)",
+    re.IGNORECASE)
+
+DECISION_NORMALIZATION = {
+    "APPROVE": "APPROVED",
+    "APPROVED": "APPROVED",
+    "DENY": "DENIED",
+    "DENIED": "DENIED",
+    "INVESTIGATE": "REQUIRES_INVESTIGATION",
+    "REQUIRES_INVESTIGATION": "REQUIRES_INVESTIGATION",
+}
+
+
+def extract_decision(content: str) -> str | None:
+    """Extract a normalized claim decision from an agent message."""
+    match = RECOMMENDATION_PATTERN.search(content) or DECISION_PATTERN.search(content)
+    if not match:
+        return None
+    return DECISION_NORMALIZATION.get(match.group(1).upper())
 
 
 def get_sample_claim_by_id(claim_id: str) -> dict:
@@ -212,9 +236,9 @@ async def workflow_run(claim: ClaimIn):  # noqa: D401
 
             # Extract final decision scanning chronological reverse order
             for entry in reversed(chronological):
-                match = DECISION_PATTERN.search(entry["content"])
-                if match:
-                    final_decision = match.group(1).upper()
+                decision = extract_decision(entry["content"])
+                if decision:
+                    final_decision = decision
                     break
 
             # Finalize tracking
