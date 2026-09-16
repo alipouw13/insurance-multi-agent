@@ -21,7 +21,6 @@ import {
   loginRequest, 
   fabricTokenRequest, 
   isMsalConfigured,
-  FABRIC_SCOPES,
 } from './msal-config'
 
 interface AuthContextType {

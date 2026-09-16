@@ -49,6 +49,13 @@ interface AnalyzedDocument {
   result?: AnalysisResult
 }
 
+/** Shape of a document record returned by GET /api/v1/documents */
+interface StoredDocument {
+  id: string
+  filename: string
+  upload_date: string
+}
+
 export default function DocumentAnalyzePage() {
   const [documents, setDocuments] = useState<AnalyzedDocument[]>([])
   const [selectedDoc, setSelectedDoc] = useState<AnalyzedDocument | null>(null)
@@ -69,7 +76,7 @@ export default function DocumentAnalyzePage() {
       if (response.ok) {
         const data = await response.json()
         // Transform storage documents to AnalyzedDocument format
-        const storageDocs: AnalyzedDocument[] = data.documents.map((doc: any) => ({
+        const storageDocs: AnalyzedDocument[] = data.documents.map((doc: StoredDocument) => ({
           id: doc.id,
           filename: doc.filename,
           timestamp: doc.upload_date,
@@ -146,6 +153,10 @@ export default function DocumentAnalyzePage() {
     }
 
     fetchDocumentPreview()
+    // Intentionally keyed on the selected document only. The effect calls
+    // setDocumentUrl, so including documentUrl (or the whole selectedDoc object)
+    // would re-trigger it on every run and loop indefinitely.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedDoc?.id, selectedDoc?.status])
 
   const handleClearCache = () => {
@@ -308,7 +319,6 @@ export default function DocumentAnalyzePage() {
           const errorText = await indexResponse.text()
           console.error('Upload failed:', indexResponse.status, errorText)
           toast.warning(`Document analyzed but upload failed: ${errorText}`)
-          const errorData = { detail: `Upload failed with status ${indexResponse.status}` }
         } else {
           toast.success('Document uploaded and indexed successfully')
         }
@@ -350,12 +360,12 @@ export default function DocumentAnalyzePage() {
   }
 
   const getStatusBadge = (status: AnalyzedDocument['status']) => {
-    const variants = {
+    const variants: Record<AnalyzedDocument['status'], React.ComponentProps<typeof Badge>['variant']> = {
       succeeded: 'default',
       failed: 'destructive',
       processing: 'secondary'
     }
-    return <Badge variant={variants[status] as any}>{status}</Badge>
+    return <Badge variant={variants[status]}>{status}</Badge>
   }
 
   const getConfidenceBadge = (confidence: number) => {
@@ -519,6 +529,9 @@ export default function DocumentAnalyzePage() {
                           title="Document Preview"
                         />
                       ) : (
+                        // next/image cannot optimize runtime blob: URLs created by
+                        // URL.createObjectURL, so a plain img is required here.
+                        // eslint-disable-next-line @next/next/no-img-element
                         <img
                           src={documentUrl}
                           alt="Document Preview"

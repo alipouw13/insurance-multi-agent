@@ -16,7 +16,6 @@ import { Badge } from '@/components/ui/badge'
 import { Input } from '@/components/ui/input'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Separator } from '@/components/ui/separator'
-import { ContentUnderstandingTest } from '@/components/content-understanding-test'
 import { 
   FileText, 
   Download, 
@@ -84,13 +83,10 @@ export default function DocumentsPage() {
   const [documentContent, setDocumentContent] = useState<string>('')
   const [isLoading, setIsLoading] = useState(false)
   const [searchTerm, setSearchTerm] = useState('')
-  const [activeTab, setActiveTab] = useState<'policy' | 'claims'>('claims')
-  const [showClaimsUpload, setShowClaimsUpload] = useState(true)
 
   const loadDocument = useCallback(async (doc: PolicyDocument) => {
     setIsLoading(true)
     setSelectedDocument(doc)
-    setShowClaimsUpload(false)
     
     try {
       const response = await fetch(`/policies/${doc.filename}`)
@@ -105,11 +101,6 @@ export default function DocumentsPage() {
     } finally {
       setIsLoading(false)
     }
-  }, [])
-
-  const handleClaimsUploadClick = useCallback(() => {
-    setSelectedDocument(null)
-    setShowClaimsUpload(true)
   }, [])
 
   const downloadDocument = useCallback((doc: PolicyDocument) => {
