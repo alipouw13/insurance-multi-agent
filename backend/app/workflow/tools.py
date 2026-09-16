@@ -427,12 +427,13 @@ def analyze_image(image_path: str) -> Dict[str, Any]:
         # ------------------------------------------------------------
         import openai  # lazy import to avoid mandatory dependency elsewhere
         from app.core.config import get_settings
+        from app.core.azure_openai_auth import get_azure_openai_auth_kwargs
         settings = get_settings()
 
         client = openai.AzureOpenAI(
             azure_endpoint=settings.azure_openai_endpoint,
-            api_key=settings.azure_openai_api_key,
             api_version=settings.azure_openai_api_version or "2024-08-01-preview",
+            **get_azure_openai_auth_kwargs(settings.azure_openai_api_key),
         )
 
         deployment_name = settings.azure_openai_deployment_name or "gpt-4o"

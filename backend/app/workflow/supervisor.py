@@ -38,6 +38,7 @@ logger = logging.getLogger(__name__)
 def _build_llm() -> AzureChatOpenAI:  # noqa: D401
     """Instantiate AzureChatOpenAI with centralized config."""
     from app.core.config import get_settings
+    from app.core.azure_openai_auth import get_azure_openai_auth_kwargs
 
     settings = get_settings()
     endpoint = settings.azure_openai_endpoint
@@ -52,10 +53,10 @@ def _build_llm() -> AzureChatOpenAI:  # noqa: D401
 
     return AzureChatOpenAI(
             azure_deployment=deployment,
-            api_key=api_key,
             azure_endpoint=endpoint,
             api_version=api_version,
             temperature=0.1,
+            **get_azure_openai_auth_kwargs(api_key),
         )
     
 
