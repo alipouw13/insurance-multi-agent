@@ -32,7 +32,7 @@ import { getApiUrl } from '@/lib/config'
 import { AgentWorkflowVisualization } from '@/components/agent-workflow-visualization'
 import { EvaluationDialog } from '@/components/evaluation-dialog'
 import { evaluateExecution, EvaluationResult } from '@/lib/api'
-import { useAuth, isMsalConfigured } from '@/lib/auth'
+import { useAuth } from '@/lib/auth'
 
 // Sample claims from API
 interface SampleClaim {

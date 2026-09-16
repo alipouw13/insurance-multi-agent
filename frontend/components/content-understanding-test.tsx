@@ -31,6 +31,7 @@ interface AnalysisResult {
   content_preview: string
   field_count: number
   table_count: number
+  analyzer_id?: string
 }
 
 type ProcessingStep = 'uploading' | 'analyzing' | 'indexing' | 'complete' | 'error'
@@ -226,8 +227,8 @@ export function ContentUnderstandingTest() {
                     <li>Use a prebuilt analyzer: <code className="text-xs bg-yellow-100 dark:bg-yellow-900 px-1 rounded">prebuilt-document</code>, <code className="text-xs bg-yellow-100 dark:bg-yellow-900 px-1 rounded">prebuilt-invoice</code>, or <code className="text-xs bg-yellow-100 dark:bg-yellow-900 px-1 rounded">prebuilt-receipt</code></li>
                     <li>Train a custom analyzer in Azure AI Studio with sample documents</li>
                   </ul>
-                  {(result as any).analyzer_id && (
-                    <p className="mt-2 text-xs">Current analyzer: <code className="bg-yellow-100 dark:bg-yellow-900 px-1 rounded">{(result as any).analyzer_id}</code></p>
+                  {result.analyzer_id && (
+                    <p className="mt-2 text-xs">Current analyzer: <code className="bg-yellow-100 dark:bg-yellow-900 px-1 rounded">{result.analyzer_id}</code></p>
                   )}
                 </div>
               </AlertDescription>

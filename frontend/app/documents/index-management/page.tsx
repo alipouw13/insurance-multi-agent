@@ -49,10 +49,6 @@ interface IndexStatus {
   status: string // building, ready, error, empty
 }
 
-interface IndexStatusResponse {
-  status: IndexStatus
-}
-
 interface CombinedIndexStatusResponse {
   policy_index: IndexStatus
   claims_index: IndexStatus
