@@ -16,10 +16,28 @@ param frontendContainerImage string = 'mcr.microsoft.com/azuredocs/containerapps
 param projectName string = 'insurance-multi-agent'
 
 @description('Azure OpenAI deployment name')
-param azureOpenAIDeploymentName string = 'gpt-4o-mini'
+param azureOpenAIDeploymentName string = 'gpt-4.1-mini'
 
 @description('Azure OpenAI embedding model')
 param azureOpenAIEmbeddingModel string = 'text-embedding-3-large'
+
+@description('Azure OpenAI chat model version')
+param azureOpenAIModelVersion string = '2025-04-14'
+
+@description('The location for the Azure AI Search service (defaults to the main location)')
+param searchServiceLocation string = ''
+
+@description('Deploy a Microsoft Fabric capacity for the Claims Data Analyst agent')
+param deployFabricCapacity bool = true
+
+@description('Deploy a virtual network with private endpoints for Cosmos DB and Storage')
+param deployPrivateNetworking bool = true
+
+@description('Fabric capacity SKU. F2 is the minimum required for Fabric data agents.')
+param fabricCapacitySkuName string = 'F2'
+
+@description('User principal name (or service principal object ID) that administers the Fabric capacity')
+param fabricCapacityAdminMember string = ''
 
 // Generate a short unique suffix for resource naming
 var uniqueSuffix = take(uniqueString(resourceGroup().id), 6)
@@ -46,6 +64,7 @@ var appInsightsName = 'ai-${uniqueSuffix}'
 var logAnalyticsName = 'log-${uniqueSuffix}'
 var aiHubName = 'hub-${uniqueSuffix}'
 var aiProjectName = 'proj-${uniqueSuffix}'
+var fabricCapacityName = 'fab${uniqueSuffix}'
 
 // Create managed identity for container registry and Azure services access
 resource managedIdentity 'Microsoft.ManagedIdentity/userAssignedIdentities@2023-01-31' = {
@@ -198,7 +217,7 @@ resource evaluationsContainer 'Microsoft.DocumentDB/databaseAccounts/sqlDatabase
 // Azure AI Search
 resource searchService 'Microsoft.Search/searchServices@2023-11-01' = {
   name: searchServiceName
-  location: location
+  location: empty(searchServiceLocation) ? location : searchServiceLocation
   tags: commonTags
   sku: {
     name: 'basic'
@@ -206,6 +225,12 @@ resource searchService 'Microsoft.Search/searchServices@2023-11-01' = {
   properties: {
     replicaCount: 1
     partitionCount: 1
+    // Allow Microsoft Entra ID (managed identity) authentication in addition to API keys
+    authOptions: {
+      aadOrApiKey: {
+        aadAuthFailureMode: 'http401WithBearerChallenge'
+      }
+    }
   }
 }
 
@@ -231,12 +256,12 @@ resource openAIDeployment 'Microsoft.CognitiveServices/accounts/deployments@2023
     model: {
       format: 'OpenAI'
       name: azureOpenAIDeploymentName
-      version: '2024-08-06'
+      version: azureOpenAIModelVersion
     }
   }
   sku: {
     name: 'Standard'
-    capacity: 10
+    capacity: 50
   }
 }
 
@@ -292,6 +317,32 @@ resource aiProject 'Microsoft.MachineLearningServices/workspaces@2024-04-01' = {
   }
 }
 
+// Microsoft Fabric capacity (backs the Lakehouse + Fabric data agent used by the
+// Claims Data Analyst agent). F2 is the minimum SKU that supports Fabric data agents.
+module fabricCapacity 'modules/fabric-capacity.bicep' = if (deployFabricCapacity) {
+  name: 'fabric-capacity'
+  params: {
+    name: fabricCapacityName
+    location: location
+    skuName: fabricCapacitySkuName
+    adminMembers: empty(fabricCapacityAdminMember) ? [] : [fabricCapacityAdminMember]
+    tags: commonTags
+  }
+}
+
+// Private networking so the app can reach Cosmos DB and Storage, which tenant
+// policy keeps closed to public network access
+module network 'modules/network.bicep' = if (deployPrivateNetworking) {
+  name: 'network'
+  params: {
+    namePrefix: uniqueSuffix
+    location: location
+    tags: commonTags
+    cosmosAccountId: cosmosAccount.id
+    storageAccountId: storageAccount.id
+  }
+}
+
 // Deploy container apps stack (environment + registry)
 module containerAppsStack 'modules/container-apps-stack.bicep' = {
   name: 'container-apps-stack'
@@ -302,6 +353,7 @@ module containerAppsStack 'modules/container-apps-stack.bicep' = {
     tags: commonTags
     projectName: projectName
     environmentName: environmentName
+    infrastructureSubnetId: deployPrivateNetworking ? network.outputs.containerAppsSubnetId : ''
   }
 }
 
@@ -326,14 +378,14 @@ resource storageBlobDataContributorRole 'Microsoft.Authorization/roleAssignments
   }
 }
 
-// Cosmos DB Data Contributor role for managed identity
-resource cosmosDataContributorRole 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
+// Cosmos DB Built-in Data Contributor (data-plane) role for managed identity
+resource cosmosDataContributorRole 'Microsoft.DocumentDB/databaseAccounts/sqlRoleAssignments@2023-04-15' = {
+  parent: cosmosAccount
   name: guid(cosmosAccount.id, managedIdentity.id, '00000000-0000-0000-0000-000000000002')
-  scope: cosmosAccount
   properties: {
-    roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '00000000-0000-0000-0000-000000000002')
+    roleDefinitionId: '${cosmosAccount.id}/sqlRoleDefinitions/00000000-0000-0000-0000-000000000002'
     principalId: managedIdentity.properties.principalId
-    principalType: 'ServicePrincipal'
+    scope: cosmosAccount.id
   }
 }
 
@@ -343,6 +395,17 @@ resource searchIndexDataContributorRole 'Microsoft.Authorization/roleAssignments
   scope: searchService
   properties: {
     roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '8ebe5a00-799e-43f5-93ac-243d3dce84a7')
+    principalId: managedIdentity.properties.principalId
+    principalType: 'ServicePrincipal'
+  }
+}
+
+// Search Service Contributor role for managed identity (needed to create/manage indexes)
+resource searchServiceContributorRole 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
+  name: guid(searchService.id, managedIdentity.id, '7ca78c08-252a-4471-8644-bb5ff32d4ba0')
+  scope: searchService
+  properties: {
+    roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '7ca78c08-252a-4471-8644-bb5ff32d4ba0')
     principalId: managedIdentity.properties.principalId
     principalType: 'ServicePrincipal'
   }
@@ -371,6 +434,8 @@ module backendContainerApp 'modules/containerapp.bicep' = {
     registryServer: containerAppsStack.outputs.containerRegistryLoginServer
     managedIdentityResourceId: managedIdentity.id
     managedIdentityClientId: managedIdentity.properties.clientId
+    containerCpu: '1.0'
+    containerMemory: '2.0Gi'
     tags: commonTags
     resourcePrefix: uniqueSuffix
     environmentVariables: [
@@ -387,8 +452,9 @@ module backendContainerApp 'modules/containerapp.bicep' = {
         value: openAIAccount.properties.endpoint
       }
       {
-        name: 'AZURE_OPENAI_API_KEY'
-        value: openAIAccount.listKeys().key1
+        // Lets DefaultAzureCredential pick the user-assigned managed identity
+        name: 'AZURE_CLIENT_ID'
+        value: managedIdentity.properties.clientId
       }
       {
         name: 'AZURE_OPENAI_DEPLOYMENT_NAME'
@@ -485,6 +551,8 @@ module frontendContainerApp 'modules/containerapp.bicep' = {
     registryServer: containerAppsStack.outputs.containerRegistryLoginServer
     managedIdentityResourceId: managedIdentity.id
     managedIdentityClientId: managedIdentity.properties.clientId
+    containerCpu: '0.5'
+    containerMemory: '1.0Gi'
     tags: commonTags
     resourcePrefix: uniqueSuffix
     environmentVariables: [
@@ -514,4 +582,8 @@ output openAIEndpoint string = openAIAccount.properties.endpoint
 output applicationInsightsConnectionString string = appInsights.properties.ConnectionString
 output aiProjectName string = aiProjectName
 output aiHubName string = aiHubName
+
+// Microsoft Fabric outputs
+output fabricCapacityName string = deployFabricCapacity ? fabricCapacity.outputs.capacityName : ''
+output fabricCapacitySku string = deployFabricCapacity ? fabricCapacity.outputs.capacitySku : ''
 
