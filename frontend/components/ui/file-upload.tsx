@@ -43,8 +43,12 @@ export function FileUpload({
   // Use either callback prop
   const handleFilesChange = onFilesChange || onChange || (() => {})
   
-  // Convert accept to string for display
-  const acceptString = typeof accept === 'string' ? accept : Object.keys(accept).join(', ')
+  // Normalize accept (string or MIME -> extensions map) into a comma separated string
+  const acceptString = typeof accept === 'string'
+    ? accept
+    : Object.entries(accept)
+        .flatMap(([mimeType, extensions]) => [mimeType, ...extensions])
+        .join(', ')
 
   // Update files when value prop changes
   React.useEffect(() => {
@@ -58,13 +62,13 @@ export function FileUpload({
     }
 
     // Check file type - handle both MIME types and file extensions
-    if (accept) {
+    if (acceptString) {
       const mimeType = file.type.toLowerCase()
       
       // If accept contains file extensions (starts with .)
-      if (accept.includes('.')) {
-        const allowedExtensions = accept.split(',').map(ext => ext.trim().toLowerCase())
-        const hasValidExtension = allowedExtensions.some(ext => {
+      if (acceptString.includes('.')) {
+        const allowedExtensions = acceptString.split(',').map((ext: string) => ext.trim().toLowerCase())
+        const hasValidExtension = allowedExtensions.some((ext: string) => {
           if (ext.startsWith('.')) {
             return file.name.toLowerCase().endsWith(ext)
           }
@@ -76,7 +80,7 @@ export function FileUpload({
         }
       }
       // If accept contains MIME types
-      else if (!mimeType.match(accept.replace(/\*/g, ".*"))) {
+      else if (!mimeType.match(acceptString.replace(/\*/g, ".*"))) {
         return `File "${file.name}" has an unsupported format.`
       }
     }
@@ -202,7 +206,7 @@ export function FileUpload({
           ref={inputRef}
           type="file"
           multiple
-          accept={accept}
+          accept={acceptString}
           onChange={handleChange}
           disabled={disabled}
           className="hidden"
