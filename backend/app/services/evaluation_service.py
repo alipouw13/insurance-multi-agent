@@ -41,13 +41,16 @@ class FoundryEvaluator:
                 AzureOpenAIModelConfiguration
             )
             
-            # Configure the model for evaluation
-            model_config = AzureOpenAIModelConfiguration(
-                azure_endpoint=settings.azure_openai_endpoint,
-                api_key=settings.azure_openai_api_key,
-                azure_deployment=settings.azure_openai_deployment_name or "gpt-4o-mini",
-                api_version=settings.azure_openai_api_version
-            )
+            # Configure the model for evaluation (Entra ID when no key is configured)
+            model_config_kwargs = {
+                "azure_endpoint": settings.azure_openai_endpoint,
+                "azure_deployment": settings.azure_openai_deployment_name or "gpt-4.1-mini",
+                "api_version": settings.azure_openai_api_version,
+            }
+            if settings.azure_openai_api_key:
+                model_config_kwargs["api_key"] = settings.azure_openai_api_key
+
+            model_config = AzureOpenAIModelConfiguration(**model_config_kwargs)
             
             # Initialize evaluators
             self.available_evaluators = {

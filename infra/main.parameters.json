@@ -18,10 +18,22 @@
             "value": "insurance-multi-agent"
         },
         "azureOpenAIDeploymentName": {
-            "value": "${AZURE_OPENAI_DEPLOYMENT_NAME=gpt-4o-mini}"
+            "value": "${AZURE_OPENAI_DEPLOYMENT_NAME=gpt-4.1-mini}"
         },
         "azureOpenAIEmbeddingModel": {
             "value": "${AZURE_OPENAI_EMBEDDING_MODEL=text-embedding-3-large}"
+        },
+        "azureOpenAIModelVersion": {
+            "value": "${AZURE_OPENAI_MODEL_VERSION=2025-04-14}"
+        },
+        "searchServiceLocation": {
+            "value": "${AZURE_SEARCH_LOCATION=}"
+        },
+        "fabricCapacitySkuName": {
+            "value": "${FABRIC_CAPACITY_SKU=F2}"
+        },
+        "fabricCapacityAdminMember": {
+            "value": "${FABRIC_CAPACITY_ADMIN_MEMBER=}"
         }
     }
 }

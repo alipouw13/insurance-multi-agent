@@ -19,8 +19,9 @@ def main():
     """Build the policy vector index."""
     load_dotenv()
 
-    # Check required environment variables
-    required_vars = ["AZURE_OPENAI_API_KEY", "AZURE_OPENAI_ENDPOINT"]
+    # Check required environment variables (the API key is optional when using
+    # Microsoft Entra ID authentication)
+    required_vars = ["AZURE_OPENAI_ENDPOINT"]
     missing_vars = [var for var in required_vars if not os.getenv(var)]
 
     if missing_vars:

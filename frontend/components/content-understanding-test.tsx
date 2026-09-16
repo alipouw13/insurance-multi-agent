@@ -16,12 +16,18 @@ import {
   IconFileText
 } from '@tabler/icons-react'
 
+interface ExtractedTable {
+  row_count?: number
+  column_count?: number
+  cells?: unknown[]
+}
+
 interface AnalysisResult {
   status: string
   filename: string
   extracted_fields: Record<string, unknown>
   confidence_scores: Record<string, number>
-  tables: Array<Record<string, unknown>>
+  tables: ExtractedTable[]
   content_preview: string
   field_count: number
   table_count: number

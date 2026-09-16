@@ -31,6 +31,12 @@ param resourcePrefix string
 @description('Environment variables for the container')
 param environmentVariables array = []
 
+@description('CPU cores allocated to the container')
+param containerCpu string = '0.25'
+
+@description('Memory allocated to the container')
+param containerMemory string = '0.5Gi'
+
 // Determine service name based on container app name
 var serviceName = contains(name, 'backend') ? 'api' : 'web'
 
@@ -77,8 +83,8 @@ resource containerApp 'Microsoft.App/containerApps@2023-05-01' = {
           name: 'main'
           image: containerImage
           resources: {
-            cpu: json('0.25')
-            memory: '0.5Gi'
+            cpu: json(containerCpu)
+            memory: containerMemory
           }
           env: concat([
             {

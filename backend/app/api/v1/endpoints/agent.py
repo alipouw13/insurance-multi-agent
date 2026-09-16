@@ -32,7 +32,7 @@ router = APIRouter(tags=["agent"])
 
 # Re-use decision pattern from workflow endpoint if needed externally
 DECISION_PATTERN = re.compile(
-    r"\b(APPROVED|DENIED|REQUIRES_INVESTIGATION)\b", re.IGNORECASE
+    r"\b(APPROVED|APPROVE|DENIED|DENY|REQUIRES_INVESTIGATION|INVESTIGATE)\b", re.IGNORECASE
 )
 
 

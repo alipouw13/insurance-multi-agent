@@ -16,6 +16,9 @@ param projectName string
 @description('The environment name')
 param environmentName string
 
+@description('Optional subnet ID used to integrate the Container Apps environment with a virtual network')
+param infrastructureSubnetId string = ''
+
 // Default configuration for any environment
 var defaultConfig = {
   registrySku: 'Standard'
@@ -99,6 +102,10 @@ resource containerAppsEnvironment 'Microsoft.App/managedEnvironments@2023-05-01'
         workloadProfileType: 'Consumption'
       }
     ]
+    vnetConfiguration: empty(infrastructureSubnetId) ? null : {
+      infrastructureSubnetId: infrastructureSubnetId
+      internal: false
+    }
   }
 }
 

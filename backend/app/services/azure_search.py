@@ -10,7 +10,7 @@ from typing import List, Dict, Any, Optional
 from pathlib import Path
 
 from azure.core.credentials import AzureKeyCredential
-from azure.identity import ClientSecretCredential
+from azure.identity import ClientSecretCredential, DefaultAzureCredential
 from azure.search.documents import SearchClient
 from azure.search.documents.indexes import SearchIndexClient
 from azure.search.documents.indexes.models import (
@@ -33,6 +33,7 @@ from app.workflow.pdf_processor import get_pdf_processor
 from langchain_openai import AzureOpenAIEmbeddings
 
 from app.core.config import get_settings
+from app.core.azure_openai_auth import get_azure_openai_auth_kwargs
 from app.workflow.pdf_processor import get_pdf_processor
 
 logger = logging.getLogger(__name__)
@@ -42,27 +43,29 @@ class AzureSearchService:
     """Service for managing document indexing with Azure AI Search."""
     
     def __init__(self):
-        """Initialize Azure AI Search clients with Service Principal authentication."""
+        """Initialize Azure AI Search clients (service principal or managed identity)."""
         settings = get_settings()
         
         if not settings.azure_search_endpoint:
             raise ValueError("AZURE_SEARCH_ENDPOINT environment variable is required")
-        if not settings.azure_tenant_id or not settings.azure_client_id or not settings.azure_client_secret:
-            raise ValueError(
-                "Service Principal credentials required: AZURE_TENANT_ID, AZURE_CLIENT_ID, AZURE_CLIENT_SECRET"
-            )
         
         self.endpoint = settings.azure_search_endpoint
         self.index_name = settings.azure_search_index_name or "insurance-policies"
         
-        # Create Service Principal credential
-        self.credential = ClientSecretCredential(
-            tenant_id=settings.azure_tenant_id,
-            client_id=settings.azure_client_id,
-            client_secret=settings.azure_client_secret
-        )
+        # Use an explicit service principal when fully configured, otherwise fall back
+        # to DefaultAzureCredential (managed identity in Azure, developer sign-in locally)
+        if settings.azure_tenant_id and settings.azure_client_id and settings.azure_client_secret:
+            self.credential = ClientSecretCredential(
+                tenant_id=settings.azure_tenant_id,
+                client_id=settings.azure_client_id,
+                client_secret=settings.azure_client_secret
+            )
+        else:
+            logger.info(
+                "Service principal not configured; using DefaultAzureCredential for Azure AI Search")
+            self.credential = DefaultAzureCredential()
         
-        # Initialize clients with Service Principal authentication
+        # Initialize clients
         self.index_client = SearchIndexClient(
             endpoint=self.endpoint,
             credential=self.credential
@@ -77,8 +80,8 @@ class AzureSearchService:
         self.embeddings = AzureOpenAIEmbeddings(
             model=settings.azure_openai_embedding_model or "text-embedding-3-large",
             azure_endpoint=settings.azure_openai_endpoint,
-            api_key=settings.azure_openai_api_key,
             api_version=settings.azure_openai_api_version or "2024-08-01-preview",
+            **get_azure_openai_auth_kwargs(settings.azure_openai_api_key),
         )
         
         # Ensure index exists
