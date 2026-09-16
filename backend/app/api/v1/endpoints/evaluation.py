@@ -9,9 +9,12 @@ from app.models.evaluation import (
     EvaluationRequest,
     EvaluationResult,
     EvaluationSummary,
-    AgentEvaluationContext
+    AgentEvaluationContext,
+    RedTeamScanRequest,
+    RedTeamScanResult,
 )
 from app.services.evaluation_service import get_evaluation_service
+from app.services.red_team_service import get_red_team_service
 from app.services.cosmos_service import get_cosmos_service
 
 router = APIRouter(tags=["evaluation"])
@@ -20,14 +23,35 @@ logger = logging.getLogger(__name__)
 
 @router.get("/status")
 async def get_evaluation_status():
-    """Check if evaluation service is available."""
+    """Check which evaluators are available."""
     evaluation_service = get_evaluation_service()
     is_available = evaluation_service.is_available()
-    
+
+    quality_metrics: List[str] = []
+    safety_metrics: List[str] = []
+    portal_logging = False
+
+    evaluator = getattr(evaluation_service, "foundry_evaluator", None)
+    if evaluator:
+        quality_metrics = sorted(evaluator.available_evaluators)
+        if evaluator.safety_evaluators:
+            safety_metrics = [
+                "violence", "sexual", "self_harm", "hate_unfairness",
+                "indirect_attack", "protected_material",
+            ]
+        portal_logging = bool(evaluator.azure_ai_project)
+
+    red_team = get_red_team_service()
+
     return {
         "available": is_available,
         "evaluator_type": "foundry" if is_available else None,
-        "metrics": ["groundedness", "relevance", "coherence", "fluency"] if is_available else []
+        # Kept for backwards compatibility with existing clients.
+        "metrics": quality_metrics,
+        "quality_metrics": quality_metrics,
+        "safety_metrics": safety_metrics,
+        "portal_logging_enabled": portal_logging,
+        "red_team": red_team.availability_detail(),
     }
 
 
@@ -108,6 +132,44 @@ async def get_evaluation_summary(
     except Exception as e:
         logger.error(f"Failed to get summary: {e}")
         raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.post("/red-team/scans", response_model=RedTeamScanResult)
+async def start_red_team_scan(request: RedTeamScanRequest):
+    """Start an AI Red Teaming Agent scan against the claims application.
+
+    Scans are long running (minutes) because each attack objective is a full
+    request against the target, so this returns immediately with a pending
+    record. Poll `GET /red-team/scans/{scan_id}` for the outcome.
+    """
+    red_team = get_red_team_service()
+
+    detail = red_team.availability_detail()
+    if not detail["available"]:
+        raise HTTPException(status_code=503, detail=detail["reason"])
+
+    try:
+        return red_team.start_scan(request)
+    except ValueError as e:
+        raise HTTPException(status_code=409, detail=str(e))
+    except Exception as e:
+        logger.error(f"Failed to start red team scan: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.get("/red-team/scans", response_model=List[RedTeamScanResult])
+async def list_red_team_scans():
+    """List red team scans from this process, newest first."""
+    return get_red_team_service().list_scans()
+
+
+@router.get("/red-team/scans/{scan_id}", response_model=RedTeamScanResult)
+async def get_red_team_scan(scan_id: str):
+    """Get the status and results of a red team scan."""
+    result = get_red_team_service().get_scan(scan_id)
+    if not result:
+        raise HTTPException(status_code=404, detail="Red team scan not found")
+    return result
 
 
 @router.get("/{evaluation_id}", response_model=EvaluationResult)

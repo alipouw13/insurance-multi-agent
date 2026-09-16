@@ -2315,7 +2315,7 @@ dependencies = [
 [package.metadata]
 requires-dist = [
     { name = "azure-ai-agents", specifier = ">=1.2.0b6" },
-    { name = "azure-ai-evaluation", specifier = ">=1.0.0" },
+    { name = "azure-ai-evaluation", specifier = ">=1.5.0" },
     { name = "azure-ai-projects", specifier = ">=1.0.0" },
     { name = "azure-cosmos", specifier = ">=4.5.0" },
     { name = "azure-identity", specifier = ">=1.19.0" },

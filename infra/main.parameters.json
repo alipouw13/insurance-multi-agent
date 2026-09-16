@@ -29,6 +29,12 @@
         "searchServiceLocation": {
             "value": "${AZURE_SEARCH_LOCATION=}"
         },
+        "existingFoundryProjectEndpoint": {
+            "value": "${AZURE_AI_PROJECT=}"
+        },
+        "useAzureAgents": {
+            "value": "${USE_AZURE_AGENTS=false}"
+        },
         "fabricCapacitySkuName": {
             "value": "${FABRIC_CAPACITY_SKU=F2}"
         },

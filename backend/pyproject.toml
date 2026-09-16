@@ -19,7 +19,12 @@ dependencies = [
     "pymupdf>=1.26.1",
     "azure-ai-projects>=1.0.0",
     "azure-ai-agents>=1.2.0b6",  # Required for FabricTool support
-    "azure-ai-evaluation>=1.0.0",  # Required for AI Foundry evaluation metrics
+    # Red teaming needs the optional `redteam` extra (PyRIT). It is intentionally
+    # not installed in the API image: PyRIT pulls in transformers/datasets, and
+    # red team scans are a pre-production activity run via
+    # `scripts/run_red_team_scan.py`. Install with:
+    #   uv pip install "azure-ai-evaluation[redteam]"
+    "azure-ai-evaluation>=1.5.0",  # AI Foundry evaluation metrics + red teaming APIs
     "azure-identity>=1.19.0",
     "azure-storage-blob>=12.19.0",
     "azure-search-documents>=11.4.0",

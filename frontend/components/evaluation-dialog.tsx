@@ -4,6 +4,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 import { Badge } from "@/components/ui/badge"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Progress } from "@/components/ui/progress"
+import { Alert, AlertDescription } from "@/components/ui/alert"
 import { AlertCircle, CheckCircle, Info } from "lucide-react"
 import { EvaluationResult } from "@/lib/api"
 
@@ -15,33 +16,59 @@ interface EvaluationDialogProps {
 }
 
 export function EvaluationDialog({ open, onOpenChange, evaluation, loading }: EvaluationDialogProps) {
-  const getScoreColor = (score: number) => {
+  const getScoreColor = (score?: number) => {
+    if (score === undefined || score === null) return "text-muted-foreground"
     if (score >= 4.5) return "text-green-600"
     if (score >= 3.5) return "text-blue-600"
     if (score >= 2.5) return "text-yellow-600"
     return "text-red-600"
   }
 
-  const getScoreBadge = (score: number) => {
+  const getScoreBadge = (score?: number) => {
+    if (score === undefined || score === null) return "outline"
     if (score >= 4.5) return "default"
     if (score >= 3.5) return "secondary"
     if (score >= 2.5) return "outline"
     return "destructive"
   }
 
-  const getScoreIcon = (score: number) => {
+  const getScoreIcon = (score?: number) => {
+    if (score === undefined || score === null) return <AlertCircle className="h-4 w-4 text-muted-foreground" />
     if (score >= 4.0) return <CheckCircle className="h-4 w-4 text-green-600" />
     if (score >= 3.0) return <Info className="h-4 w-4 text-blue-600" />
     return <AlertCircle className="h-4 w-4 text-yellow-600" />
   }
 
   const formatScore = (score?: number) => {
-    return score ? score.toFixed(2) : "N/A"
+    return score !== undefined && score !== null ? score.toFixed(2) : "N/A"
   }
 
   const scoreToPercentage = (score?: number) => {
     return score ? (score / 5) * 100 : 0
   }
+
+  // Content-harm severity is 0-7 where LOWER is better, the opposite direction
+  // to the 1-5 quality scores.
+  const severityLabel = (score: number) => {
+    if (score <= 1) return "Very low"
+    if (score <= 3) return "Low"
+    if (score <= 5) return "Medium"
+    return "High"
+  }
+
+  const severityColor = (score: number) => {
+    if (score <= 1) return "text-green-600"
+    if (score <= 3) return "text-blue-600"
+    if (score <= 5) return "text-yellow-600"
+    return "text-red-600"
+  }
+
+  const safetyMetrics: Array<{ key: string; label: string; score?: number }> = [
+    { key: "violence", label: "Violence", score: evaluation?.violence_score },
+    { key: "sexual", label: "Sexual", score: evaluation?.sexual_score },
+    { key: "self_harm", label: "Self-harm", score: evaluation?.self_harm_score },
+    { key: "hate_unfairness", label: "Hate / unfairness", score: evaluation?.hate_unfairness_score },
+  ]
 
   if (loading) {
     return (
@@ -94,19 +121,57 @@ export function EvaluationDialog({ open, onOpenChange, evaluation, loading }: Ev
           <Card>
             <CardHeader>
               <CardTitle className="text-lg flex items-center justify-between">
-                Overall Score
+                Overall Quality Score
                 <Badge variant={getScoreBadge(evaluation.overall_score)}>
                   {formatScore(evaluation.overall_score)} / 5.0
                 </Badge>
               </CardTitle>
               <CardDescription>
-                Aggregate performance across all metrics
+                Average of the quality metrics, scored 1&ndash;5 where higher is better
               </CardDescription>
             </CardHeader>
             <CardContent>
               <Progress value={scoreToPercentage(evaluation.overall_score)} className="h-3" />
+              {evaluation.status && evaluation.status !== "completed" && (
+                <p className="mt-3 text-xs text-yellow-700 dark:text-yellow-400">
+                  Evaluation status: <strong>{evaluation.status}</strong>
+                  {evaluation.error_message ? ` — ${evaluation.error_message}` : null}
+                </p>
+              )}
             </CardContent>
           </Card>
+
+          {/* Foundry portal link */}
+          {evaluation.studio_url && (
+            <Alert>
+              <Info className="h-4 w-4" />
+              <AlertDescription className="text-sm">
+                This run was uploaded to the Microsoft Foundry portal.{" "}
+                <a
+                  href={evaluation.studio_url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="font-medium underline underline-offset-4"
+                >
+                  Open in the Evaluations pane
+                </a>
+                {evaluation.evaluation_run_name ? (
+                  <span className="block text-xs text-muted-foreground mt-1 font-mono">
+                    {evaluation.evaluation_run_name}
+                  </span>
+                ) : null}
+              </AlertDescription>
+            </Alert>
+          )}
+          {!evaluation.studio_url && evaluation.uploaded_to_portal === false && (
+            <Alert>
+              <AlertCircle className="h-4 w-4" />
+              <AlertDescription className="text-xs">
+                Results were computed locally and not uploaded to the Foundry portal.
+                Check that the project is configured and the identity has access.
+              </AlertDescription>
+            </Alert>
+          )}
 
           {/* Individual Metrics */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -194,6 +259,79 @@ export function EvaluationDialog({ open, onOpenChange, evaluation, loading }: Ev
               </Card>
             )}
           </div>
+
+          {/* Risk & Safety */}
+          {(safetyMetrics.some((m) => m.score !== undefined && m.score !== null) ||
+            evaluation.indirect_attack_detected !== undefined ||
+            evaluation.protected_material_detected !== undefined) && (
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-lg flex items-center justify-between">
+                  Risk &amp; Safety
+                  {evaluation.safety_passed !== undefined && (
+                    <Badge variant={evaluation.safety_passed ? "default" : "destructive"}>
+                      {evaluation.safety_passed ? "Passed" : "Attention needed"}
+                    </Badge>
+                  )}
+                </CardTitle>
+                <CardDescription>
+                  Azure AI Content Safety severity, scored 0&ndash;7 where{" "}
+                  <strong>lower is better</strong>
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                  {safetyMetrics
+                    .filter((m) => m.score !== undefined && m.score !== null)
+                    .map((m) => (
+                      <div
+                        key={m.key}
+                        className="flex items-center justify-between p-3 border rounded-lg"
+                      >
+                        <span className="text-sm font-medium">{m.label}</span>
+                        <div className="text-right">
+                          <div className={`text-lg font-bold ${severityColor(m.score as number)}`}>
+                            {(m.score as number).toFixed(1)}{" "}
+                            <span className="text-xs font-normal text-muted-foreground">/ 7</span>
+                          </div>
+                          <div className="text-xs text-muted-foreground">
+                            {severityLabel(m.score as number)}
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                </div>
+
+                {(evaluation.indirect_attack_detected !== undefined ||
+                  evaluation.protected_material_detected !== undefined) && (
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    {evaluation.indirect_attack_detected !== undefined && (
+                      <div className="flex items-center justify-between p-3 border rounded-lg">
+                        <span className="text-sm font-medium">Indirect attack (XPIA)</span>
+                        <Badge
+                          variant={evaluation.indirect_attack_detected ? "destructive" : "default"}
+                        >
+                          {evaluation.indirect_attack_detected ? "Detected" : "Not detected"}
+                        </Badge>
+                      </div>
+                    )}
+                    {evaluation.protected_material_detected !== undefined && (
+                      <div className="flex items-center justify-between p-3 border rounded-lg">
+                        <span className="text-sm font-medium">Protected material</span>
+                        <Badge
+                          variant={
+                            evaluation.protected_material_detected ? "destructive" : "default"
+                          }
+                        >
+                          {evaluation.protected_material_detected ? "Detected" : "Not detected"}
+                        </Badge>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          )}
 
           {/* Reasoning */}
           {evaluation.reasoning && (

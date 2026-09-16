@@ -33,6 +33,14 @@ param deployFabricCapacity bool = true
 @description('Deploy a virtual network with private endpoints for Cosmos DB and Storage')
 param deployPrivateNetworking bool = true
 
+@description('''Endpoint of an existing Microsoft Foundry project to use, e.g.
+https://my-resource.services.ai.azure.com/api/projects/my-project.
+When empty a new Foundry account and project are provisioned in this resource group.''')
+param existingFoundryProjectEndpoint string = ''
+
+@description('Use Azure AI Agent Service agents (v2) instead of the LangGraph supervisor')
+param useAzureAgents string = 'false'
+
 @description('Fabric capacity SKU. F2 is the minimum required for Fabric data agents.')
 param fabricCapacitySkuName string = 'F2'
 
@@ -65,6 +73,9 @@ var logAnalyticsName = 'log-${uniqueSuffix}'
 var aiHubName = 'hub-${uniqueSuffix}'
 var aiProjectName = 'proj-${uniqueSuffix}'
 var fabricCapacityName = 'fab${uniqueSuffix}'
+var foundryAccountName = 'aif${uniqueSuffix}'
+var foundryProjectName = 'claims-${uniqueSuffix}'
+var useExistingFoundry = !empty(existingFoundryProjectEndpoint)
 
 // Create managed identity for container registry and Azure services access
 resource managedIdentity 'Microsoft.ManagedIdentity/userAssignedIdentities@2023-01-31' = {
@@ -343,6 +354,33 @@ module network 'modules/network.bicep' = if (deployPrivateNetworking) {
   }
 }
 
+// Microsoft Foundry ("new Foundry") account + project. This is what the Agents
+// API and the portal Evaluations pane use; the hub-based workspaces below are
+// retained only for backwards compatibility.
+module foundry 'modules/foundry.bicep' = if (!useExistingFoundry) {
+  name: 'foundry'
+  params: {
+    accountName: foundryAccountName
+    projectName: foundryProjectName
+    location: location
+    tags: commonTags
+    principalId: managedIdentity.properties.principalId
+    modelDeployments: [
+      {
+        name: azureOpenAIDeploymentName
+        modelName: azureOpenAIDeploymentName
+        modelVersion: azureOpenAIModelVersion
+        skuName: 'GlobalStandard'
+        capacity: 50
+      }
+    ]
+  }
+}
+
+var foundryProjectEndpoint = useExistingFoundry
+  ? existingFoundryProjectEndpoint
+  : foundry.outputs.projectEndpoint
+
 // Deploy container apps stack (environment + registry)
 module containerAppsStack 'modules/container-apps-stack.bicep' = {
   name: 'container-apps-stack'
@@ -379,8 +417,7 @@ resource storageBlobDataContributorRole 'Microsoft.Authorization/roleAssignments
 }
 
 // Cosmos DB Built-in Data Contributor (data-plane) role for managed identity
-resource cosmosDataContributorRole 'Microsoft.DocumentDB/databaseAccounts/sqlRoleAssignments@2023-04-15' = {
-  parent: cosmosAccount
+resource cosmosDataContributorRole 'Microsoft.DocumentDB/databaseAccounts/sqlRoleAssignments@2023-04-15' = {  parent: cosmosAccount
   name: guid(cosmosAccount.id, managedIdentity.id, '00000000-0000-0000-0000-000000000002')
   properties: {
     roleDefinitionId: '${cosmosAccount.id}/sqlRoleDefinitions/00000000-0000-0000-0000-000000000002'
@@ -469,8 +506,20 @@ module backendContainerApp 'modules/containerapp.bicep' = {
         value: '2024-08-01-preview'
       }
       {
+        // Foundry project endpoint used by the Agents API. Must be the
+        // https://<account>.services.ai.azure.com/api/projects/<project> form;
+        // the hub-based AML discovery URL is not a valid Agents endpoint.
         name: 'PROJECT_ENDPOINT'
-        value: '${aiProject.properties.discoveryUrl}/api/projects/${aiProjectName}'
+        value: foundryProjectEndpoint
+      }
+      {
+        // Same endpoint drives evaluation upload into the portal Evaluations pane.
+        name: 'AZURE_AI_PROJECT'
+        value: foundryProjectEndpoint
+      }
+      {
+        name: 'USE_AZURE_AGENTS'
+        value: useAzureAgents
       }
       {
         name: 'AZURE_SUBSCRIPTION_ID'
@@ -483,6 +532,21 @@ module backendContainerApp 'modules/containerapp.bicep' = {
       {
         name: 'AZURE_AI_PROJECT_NAME'
         value: aiProjectName
+      }
+      {
+        // Enables Foundry portal logging of evaluation runs and risk & safety
+        // evaluators, which are backed by the project rather than a judge model.
+        name: 'ENABLE_EVALUATION'
+        value: 'true'
+      }
+      {
+        name: 'ENABLE_SAFETY_EVALUATION'
+        value: 'true'
+      }
+      {
+        // 1.0 evaluates every run. Lower this to sample production traffic.
+        name: 'EVALUATION_SAMPLING_RATE'
+        value: '1.0'
       }
       {
         name: 'AZURE_STORAGE_ACCOUNT_NAME'
@@ -582,6 +646,10 @@ output openAIEndpoint string = openAIAccount.properties.endpoint
 output applicationInsightsConnectionString string = appInsights.properties.ConnectionString
 output aiProjectName string = aiProjectName
 output aiHubName string = aiHubName
+
+// Microsoft Foundry outputs
+output foundryProjectEndpoint string = foundryProjectEndpoint
+output foundryAccountName string = useExistingFoundry ? '' : foundry.outputs.accountName
 
 // Microsoft Fabric outputs
 output fabricCapacityName string = deployFabricCapacity ? fabricCapacity.outputs.capacityName : ''
