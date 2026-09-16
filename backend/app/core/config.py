@@ -40,6 +40,30 @@ class Settings(BaseSettings):  # noqa: D101
         default=None, alias="AZURE_RESOURCE_GROUP")
     azure_ai_project_name: str | None = Field(
         default=None, alias="AZURE_AI_PROJECT_NAME")
+    # Foundry project endpoint URL. When set it takes precedence over the
+    # subscription/resource-group/project triple for evaluation uploads.
+    azure_ai_project_endpoint: str | None = Field(
+        default=None, alias="AZURE_AI_PROJECT")
+
+    # Foundry agents
+    # Model deployment used by the new Foundry prompt agents. Falls back to the
+    # chat deployment when unset.
+    foundry_agent_model: str | None = Field(
+        default=None, alias="FOUNDRY_AGENT_MODEL")
+    # Register and run the new Foundry agents (project.agents.create_version)
+    # rather than the classic Assistants-style agents.
+    use_foundry_agents: bool = Field(
+        default=False, alias="USE_FOUNDRY_AGENTS")
+
+    # Evaluation behaviour
+    enable_evaluation: bool = Field(
+        default=True, alias="ENABLE_EVALUATION")
+    # Fraction of workflow runs that are evaluated (0.0-1.0). Microsoft guidance
+    # is to sample production traffic rather than evaluate every request inline.
+    evaluation_sampling_rate: float = Field(
+        default=1.0, alias="EVALUATION_SAMPLING_RATE")
+    enable_safety_evaluation: bool = Field(
+        default=True, alias="ENABLE_SAFETY_EVALUATION")
     
     # Azure Service Principal Authentication
     azure_tenant_id: str | None = Field(

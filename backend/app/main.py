@@ -100,6 +100,19 @@ async def startup_event():
     import threading
     def _deploy_agents_background():
         try:
+            from app.core.config import get_settings as _gs
+            if _gs().use_foundry_agents:
+                logger.info("[START] Registering Microsoft Foundry agents (new Foundry)...")
+                from app.workflow.foundry_agents import register_foundry_agents
+                registered = register_foundry_agents()
+                if registered:
+                    logger.info(
+                        f"[OK] Foundry agents registered: {list(registered.keys())}")
+                    return
+                logger.warning(
+                    "[WARN] Foundry agent registration returned nothing; "
+                    "falling back to classic agents")
+
             logger.info("[START] Deploying Azure AI Agent Service agents (v2) in background...")
             from app.workflow.azure_agent_manager_v2 import deploy_azure_agents_v2
             azure_agents = deploy_azure_agents_v2()

@@ -382,6 +382,18 @@ export interface EvaluationRequest {
   evaluator_type?: 'foundry' | 'custom'
 }
 
+export interface MetricScore {
+  metric: string
+  score?: number
+  label?: boolean
+  reason?: string
+  threshold?: number
+  passed?: boolean
+  /** '1-5' (higher is better), '0-7' (lower is better) or 'boolean' */
+  scale: string
+  higher_is_better: boolean
+}
+
 export interface EvaluationResult {
   id: string
   evaluation_id: string
@@ -389,15 +401,31 @@ export interface EvaluationResult {
   claim_id?: string
   agent_type: string
   evaluator_type: string
+  status?: string
   groundedness_score?: number
   relevance_score?: number
   coherence_score?: number
   fluency_score?: number
-  overall_score: number
+  overall_score?: number
+  // Risk & safety: 0-7 severity where LOWER is better
+  violence_score?: number
+  sexual_score?: number
+  self_harm_score?: number
+  hate_unfairness_score?: number
+  max_safety_severity?: number
+  safety_passed?: boolean
+  indirect_attack_detected?: boolean
+  protected_material_detected?: boolean
+  metric_scores?: MetricScore[]
+  // Foundry portal
+  studio_url?: string
+  uploaded_to_portal?: boolean
+  evaluation_run_name?: string
   reasoning?: string
   feedback?: string
+  error_message?: string
   recommendations?: string[]
-  detailed_scores?: Record<string, number>
+  detailed_scores?: Record<string, unknown>
   evaluation_timestamp: string
   evaluation_duration?: number
   metadata?: Record<string, unknown>

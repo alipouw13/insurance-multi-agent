@@ -29,6 +29,21 @@
         "searchServiceLocation": {
             "value": "${AZURE_SEARCH_LOCATION=}"
         },
+        "existingFoundryProjectEndpoint": {
+            "value": "${AZURE_AI_PROJECT=}"
+        },
+        "useAzureAgents": {
+            "value": "${USE_AZURE_AGENTS=false}"
+        },
+        "useFoundryAgents": {
+            "value": "${USE_FOUNDRY_AGENTS=false}"
+        },
+        "foundryAgentModel": {
+            "value": "${FOUNDRY_AGENT_MODEL=}"
+        },
+        "fabricConnectionName": {
+            "value": "${FABRIC_CONNECTION_NAME=}"
+        },
         "fabricCapacitySkuName": {
             "value": "${FABRIC_CAPACITY_SKU=F2}"
         },

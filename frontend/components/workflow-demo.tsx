@@ -59,11 +59,25 @@ interface WorkflowResult {
   execution_id?: string
   evaluation_results?: {
     evaluation_id: string
-    overall_score: number
+    status?: string
+    overall_score?: number
     groundedness_score?: number
     relevance_score?: number
     coherence_score?: number
     fluency_score?: number
+    // Risk & safety: 0-7 severity, LOWER is better
+    violence_score?: number
+    sexual_score?: number
+    self_harm_score?: number
+    hate_unfairness_score?: number
+    max_safety_severity?: number
+    safety_passed?: boolean
+    indirect_attack_detected?: boolean
+    protected_material_detected?: boolean
+    studio_url?: string
+    uploaded_to_portal?: boolean
+    evaluation_run_name?: string
+    error_message?: string
     reasoning?: string
   }
 }
@@ -684,12 +698,88 @@ export function WorkflowDemo() {
                 </div>
               </div>
 
+              {/* Risk & Safety */}
+              {(workflowResult.evaluation_results.max_safety_severity !== undefined ||
+                workflowResult.evaluation_results.indirect_attack_detected !== undefined) && (
+                <div className="space-y-3">
+                  <h4 className="text-sm font-semibold flex items-center justify-between">
+                    Risk &amp; Safety
+                    {workflowResult.evaluation_results.safety_passed !== undefined && (
+                      <Badge variant={workflowResult.evaluation_results.safety_passed ? 'default' : 'destructive'}>
+                        {workflowResult.evaluation_results.safety_passed ? 'Passed' : 'Attention needed'}
+                      </Badge>
+                    )}
+                  </h4>
+                  <p className="text-xs text-muted-foreground">
+                    Content-harm severity is scored 0&ndash;7 where <strong>lower is better</strong>.
+                  </p>
+                  <div className="grid grid-cols-2 gap-3">
+                    {([
+                      ['Violence', workflowResult.evaluation_results.violence_score],
+                      ['Sexual', workflowResult.evaluation_results.sexual_score],
+                      ['Self-harm', workflowResult.evaluation_results.self_harm_score],
+                      ['Hate / unfairness', workflowResult.evaluation_results.hate_unfairness_score],
+                    ] as Array<[string, number | undefined]>)
+                      .filter(([, score]) => score !== undefined && score !== null)
+                      .map(([label, score]) => (
+                        <div key={label} className="flex items-center justify-between p-3 border rounded-lg">
+                          <span className="text-sm font-medium">{label}</span>
+                          <Badge variant={(score as number) <= 3 ? 'default' : 'destructive'} className="text-base">
+                            {(score as number).toFixed(1)} / 7
+                          </Badge>
+                        </div>
+                      ))}
+                    {workflowResult.evaluation_results.indirect_attack_detected !== undefined && (
+                      <div className="flex items-center justify-between p-3 border rounded-lg">
+                        <span className="text-sm font-medium">Indirect attack</span>
+                        <Badge variant={workflowResult.evaluation_results.indirect_attack_detected ? 'destructive' : 'default'}>
+                          {workflowResult.evaluation_results.indirect_attack_detected ? 'Detected' : 'Not detected'}
+                        </Badge>
+                      </div>
+                    )}
+                    {workflowResult.evaluation_results.protected_material_detected !== undefined && (
+                      <div className="flex items-center justify-between p-3 border rounded-lg">
+                        <span className="text-sm font-medium">Protected material</span>
+                        <Badge variant={workflowResult.evaluation_results.protected_material_detected ? 'destructive' : 'default'}>
+                          {workflowResult.evaluation_results.protected_material_detected ? 'Detected' : 'Not detected'}
+                        </Badge>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {workflowResult.evaluation_results.studio_url && (
+                <Alert>
+                  <AlertDescription className="text-xs">
+                    This run was uploaded to the Microsoft Foundry portal.{' '}
+                    <a
+                      href={workflowResult.evaluation_results.studio_url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="font-medium underline underline-offset-4"
+                    >
+                      Open in the Evaluations pane
+                    </a>
+                  </AlertDescription>
+                </Alert>
+              )}
+
+              {workflowResult.evaluation_results.uploaded_to_portal === false && (
+                <Alert>
+                  <AlertDescription className="text-xs">
+                    Results were computed locally and not uploaded to the Foundry portal.
+                    {workflowResult.evaluation_results.error_message
+                      ? ` ${workflowResult.evaluation_results.error_message}`
+                      : ''}
+                  </AlertDescription>
+                </Alert>
+              )}
+
               {workflowResult.execution_id && (
                 <Alert>
                   <AlertDescription className="text-xs">
                     <strong>Execution ID:</strong> {workflowResult.execution_id}
-                    <br />
-                    Check Azure AI Foundry portal for detailed evaluation results (may take 1-2 minutes to appear)
                   </AlertDescription>
                 </Alert>
               )}

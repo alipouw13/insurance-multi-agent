@@ -109,10 +109,13 @@ This implementation leverages **Azure AI Foundry's Agent Service** for productio
 - **Document Intelligence**: PDF processing and semantic search across policies
 - **Multimodal Processing**: Image analysis for damage assessment using Azure OpenAI vision
 - **Interactive Demos**: Individual agent testing and complete workflow simulation
-- **Azure AI Evaluation**: Automatic evaluation of workflow responses using Azure AI Foundry evaluation SDK
-  - Groundedness, relevance, coherence, and fluency metrics
-  - Evaluation results stored in Cosmos DB
-  - View evaluation scores directly in the UI
+- **Azure AI Evaluation**: Automatic evaluation of workflow responses using the Azure AI Foundry evaluation SDK
+  - **Quality**: groundedness, relevance, coherence, fluency — scored 1-5, higher is better
+  - **Risk & safety**: violence, sexual, self-harm, hate/unfairness — scored 0-7 severity, **lower is better**;
+    plus indirect attack (XPIA) and protected material detection
+  - **AI Red Teaming**: adversarial scans via `backend/scripts/run_red_team_scan.py`
+  - Results stored in Cosmos DB, shown in the UI, and uploaded to the
+    **Foundry portal Evaluations pane** with a deep link back to the run
 - **Production Ready**: Deployed on Azure with enterprise security and managed identity
 
 ## Development Setup
@@ -590,6 +593,64 @@ to create the workspace, lakehouse, and data agent, then set `USE_FABRIC_DATA_AG
 > principals and managed identities are not supported). Run the backend locally after
 > `az login` when demonstrating the Claims Data Analyst agent; the deployed container
 > app falls back to demo data.
+
+### Microsoft Foundry project
+
+The Agents API and the portal **Evaluations** pane both require a *Microsoft Foundry*
+project, which exposes an endpoint of the form:
+
+```
+https://<account>.services.ai.azure.com/api/projects/<project>
+```
+
+A hub-based (`Microsoft.MachineLearningServices/workspaces`) project exposes an
+`api.azureml.ms/discovery` URL instead. That is **not** a valid Agents endpoint —
+`create_agent` fails with `ResourceNotFoundError` and the app silently falls back to
+the LangGraph supervisor.
+
+`azd up` provisions a Foundry account and project via
+[`infra/modules/foundry.bicep`](infra/modules/foundry.bicep). To use an existing
+project instead:
+
+```bash
+azd env set AZURE_AI_PROJECT "https://my-resource.services.ai.azure.com/api/projects/my-project"
+```
+
+The backend's managed identity needs these roles on the Foundry account:
+`Foundry User`, `Cognitive Services OpenAI User`, and `Azure AI Safety Evaluator`
+(for the risk & safety evaluators).
+
+| Variable | Default | Purpose |
+|----------|---------|---------|
+| `AZURE_AI_PROJECT` | _(empty)_ | Use an existing Foundry project instead of provisioning one |
+| `USE_AZURE_AGENTS` | `false` | `true` runs the Azure AI Agent Service supervisor (v2) instead of LangGraph |
+| `ENABLE_EVALUATION` | `true` | Master switch for evaluation |
+| `ENABLE_SAFETY_EVALUATION` | `true` | Run risk & safety evaluators alongside quality metrics |
+| `EVALUATION_SAMPLING_RATE` | `1.0` | Fraction of runs evaluated. Microsoft recommends *sampling* production traffic rather than evaluating every request inline |
+
+Agents are defined in code and deployed on startup, with discovery so existing agents
+are reused rather than duplicated. There is nothing to migrate by hand — pointing the
+app at a project is enough for it to rebuild or adopt its agents.
+
+> Agents created through the Agents API (`asst_*` IDs) appear under **Classic agents**
+> in the Foundry portal. Surfacing them in the new Agents list requires the newer
+> agent-version API.
+
+### Red teaming
+
+Red teaming is a pre-production activity, so PyRIT is intentionally **not** installed
+in the API image. Install the extra and run a scan explicitly:
+
+```bash
+cd backend
+uv pip install "azure-ai-evaluation[redteam]"
+az login   # the red team agent requires user identity
+python scripts/run_red_team_scan.py --target workflow --num-objectives 1
+```
+
+Scans report an **Attack Success Rate** (lower is better) and appear in the portal's
+**Red team** tab. The same capability is exposed at
+`POST /api/v1/evaluation/red-team/scans` when the extra is installed.
 
 ## License
 

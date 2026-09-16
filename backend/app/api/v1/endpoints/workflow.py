@@ -2,12 +2,14 @@
 from __future__ import annotations
 
 from fastapi import APIRouter, HTTPException
+import random
 import re
 from typing import Any
 from datetime import datetime
 import uuid
 import logging
 
+from app.core.config import get_settings
 from app.models.claim import ClaimIn, ClaimOut
 from app.services.claim_processing import run as run_workflow
 from app.sample_data import ALL_SAMPLE_CLAIMS
@@ -322,8 +324,23 @@ async def workflow_run(claim: ClaimIn):  # noqa: D401
             # ------------------------------------------------------------------
             evaluation_results = None
             try:
+                eval_settings = get_settings()
                 evaluation_service = get_evaluation_service()
-                if evaluation_service.is_available():
+                # Microsoft's guidance is to sample production traffic rather
+                # than evaluate every request inline. Sampling is configurable
+                # and defaults to evaluating every run for demo visibility.
+                sampled = (
+                    eval_settings.evaluation_sampling_rate >= 1.0
+                    or random.random() < eval_settings.evaluation_sampling_rate
+                )
+                if not eval_settings.enable_evaluation:
+                    logger.info("Evaluation disabled via ENABLE_EVALUATION")
+                elif not sampled:
+                    logger.info(
+                        "Execution %s not sampled for evaluation (rate=%.2f)",
+                        execution_id, eval_settings.evaluation_sampling_rate,
+                    )
+                elif evaluation_service.is_available():
                     logger.info(f"Running evaluation for execution: {execution_id}")
                     
                     # Extract question and answer from conversation
@@ -355,26 +372,54 @@ async def workflow_run(claim: ClaimIn):  # noqa: D401
                         question=question,
                         answer=answer,
                         context=context,
-                        metrics=['groundedness', 'relevance', 'coherence', 'fluency']
+                        metrics=['groundedness', 'relevance', 'coherence', 'fluency'],
+                        include_safety_metrics=get_settings().enable_safety_evaluation,
                     )
                     
                     eval_result = await evaluation_service.evaluate_execution(eval_request)
                     
                     if eval_result:
-                        # Determine score quality for display (1-5 scale, 5 is best)
-                        score_quality = "poor" if eval_result.overall_score < 2 else "fair" if eval_result.overall_score < 3 else "good" if eval_result.overall_score < 4 else "excellent"
+                        # Quality scores are 1-5 (higher is better); safety
+                        # severities are 0-7 (lower is better).
+                        overall = eval_result.overall_score
+                        score_quality = (
+                            None if overall is None
+                            else "poor" if overall < 2
+                            else "fair" if overall < 3
+                            else "good" if overall < 4
+                            else "excellent"
+                        )
                         evaluation_results = {
                             'evaluation_id': eval_result.evaluation_id,
-                            'overall_score': eval_result.overall_score,
+                            'status': eval_result.status.value,
+                            'overall_score': overall,
                             'score_scale': '1-5 (5 is best)',
                             'score_quality': score_quality,
                             'groundedness_score': eval_result.groundedness_score,
                             'relevance_score': eval_result.relevance_score,
                             'coherence_score': eval_result.coherence_score,
                             'fluency_score': eval_result.fluency_score,
+                            'violence_score': eval_result.violence_score,
+                            'sexual_score': eval_result.sexual_score,
+                            'self_harm_score': eval_result.self_harm_score,
+                            'hate_unfairness_score': eval_result.hate_unfairness_score,
+                            'max_safety_severity': eval_result.max_safety_severity,
+                            'safety_passed': eval_result.safety_passed,
+                            'indirect_attack_detected': eval_result.indirect_attack_detected,
+                            'protected_material_detected': eval_result.protected_material_detected,
+                            'metric_scores': [m.model_dump(mode='json') for m in eval_result.metric_scores],
+                            'studio_url': eval_result.studio_url,
+                            'uploaded_to_portal': eval_result.uploaded_to_portal,
+                            'evaluation_run_name': eval_result.evaluation_run_name,
+                            'error_message': eval_result.error_message,
                             'reasoning': eval_result.reasoning
                         }
-                        logger.info(f"✅ Evaluation completed with score: {eval_result.overall_score:.2f}/5.0 ({score_quality})")
+                        if overall is not None:
+                            logger.info(
+                                f"✅ Evaluation completed with score: {overall:.2f}/5.0 ({score_quality})")
+                        else:
+                            logger.warning(
+                                f"⚠️ Evaluation did not produce a score: {eval_result.error_message}")
                 else:
                     logger.info("Evaluation service not available, skipping evaluation")
             except Exception as eval_err:

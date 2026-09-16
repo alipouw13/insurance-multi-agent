@@ -8,7 +8,12 @@ dependencies = [
     "fastapi[standard]>=0.112.1",
     "uvicorn[standard]>=0.29.0",
     "langchain-core>=0.3.65",
+    # `RecursiveCharacterTextSplitter` lives in its own package; the old
+    # `langchain.text_splitter` path was removed in langchain 1.x.
+    "langchain-text-splitters>=0.3.0",
     "langchain-openai>=0.3.22",
+    # `import openai` is used directly by the vision tool.
+    "openai>=1.60.0",
     "langgraph>=0.4.8",
     "langgraph-supervisor>=0.0.27",
     "python-dotenv>=1.1.0",
@@ -17,9 +22,16 @@ dependencies = [
     "tiktoken>=0.8.0",
     "pydantic-settings>=2.9.1",
     "pymupdf>=1.26.1",
-    "azure-ai-projects>=1.0.0",
+    # v2 provides the new Foundry agents API (project.agents.create_version with
+    # PromptAgentDefinition) which registers agents in the Foundry Agents list.
+    "azure-ai-projects>=2.6.1",
     "azure-ai-agents>=1.2.0b6",  # Required for FabricTool support
-    "azure-ai-evaluation>=1.0.0",  # Required for AI Foundry evaluation metrics
+    # Red teaming needs the optional `redteam` extra (PyRIT). It is intentionally
+    # not installed in the API image: PyRIT pulls in transformers/datasets, and
+    # red team scans are a pre-production activity run via
+    # `scripts/run_red_team_scan.py`. Install with:
+    #   uv pip install "azure-ai-evaluation[redteam]"
+    "azure-ai-evaluation>=1.5.0",  # AI Foundry evaluation metrics + red teaming APIs
     "azure-identity>=1.19.0",
     "azure-storage-blob>=12.19.0",
     "azure-search-documents>=11.4.0",
