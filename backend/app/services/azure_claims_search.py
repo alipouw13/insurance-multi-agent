@@ -27,7 +27,7 @@ from azure.search.documents.indexes.models import (
     SemanticSearch,
 )
 from azure.search.documents.models import VectorizedQuery
-from langchain.text_splitter import RecursiveCharacterTextSplitter
+from langchain_text_splitters import RecursiveCharacterTextSplitter
 from langchain_core.documents import Document
 from langchain_openai import AzureOpenAIEmbeddings
 

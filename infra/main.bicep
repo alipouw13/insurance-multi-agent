@@ -41,6 +41,15 @@ param existingFoundryProjectEndpoint string = ''
 @description('Use Azure AI Agent Service agents (v2) instead of the LangGraph supervisor')
 param useAzureAgents string = 'false'
 
+@description('Register and run the new Microsoft Foundry prompt agents')
+param useFoundryAgents string = 'false'
+
+@description('Model deployment used by the Foundry agents (defaults to the chat deployment)')
+param foundryAgentModel string = ''
+
+@description('Name of the Fabric data agent connection in the Foundry project')
+param fabricConnectionName string = ''
+
 @description('Fabric capacity SKU. F2 is the minimum required for Fabric data agents.')
 param fabricCapacitySkuName string = 'F2'
 
@@ -520,6 +529,22 @@ module backendContainerApp 'modules/containerapp.bicep' = {
       {
         name: 'USE_AZURE_AGENTS'
         value: useAzureAgents
+      }
+      {
+        name: 'USE_FOUNDRY_AGENTS'
+        value: useFoundryAgents
+      }
+      {
+        name: 'FOUNDRY_AGENT_MODEL'
+        value: foundryAgentModel
+      }
+      {
+        name: 'FABRIC_CONNECTION_NAME'
+        value: fabricConnectionName
+      }
+      {
+        name: 'USE_FABRIC_DATA_AGENT'
+        value: empty(fabricConnectionName) ? 'false' : 'true'
       }
       {
         name: 'AZURE_SUBSCRIPTION_ID'

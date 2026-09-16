@@ -35,6 +35,15 @@
         "useAzureAgents": {
             "value": "${USE_AZURE_AGENTS=false}"
         },
+        "useFoundryAgents": {
+            "value": "${USE_FOUNDRY_AGENTS=false}"
+        },
+        "foundryAgentModel": {
+            "value": "${FOUNDRY_AGENT_MODEL=}"
+        },
+        "fabricConnectionName": {
+            "value": "${FABRIC_CONNECTION_NAME=}"
+        },
         "fabricCapacitySkuName": {
             "value": "${FABRIC_CAPACITY_SKU=F2}"
         },

@@ -45,6 +45,16 @@ class Settings(BaseSettings):  # noqa: D101
     azure_ai_project_endpoint: str | None = Field(
         default=None, alias="AZURE_AI_PROJECT")
 
+    # Foundry agents
+    # Model deployment used by the new Foundry prompt agents. Falls back to the
+    # chat deployment when unset.
+    foundry_agent_model: str | None = Field(
+        default=None, alias="FOUNDRY_AGENT_MODEL")
+    # Register and run the new Foundry agents (project.agents.create_version)
+    # rather than the classic Assistants-style agents.
+    use_foundry_agents: bool = Field(
+        default=False, alias="USE_FOUNDRY_AGENTS")
+
     # Evaluation behaviour
     enable_evaluation: bool = Field(
         default=True, alias="ENABLE_EVALUATION")
