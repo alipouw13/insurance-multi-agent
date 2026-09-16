@@ -99,6 +99,12 @@ Upload and run `create_data_agent.ipynb` in your Fabric workspace. This notebook
 - Adds example queries (few-shot examples for better SQL generation)
 - Publishes the agent
 
+> **Run it interactively.** The first cell uses `%pip install -U fabric-data-agent-sdk`,
+> and inline `%pip` installs only work in an interactive notebook session. Scheduled or
+> API-triggered (`RunNotebook`) job runs fail with
+> `System_Cancelled_Session_Statements_Failed`. To run it as a job instead, attach a
+> Fabric Environment that has `fabric-data-agent-sdk` installed and remove the `%pip` cell.
+
 **Option B - Manual in Fabric UI:**
 
 Use the configuration files in `agent_config/` folder to manually configure your Data Agent:

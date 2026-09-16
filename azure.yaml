@@ -11,35 +11,64 @@ services:
     project: ./backend
     language: python
     host: containerapp
-    env:
-      FRONTEND_ORIGIN: "{{ .Env.FRONTEND_ORIGIN }}"
+    docker:
+      remoteBuild: true
   web:
     project: ./frontend
     language: js
     host: containerapp
+    docker:
+      remoteBuild: true
 
 hooks:
   postprovision:
-    shell: sh
-    run: |
-      echo "Setting container registry endpoint..."
-      azd env set AZURE_CONTAINER_REGISTRY_ENDPOINT $(azd env get-value containerRegistryLoginServer)
-      echo "Setting frontend origin for CORS..."
-      azd env set FRONTEND_ORIGIN "https://$(azd env get-value frontendContainerAppFqdn)"
-      echo "Setting Azure service endpoints..."
-      azd env set AZURE_OPENAI_ENDPOINT $(azd env get-value openAIEndpoint)
-      azd env set AZURE_STORAGE_ACCOUNT_NAME $(azd env get-value storageAccountName)
-      azd env set AZURE_SEARCH_ENDPOINT $(azd env get-value searchServiceEndpoint)
-      azd env set AZURE_COSMOS_ENDPOINT $(azd env get-value cosmosAccountEndpoint)
-      azd env set AZURE_AI_PROJECT_NAME $(azd env get-value aiProjectName)
-      azd env set AZURE_AI_HUB_NAME $(azd env get-value aiHubName)
-    continueOnError: false
-  
+    posix:
+      shell: sh
+      run: |
+        echo "Setting container registry endpoint..."
+        azd env set AZURE_CONTAINER_REGISTRY_ENDPOINT $(azd env get-value containerRegistryLoginServer)
+        echo "Setting frontend origin for CORS..."
+        azd env set FRONTEND_ORIGIN "https://$(azd env get-value frontendContainerAppFqdn)"
+        echo "Setting Azure service endpoints..."
+        azd env set AZURE_OPENAI_ENDPOINT $(azd env get-value openAIEndpoint)
+        azd env set AZURE_STORAGE_ACCOUNT_NAME $(azd env get-value storageAccountName)
+        azd env set AZURE_SEARCH_ENDPOINT $(azd env get-value searchServiceEndpoint)
+        azd env set AZURE_COSMOS_ENDPOINT $(azd env get-value cosmosAccountEndpoint)
+        azd env set AZURE_AI_PROJECT_NAME $(azd env get-value aiProjectName)
+        azd env set AZURE_AI_HUB_NAME $(azd env get-value aiHubName)
+        azd env set FABRIC_CAPACITY_NAME $(azd env get-value fabricCapacityName)
+      continueOnError: false
+    windows:
+      shell: pwsh
+      run: |
+        Write-Host "Setting container registry endpoint..."
+        azd env set AZURE_CONTAINER_REGISTRY_ENDPOINT (azd env get-value containerRegistryLoginServer)
+        Write-Host "Setting frontend origin for CORS..."
+        azd env set FRONTEND_ORIGIN "https://$(azd env get-value frontendContainerAppFqdn)"
+        Write-Host "Setting Azure service endpoints..."
+        azd env set AZURE_OPENAI_ENDPOINT (azd env get-value openAIEndpoint)
+        azd env set AZURE_STORAGE_ACCOUNT_NAME (azd env get-value storageAccountName)
+        azd env set AZURE_SEARCH_ENDPOINT (azd env get-value searchServiceEndpoint)
+        azd env set AZURE_COSMOS_ENDPOINT (azd env get-value cosmosAccountEndpoint)
+        azd env set AZURE_AI_PROJECT_NAME (azd env get-value aiProjectName)
+        azd env set AZURE_AI_HUB_NAME (azd env get-value aiHubName)
+        azd env set FABRIC_CAPACITY_NAME (azd env get-value fabricCapacityName)
+      continueOnError: false
+
   postdeploy:
-    shell: sh
-    run: |
-      echo "Initializing AI Search index..."
-      echo "Building policy document index..."
-      cd backend
-      python build_policy_index.py
-    continueOnError: true
+    posix:
+      shell: sh
+      run: |
+        echo "Initializing AI Search index..."
+        echo "Building policy document index..."
+        cd backend
+        python build_policy_index.py
+      continueOnError: true
+    windows:
+      shell: pwsh
+      run: |
+        Write-Host "Initializing AI Search index..."
+        Write-Host "Building policy document index..."
+        Set-Location backend
+        python build_policy_index.py
+      continueOnError: true

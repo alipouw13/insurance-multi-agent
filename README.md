@@ -545,11 +545,51 @@ This will:
 
 ### Infrastructure
 The deployment creates:
-- **Container Apps Environment** with consumption-based scaling
+- **Container Apps Environment** with consumption-based scaling, integrated into a virtual network
 - **Azure Container Registry** for image storage
-- **Managed Identity** for secure registry access
+- **Managed Identity** for secure registry and data-plane access
 - **Log Analytics Workspace** for monitoring
 - **HTTPS endpoints** with automatic SSL certificates
+- **Azure OpenAI** (`gpt-4.1-mini` + `text-embedding-3-large`), **Azure AI Search**, **Cosmos DB**, **Storage**, and an **AI Foundry hub/project**
+- **Microsoft Fabric capacity** (`F2` by default) for the Claims Data Analyst agent
+- **Virtual network with private endpoints** for Cosmos DB and Storage
+
+### Authentication model
+The backend authenticates to Azure OpenAI, AI Search, Cosmos DB, and Storage with its
+user-assigned **managed identity** (`AZURE_CLIENT_ID` is set on the container app so
+`DefaultAzureCredential` selects it). No API keys are deployed. Local development can
+still use `AZURE_OPENAI_API_KEY` or a service principal — when those settings are
+present they take precedence, otherwise Microsoft Entra ID is used.
+
+> **Note:** Many tenants apply policies that disable key-based authentication and
+> public network access on Cosmos DB and Storage. The infrastructure therefore
+> deploys a virtual network with private endpoints so the container apps can still
+> reach those services.
+
+### Microsoft Fabric capacity
+A Fabric capacity is provisioned as part of `azd up` because Fabric data agents
+require a **paid F2 or higher capacity**. Configure it with these azd environment values:
+
+| Variable | Default | Purpose |
+|----------|---------|---------|
+| `FABRIC_CAPACITY_SKU` | `F2` | Capacity SKU (F2 is the minimum for data agents) |
+| `FABRIC_CAPACITY_ADMIN_MEMBER` | _(empty)_ | UPN or service principal object ID that administers the capacity |
+
+```bash
+azd env set FABRIC_CAPACITY_ADMIN_MEMBER you@contoso.com
+azd env set FABRIC_CAPACITY_SKU F2
+```
+
+To skip the capacity entirely, set the `deployFabricCapacity` Bicep parameter to `false`.
+The capacity can be paused in the Azure portal when the demo is not in use to avoid charges.
+
+After the capacity exists, follow [`backend/fabric/README.md`](backend/fabric/README.md)
+to create the workspace, lakehouse, and data agent, then set `USE_FABRIC_DATA_AGENT=true`.
+
+> **Note:** The Fabric data agent authenticates with **user identity only** (service
+> principals and managed identities are not supported). Run the backend locally after
+> `az login` when demonstrating the Claims Data Analyst agent; the deployed container
+> app falls back to demo data.
 
 ## License
 
