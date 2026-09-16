@@ -44,3 +44,4 @@ backend/app/workflow/data/uploaded_docs/policies/*
 
 # Purview generated files
 purview-guids.xlsx
+.venv-*/
